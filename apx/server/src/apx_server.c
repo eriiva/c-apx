@@ -133,10 +133,11 @@ static void apx_server_accept(void *arg,msocket_server_t *srv,msocket_t *msocket
          {
             apx_serverConnection_setDebugMode(newConnection, self->debugMode);
          }
+         //activate internal handler
+         apx_serverConnection_start(newConnection);
+
          //now that the handler is setup, start the internal listening thread in the msocket
          msocket_start_io(msocket);
-         //trigger the new connection to send the greeting message (in case there is any to be sent)
-         apx_serverConnection_start(newConnection);
       }
       else
       {
@@ -163,8 +164,7 @@ static void apx_server_disconnected(void *arg)
       apx_server_t *server = connection->server;
       MUTEX_LOCK(server->mutex);
       adt_list_remove(&server->connections, connection);
-      //the thread inside the msocket class cannot shutdown itself, instead use the cleanup thread to do the job of shutting it down
-      apx_nodeManager_detachFileManager(&server->nodeManager, &connection->fileManager);
+      apx_nodeManager_shutdownFileManager(&server->nodeManager, &connection->fileManager);
       switch (connection->msocket->addressFamily)
       {
          APX_LOG_INFO("[APX_SERVER] Client (%p) disconnected", (void*)connection);
