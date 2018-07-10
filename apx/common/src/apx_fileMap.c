@@ -142,7 +142,7 @@ int8_t apx_fileMap_insertFile(apx_fileMap_t *self, apx_file_t *pFile)
                return -1;
             }
             //it should now be safe to insert the file before pIter
-            adt_list_insertBefore(&self->fileList, pIter, pFile);
+            adt_list_insert_before(&self->fileList, pIter, pFile);
          }
          else
          {
@@ -241,9 +241,9 @@ void  apx_fileMap_clear_weak(apx_fileMap_t *self)
 {
    if (self != 0)
    {
-      adt_list_destructorEnable(&self->fileList, false);
+      adt_list_destructor_enable(&self->fileList, false);
       adt_list_clear(&self->fileList);
-      adt_list_destructorEnable(&self->fileList, true);
+      adt_list_destructor_enable(&self->fileList, true);
    }
 }
 

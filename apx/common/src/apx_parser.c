@@ -63,9 +63,9 @@ void apx_parser_clearNodes(apx_parser_t *self)
    if (self != 0)
    {
       //clears the list without trigger any calls to destructor
-      adt_ary_destructorEnable(&self->nodeList, 0);
+      adt_ary_destructor_enable(&self->nodeList, false);
       adt_ary_clear(&self->nodeList);
-      adt_ary_destructorEnable(&self->nodeList, 1);
+      adt_ary_destructor_enable(&self->nodeList, true);
    }
 }
 
