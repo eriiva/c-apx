@@ -31,9 +31,20 @@
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
 
+//forward declarations
+struct apx_file_tag;
+
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+typedef struct apx_eventListener_tag
+{
+   void (*fileCreate)(uint32_t fmid, struct apx_file_tag *file);
+   void (*fileRevoke)(uint32_t fmid, struct apx_file_tag *file);
+   void (*fileOpen)(uint32_t fmid, struct apx_file_tag *file);
+   void (*fileClose)(uint32_t fmid, struct apx_file_tag *file);
+   void (*fileWrite)(uint32_t fmid, struct apx_file_tag *file, uint32_t offset, int32_t length);
+}apx_eventListener_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES

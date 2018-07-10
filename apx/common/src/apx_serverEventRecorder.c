@@ -54,12 +54,12 @@
 //////////////////////////////////////////////////////////////////////////////
 void apx_serverEventRecorder_create(apx_serverEventRecorder_t *self, struct apx_fileManager_tag *parent)
 {
-   if ( (self != 0) && (self->parent != 0) )
+   if ( (self != 0) && (parent != 0) )
    {
       apx_file_t *apx_file;
       rmf_fileInfo_t info;
       self->parent = parent;
-      rmf_fileInfo_create(&info, APX_EVENT_SRV_FILE_NAME, APX_EVENT_FILE_ADDRESS, APX_EVENT_FILE_LEN, RMF_FILE_TYPE_STREAM);
+      rmf_fileInfo_create(&info, APX_EVENT_SRV_FILE_NAME, APX_RMF_EVENT_FILE_ADDRESS, APX_EVENT_FILE_LEN, RMF_FILE_TYPE_STREAM);
       apx_file = apx_file_new(APX_EVENT_FILE, &info);
       if (apx_file != 0)
       {

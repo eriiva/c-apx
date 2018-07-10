@@ -40,7 +40,7 @@
 #define APX_EVENT_SRV_FILE_NAME "apx_srv.event"
 #define APX_EVENT_CLI_FILE_NAME "apx_cli.event"
 #define APX_EVENT_FILE_LEN 0x200000 //2MB
-#define APX_EVENT_FILE_ADDRESS 0x3FDFFC00
+#define APX_RMF_EVENT_FILE_ADDRESS 0x3FDFFC00
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES

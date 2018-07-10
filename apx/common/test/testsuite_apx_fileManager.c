@@ -62,7 +62,7 @@ static void test_apx_fileManager_server_create(CuTest* tc)
    CuAssertIntEquals(tc, 1, apx_fileMap_length(fileMap));
    file1 = apx_fileMap_findByName(fileMap, APX_EVENT_SRV_FILE_NAME);
    CuAssertPtrNotNull(tc, file1);
-   file2 = apx_fileMap_findByAddress(fileMap, APX_EVENT_FILE_ADDRESS);
+   file2 = apx_fileMap_findByAddress(fileMap, APX_RMF_EVENT_FILE_ADDRESS);
    CuAssertPtrNotNull(tc, file2);
    CuAssertPtrEquals(tc, file1, file2);
    apx_fileManager_destroy(&manager);
