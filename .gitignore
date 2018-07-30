@@ -5,4 +5,6 @@
 **.vs/
 *.VC.db
 *.VC.opendb
+*.exe.stackdump
+language.settings.xml
 CMemLeak.txt
