@@ -156,6 +156,7 @@
     <ClCompile Include="..\..\..\..\adt\src\adt_bytearray.c" />
     <ClCompile Include="..\..\..\..\adt\src\adt_hash.c" />
     <ClCompile Include="..\..\..\..\adt\src\adt_list.c" />
+    <ClCompile Include="..\..\..\..\adt\src\adt_set.c" />
     <ClCompile Include="..\..\..\..\adt\src\adt_stack.c" />
     <ClCompile Include="..\..\..\..\adt\src\adt_str.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_allocator.c" />
@@ -211,6 +212,7 @@
     <ClInclude Include="..\..\..\..\adt\inc\adt_bytearray.h" />
     <ClInclude Include="..\..\..\..\adt\inc\adt_hash.h" />
     <ClInclude Include="..\..\..\..\adt\inc\adt_list.h" />
+    <ClInclude Include="..\..\..\..\adt\inc\adt_set.h" />
     <ClInclude Include="..\..\..\..\adt\inc\adt_stack.h" />
     <ClInclude Include="..\..\..\..\adt\inc\adt_str.h" />
     <ClInclude Include="..\..\..\..\apx\common\inc\apx_allocator.h" />

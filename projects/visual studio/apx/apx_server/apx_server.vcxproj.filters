@@ -237,6 +237,9 @@
     <ClCompile Include="..\..\..\..\apx\common\src\apx_clientEventRecorder.c">
       <Filter>apx\common\src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\adt\src\adt_set.c">
+      <Filter>adt\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\adt\inc\adt_ary.h">
@@ -439,6 +442,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\apx\common\inc\apx_serverEventRecorder.h">
       <Filter>apx\common\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\adt\inc\adt_set.h">
+      <Filter>adt\inc</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

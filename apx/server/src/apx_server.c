@@ -18,9 +18,14 @@ typedef struct apx_serverInfo_tag
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+static void apx_server_create_socket_servers(apx_server_t *self, uint16_t tcpPort);
+static void apx_server_destroy_socket_servers(apx_server_t *self);
+#ifndef UNIT_TEST
 static void apx_server_accept(void *arg,msocket_server_t *srv,msocket_t *msocket);
+#endif
 static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 static void apx_server_disconnected(void *arg);
+static void apx_server_cleanup_connection(apx_serverConnection_t *connection);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -34,35 +39,39 @@ static void apx_server_disconnected(void *arg);
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_server_create(apx_server_t *self, uint16_t tcpPort)
+#ifdef UNIT_TEST
+void apx_server_create(apx_server_t *self)
+#else
+void apx_server_create(apx_server_t *self, uint16_t port)
+#endif
 {
    if (self != 0)
    {
-      msocket_handler_t serverHandler;
-      adt_list_create(&self->connections,apx_serverConnection_vdelete);
-      self->tcpPort = tcpPort;
-      self->debugMode = APX_DEBUG_NONE;
-      memset(&serverHandler,0,sizeof(serverHandler));
-      msocket_server_create(&self->tcpServer,AF_INET, apx_serverConnection_vdelete);
-#ifndef _MSC_VER
-      msocket_server_create(&self->localServer,AF_LOCAL, apx_serverConnection_vdelete);
+#ifndef UNIT_TEST
+      apx_server_create_socket_servers(self, port);
+#else
+      apx_server_create_socket_servers(self, 0);
 #endif
-      serverHandler.tcp_accept = apx_server_accept;
-      msocket_server_sethandler(&self->tcpServer,&serverHandler,self);
+      adt_list_create(&self->connections,apx_serverConnection_vdelete);
+      self->debugMode = APX_DEBUG_NONE;
       apx_nodeManager_create(&self->nodeManager);
       apx_router_create(&self->router);
       apx_nodeManager_setRouter(&self->nodeManager, &self->router);
       MUTEX_INIT(self->mutex);
+      adt_u32Set_create(&self->connectionIdSet);
+      self->nextConnectionId = 0u;
    }
 }
 
 
 void apx_server_start(apx_server_t *self)
 {
+#ifndef UNIT_TEST
    if (self != 0)
    {
       msocket_server_start(&self->tcpServer,0,0,self->tcpPort);
    }
+#endif
 }
 
 void apx_server_destroy(apx_server_t *self)
@@ -71,12 +80,7 @@ void apx_server_destroy(apx_server_t *self)
    {
       //close and delete all open server connections
       adt_list_destroy(&self->connections);
-      //destroy the tcp server
-      msocket_server_destroy(&self->tcpServer);
-      //destroy the local socket server
-#ifndef _MSC_VER
-      msocket_server_destroy(&self->localServer);
-#endif
+      apx_server_destroy_socket_servers(self);
       apx_nodeManager_destroy(&self->nodeManager);
       apx_router_destroy(&self->router);
       MUTEX_DESTROY(self->mutex);
@@ -93,12 +97,60 @@ void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode)
    }
 }
 
+#ifdef UNIT_TEST
+void apx_server_accept_test_socket(apx_server_t *self, testsocket_t *socket)
+{
+   if (self != 0)
+   {
+      apx_serverConnection_t *newConnection = apx_serverConnection_new(socket, self);
+      if (newConnection != 0)
+      {
+         msocket_handler_t handlerTable;
+         adt_list_insert(&self->connections, newConnection);
+         memset(&handlerTable,0,sizeof(handlerTable));
+         handlerTable.tcp_data = apx_server_data;
+         handlerTable.tcp_disconnected = apx_server_disconnected;
+         testsocket_setServerHandler(socket, &handlerTable, newConnection);
+         apx_serverConnection_start(newConnection);
+      }
+   }
+}
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
-static void apx_server_accept(void *arg,msocket_server_t *srv,msocket_t *msocket)
+static void apx_server_create_socket_servers(apx_server_t *self, uint16_t tcpPort)
+{
+#ifndef UNIT_TEST
+   msocket_handler_t serverHandler;
+   self->tcpPort = tcpPort;
+   memset(&serverHandler,0,sizeof(serverHandler));
+   msocket_server_create(&self->tcpServer,AF_INET, apx_serverConnection_vdelete);
+# ifndef _MSC_VER
+   msocket_server_create(&self->localServer,AF_LOCAL, apx_serverConnection_vdelete);
+# endif
+   serverHandler.tcp_accept = apx_server_accept;
+   msocket_server_sethandler(&self->tcpServer,&serverHandler,self);
+#endif
+}
+
+static void apx_server_destroy_socket_servers(apx_server_t *self)
+{
+#ifndef UNIT_TEST
+   //destroy the tcp server
+   msocket_server_destroy(&self->tcpServer);
+   //destroy the local socket server
+# ifndef _MSC_VER
+   msocket_server_destroy(&self->localServer);
+# endif
+#endif
+}
+
+#ifndef UNIT_TEST
+static void apx_server_accept(void *arg, msocket_server_t *srv,msocket_t *msocket)
 {
    apx_server_t *self = (apx_server_t*) arg;
    if (self != 0)
@@ -145,6 +197,7 @@ static void apx_server_accept(void *arg,msocket_server_t *srv,msocket_t *msocket
       }
    }
 }
+#endif
 
 static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
 {
@@ -157,30 +210,36 @@ static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLe
  */
 static void apx_server_disconnected(void *arg)
 {
-   apx_serverConnection_t *connection;   
-   connection = (apx_serverConnection_t*) arg;
+   apx_serverConnection_t *connection = (apx_serverConnection_t*) arg;
    if (connection != 0)
    {
       apx_server_t *server = connection->server;
       MUTEX_LOCK(server->mutex);
       adt_list_remove(&server->connections, connection);
       apx_nodeManager_shutdownFileManager(&server->nodeManager, &connection->fileManager);
-      switch (connection->msocket->addressFamily)
-      {
-         APX_LOG_INFO("[APX_SERVER] Client (%p) disconnected", (void*)connection);
-         case AF_INET: //intentional fallthrough
-         case AF_INET6:            
-            msocket_server_cleanup_connection(&connection->server->tcpServer, arg);
-            break;
-#ifndef _MSC_VER
-         case AF_LOCAL:
-            msocket_server_cleanup_connection(&connection->server->localServer,arg);
-            break;
-#endif
-         default:
-            break;
-      }
+      apx_server_cleanup_connection(connection);
       MUTEX_UNLOCK(server->mutex);
    }
+}
+
+static void apx_server_cleanup_connection(apx_serverConnection_t *connection)
+{
+#ifndef UNIT_TEST
+   switch (connection->msocket->addressFamily)
+   {
+      APX_LOG_INFO("[APX_SERVER] Client (%p) disconnected", (void*)connection);
+      case AF_INET: //intentional fallthrough
+      case AF_INET6:
+         msocket_server_cleanup_connection(&connection->server->tcpServer, (void*) connection);
+         break;
+# ifndef _MSC_VER
+      case AF_LOCAL:
+         msocket_server_cleanup_connection(&connection->server->localServer, (void*) connection);
+         break;
+# endif
+      default:
+         break;
+   }
+#endif
 }
 

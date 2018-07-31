@@ -7,7 +7,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "CuTest.h"
-#include "apx_testServer.h"
+#include "apx_server.h"
 #include "rmf.h"
 #ifdef _WIN32
 #include <Windows.h>
@@ -27,8 +27,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_testServer_create(CuTest* tc);
-static void test_apx_testServer_greeting(CuTest* tc);
+static void test_apx_server_create(CuTest* tc);
+static void test_apx_server_greeting(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -44,12 +44,12 @@ static void test_apx_testServer_greeting(CuTest* tc);
 //////////////////////////////////////////////////////////////////////////////
 
 
-CuSuite* testSuite_apx_testServer(void)
+CuSuite* testSuite_apx_server(void)
 {
    CuSuite* suite = CuSuiteNew();
 
-   SUITE_ADD_TEST(suite, test_apx_testServer_create);
-   SUITE_ADD_TEST(suite, test_apx_testServer_greeting);
+   SUITE_ADD_TEST(suite, test_apx_server_create);
+   SUITE_ADD_TEST(suite, test_apx_server_greeting);
 
    return suite;
 }
@@ -57,16 +57,18 @@ CuSuite* testSuite_apx_testServer(void)
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_testServer_create(CuTest* tc)
+static void test_apx_server_create(CuTest* tc)
 {
-   apx_testServer_t server;
-   apx_testServer_create(&server);
-   apx_testServer_destroy(&server);
+   apx_server_t server;
+   apx_server_create(&server);
+   CuAssertTrue(tc, adt_u32Set_is_empty(&server.connectionIdSet));
+   CuAssertUIntEquals(tc, 0, server.nextConnectionId);
+   apx_server_destroy(&server);
 }
 
-static void test_apx_testServer_greeting(CuTest* tc)
+static void test_apx_server_greeting(CuTest* tc)
 {
-   apx_testServer_t server;
+   apx_server_t server;
    testsocket_t *socket;
    uint8_t *sendBuffer;
    uint32_t greetingLen;
@@ -79,9 +81,9 @@ static void test_apx_testServer_greeting(CuTest* tc)
    int fileNameLen;
    char greeting[RMF_GREETING_MAX_LEN];
    socket = testsocket_new();
-   apx_testServer_create(&server);
+   apx_server_create(&server);
    CuAssertIntEquals(tc, 0, adt_bytearray_length(&socket->pendingServer));
-   apx_testServer_accept(&server, socket);
+   apx_server_accept_test_socket(&server, socket);
    strcpy(greeting, RMF_GREETING_START);
    //headers end with an additional newline
    strcat(greeting, "\n");
@@ -107,7 +109,7 @@ static void test_apx_testServer_greeting(CuTest* tc)
    i32Result = rmf_serialize_acknowledge(&expectedArray[4], sizeof(expectedArray));
    CuAssertIntEquals(tc, 4, i32Result);
    CuAssertIntEquals(tc, 0, memcmp(&expectedArray[0], &data[1], 8));
-   apx_testServer_destroy(&server);
+   apx_server_destroy(&server);
    free(sendBuffer);
 }
 

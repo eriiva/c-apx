@@ -8,7 +8,7 @@
 #include <string.h>
 #include "CuTest.h"
 #include "apx_clientSession.h"
-#include "apx_testServer.h"
+#include "apx_server.h"
 #ifdef _WIN32
 #include <Windows.h>
 #else

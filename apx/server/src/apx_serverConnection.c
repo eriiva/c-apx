@@ -11,11 +11,7 @@
 #include <stdio.h>
 #include "apx_serverConnection.h"
 #include "apx_logging.h"
-#ifdef UNIT_TEST
-#include "apx_testServer.h"
-#else
 #include "apx_server.h"
-#endif
 #include "headerutil.h"
 #include "bstr.h"
 #ifdef MEM_LEAK_CHECK
@@ -56,7 +52,7 @@ static int32_t apx_serverConnection_send(void *arg, int32_t offset, int32_t msgL
 // GLOBAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 #ifdef UNIT_TEST
-int8_t apx_serverConnection_create(apx_serverConnection_t *self, testsocket_t *socket, struct apx_testServer_tag *server)
+int8_t apx_serverConnection_create(apx_serverConnection_t *self, testsocket_t *socket, struct apx_server_tag *server)
 #else
 int8_t apx_serverConnection_create(apx_serverConnection_t *self, msocket_t *socket, struct apx_server_tag *server)
 #endif
@@ -94,7 +90,7 @@ void apx_serverConnection_destroy(apx_serverConnection_t *self)
 }
 
 #ifdef UNIT_TEST
-apx_serverConnection_t *apx_serverConnection_new(testsocket_t *socket, struct apx_testServer_tag *server)
+apx_serverConnection_t *apx_serverConnection_new(testsocket_t *socket, struct apx_server_tag *server)
 #else
 apx_serverConnection_t *apx_serverConnection_new(msocket_t *socket, struct apx_server_tag *server)
 #endif

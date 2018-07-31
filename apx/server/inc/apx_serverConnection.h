@@ -26,14 +26,13 @@
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 struct apx_server_tag;
-struct apx_testServer_tag;
 
 typedef struct apx_serverConnection_tag
 {
    apx_fileManager_t fileManager;
 #ifdef UNIT_TEST
    testsocket_t *testsocket;
-   struct apx_testServer_tag *server;
+   struct apx_server_tag *server;
 #else
    msocket_t *msocket;
    struct apx_server_tag *server;
@@ -54,13 +53,13 @@ typedef struct apx_serverConnection_tag
 // GLOBAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 #ifdef UNIT_TEST
-int8_t apx_serverConnection_create(apx_serverConnection_t *self, testsocket_t *socket, struct apx_testServer_tag *server);
+int8_t apx_serverConnection_create(apx_serverConnection_t *self, testsocket_t *socket, struct apx_server_tag *server);
 #else
 int8_t apx_serverConnection_create(apx_serverConnection_t *self, msocket_t *socket, struct apx_server_tag *server);
 #endif
 void apx_serverConnection_destroy(apx_serverConnection_t *self);
 #ifdef UNIT_TEST
-apx_serverConnection_t *apx_serverConnection_new(testsocket_t *socket, struct apx_testServer_tag *server);
+apx_serverConnection_t *apx_serverConnection_new(testsocket_t *socket, struct apx_server_tag *server);
 #else
 apx_serverConnection_t *apx_serverConnection_new(msocket_t *socket, struct apx_server_tag *server);
 #endif
