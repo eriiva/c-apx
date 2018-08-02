@@ -31,14 +31,17 @@ typedef struct apx_server_tag
    msocket_server_t tcpServer; //tcp server
    msocket_server_t localServer; //unix domain socket server (to be implemented later)
 #endif
-   MUTEX_T mutex;
+   MUTEX_T lock;
    adt_list_t connections; //linked list of strong references to apx_serverConnection_t
    apx_nodeManager_t nodeManager; //the server has a single instance of the node manager, all connections interface with this object
    apx_router_t router; //this component handles all routing tables within the server
    int8_t debugMode;
    adt_u32Set_t connectionIdSet;
    uint32_t nextConnectionId;
+   uint32_t numConnections;
 }apx_server_t;
+
+#define APX_SERVER_MAX_CONCURRENT_CONNECTIONS 10000
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -55,9 +58,10 @@ void apx_server_create(apx_server_t *self, uint16_t port);
 #endif
 void apx_server_destroy(apx_server_t *self);
 void apx_server_start(apx_server_t *self);
-void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode);
+void apx_server_set_debug_mode(apx_server_t *self, int8_t debugMode);
 #ifdef UNIT_TEST
 void apx_server_accept_test_socket(apx_server_t *self, testsocket_t *socket);
+apx_serverConnection_t *apx_server_get_last_connection(apx_server_t *self);
 #endif
 
 

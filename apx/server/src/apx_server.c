@@ -4,7 +4,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_server.h"
 #include "apx_logging.h"
-#include <stdio.h>
+#include <assert.h>
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -15,17 +15,31 @@ typedef struct apx_serverInfo_tag
    uint8_t addressFamily;
 }apx_serverInfo_t;
 
+struct msocket_server_tag;
+
+#ifdef UNIT_TEST
+#define SOCKET_TYPE testsocket_t
+#define SOCKET_DELETE testsocket_delete
+#define SOCKET_START_IO(x)
+#define SOCKET_SET_HANDLER testsocket_setServerHandler
+#else
+#define SOCKET_DELETE msocket_delete
+#define SOCKET_TYPE msocket_t
+#define SOCKET_START_IO(x) msocket_start_io(x)
+#define SOCKET_SET_HANDLER msocket_sethandler
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void apx_server_create_socket_servers(apx_server_t *self, uint16_t tcpPort);
 static void apx_server_destroy_socket_servers(apx_server_t *self);
-#ifndef UNIT_TEST
-static void apx_server_accept(void *arg,msocket_server_t *srv,msocket_t *msocket);
-#endif
+static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_TYPE *sock);
+static apx_serverConnection_t *apx_server_create_new_connection(apx_server_t *self, SOCKET_TYPE *sock);
 static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 static void apx_server_disconnected(void *arg);
 static void apx_server_cleanup_connection(apx_serverConnection_t *connection);
+static uint32_t apx_server_generate_connection_id(apx_server_t *self);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -57,9 +71,10 @@ void apx_server_create(apx_server_t *self, uint16_t port)
       apx_nodeManager_create(&self->nodeManager);
       apx_router_create(&self->router);
       apx_nodeManager_setRouter(&self->nodeManager, &self->router);
-      MUTEX_INIT(self->mutex);
+      MUTEX_INIT(self->lock);
       adt_u32Set_create(&self->connectionIdSet);
       self->nextConnectionId = 0u;
+      self->numConnections = 0u;
    }
 }
 
@@ -80,14 +95,15 @@ void apx_server_destroy(apx_server_t *self)
    {
       //close and delete all open server connections
       adt_list_destroy(&self->connections);
+      adt_u32Set_destroy(&self->connectionIdSet);
       apx_server_destroy_socket_servers(self);
       apx_nodeManager_destroy(&self->nodeManager);
       apx_router_destroy(&self->router);
-      MUTEX_DESTROY(self->mutex);
+      MUTEX_DESTROY(self->lock);
    }
 }
 
-void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode)
+void apx_server_set_debug_mode(apx_server_t *self, int8_t debugMode)
 {
    if (self != 0)
    {
@@ -100,20 +116,20 @@ void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode)
 #ifdef UNIT_TEST
 void apx_server_accept_test_socket(apx_server_t *self, testsocket_t *socket)
 {
+   apx_server_accept((void*) self, (struct msocket_server_tag*) 0, socket);
+}
+
+apx_serverConnection_t *apx_server_get_last_connection(apx_server_t *self)
+{
    if (self != 0)
    {
-      apx_serverConnection_t *newConnection = apx_serverConnection_new(socket, self);
-      if (newConnection != 0)
+      adt_list_elem_t *elem = adt_list_last(&self->connections);
+      if (elem != 0)
       {
-         msocket_handler_t handlerTable;
-         adt_list_insert(&self->connections, newConnection);
-         memset(&handlerTable,0,sizeof(handlerTable));
-         handlerTable.tcp_data = apx_server_data;
-         handlerTable.tcp_disconnected = apx_server_disconnected;
-         testsocket_setServerHandler(socket, &handlerTable, newConnection);
-         apx_serverConnection_start(newConnection);
+         return (apx_serverConnection_t*) elem->pItem;
       }
    }
+   return (apx_serverConnection_t*) 0;
 }
 #endif
 
@@ -149,55 +165,71 @@ static void apx_server_destroy_socket_servers(apx_server_t *self)
 #endif
 }
 
-#ifndef UNIT_TEST
-static void apx_server_accept(void *arg, msocket_server_t *srv,msocket_t *msocket)
+static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_TYPE *sock)
 {
    apx_server_t *self = (apx_server_t*) arg;
    if (self != 0)
    {
-      apx_serverConnection_t *newConnection = apx_serverConnection_new(msocket, self);
-
-      if (newConnection != 0)
+      if (self->numConnections < APX_SERVER_MAX_CONCURRENT_CONNECTIONS)
       {
-         msocket_handler_t handlerTable;
-
-         //add it to our list of connections. The linked list is used to keep track of all open connections
-         adt_list_insert(&self->connections,newConnection);
-
-         //attach our (single) instance of the nodeManager with the connection
-         //apx_serverConnection_attachNodeManager()
-
-         //on the new msocket, setup its vtable of handler functions.
-         memset(&handlerTable,0,sizeof(handlerTable));
-         handlerTable.tcp_data = apx_server_data;
-         handlerTable.tcp_disconnected = apx_server_disconnected;
-         msocket_sethandler(msocket, &handlerTable, newConnection);
-
-         if (msocket->addressFamily == AF_INET)
+         apx_serverConnection_t *newConnection = apx_server_create_new_connection(self, sock);
+         if (newConnection != 0)
          {
-            APX_LOG_INFO("[APX_SERVER] New connection (%p) from %s", (void*) newConnection, msocket->tcpInfo.addr);
+            apx_fileManager_t *fileManager;
+   #ifndef UNIT_TEST
+            if (sock->addressFamily == AF_INET)
+            {
+               APX_LOG_INFO("[APX_SERVER] New connection (%p) from %s", (void*) newConnection, sock->tcpInfo.addr);
+            }
+            else
+            {
+               APX_LOG_INFO("[APX_SERVER] New connection (%p)", (void*)newConnection);
+            }
+            if (self->debugMode > APX_DEBUG_NONE)
+            {
+               apx_serverConnection_setDebugMode(newConnection, self->debugMode);
+            }
+   #endif
+            fileManager = apx_serverConnection_getFileManager(newConnection);
+            apx_nodeManager_attachFileManager(&self->nodeManager, fileManager);
+            apx_serverConnection_start(newConnection);
+            SOCKET_START_IO(sock);
          }
          else
          {
-            APX_LOG_INFO("[APX_SERVER] New connection (%p)", (void*)newConnection);
+   #ifndef UNIT_TEST
+            APX_LOG_ERROR("[APX_SERVER] %s", "apx_serverConnection_new() returned 0");
+   #endif
          }
-         if (self->debugMode > APX_DEBUG_NONE)
-         {
-            apx_serverConnection_setDebugMode(newConnection, self->debugMode);
-         }
-         //activate internal handler
-         apx_serverConnection_start(newConnection);
-
-         //now that the handler is setup, start the internal listening thread in the msocket
-         msocket_start_io(msocket);
-      }
-      else
-      {
-         APX_LOG_ERROR("[APX_SERVER] %s", "apx_serverConnection_new() returned 0");
       }
    }
 }
-#endif
+
+
+static apx_serverConnection_t *apx_server_create_new_connection(apx_server_t *self, SOCKET_TYPE *sock)
+{
+
+   uint32_t connectionId;
+   apx_serverConnection_t *newConnection;
+
+   connectionId = apx_server_generate_connection_id(self);
+
+   newConnection = apx_serverConnection_new(connectionId, sock, self);
+
+   if (newConnection != 0)
+   {
+      msocket_handler_t handlerTable;
+      self->numConnections++;
+      //add it to our list of connections. The linked list is used to keep track of all open connections
+      adt_list_insert(&self->connections, newConnection);
+      memset(&handlerTable,0,sizeof(handlerTable));
+      handlerTable.tcp_data = apx_server_data;
+      handlerTable.tcp_disconnected = apx_server_disconnected;
+      SOCKET_SET_HANDLER(sock, &handlerTable, newConnection);
+   }
+   return newConnection;
+}
+
 
 static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
 {
@@ -214,18 +246,20 @@ static void apx_server_disconnected(void *arg)
    if (connection != 0)
    {
       apx_server_t *server = connection->server;
-      MUTEX_LOCK(server->mutex);
+      assert(server->numConnections > 0);
+      MUTEX_LOCK(server->lock);
       adt_list_remove(&server->connections, connection);
+      server->numConnections--;
       apx_nodeManager_shutdownFileManager(&server->nodeManager, &connection->fileManager);
       apx_server_cleanup_connection(connection);
-      MUTEX_UNLOCK(server->mutex);
+      MUTEX_UNLOCK(server->lock);
    }
 }
 
 static void apx_server_cleanup_connection(apx_serverConnection_t *connection)
 {
 #ifndef UNIT_TEST
-   switch (connection->msocket->addressFamily)
+   switch (connection->socketObject->addressFamily)
    {
       APX_LOG_INFO("[APX_SERVER] Client (%p) disconnected", (void*)connection);
       case AF_INET: //intentional fallthrough
@@ -243,3 +277,22 @@ static void apx_server_cleanup_connection(apx_serverConnection_t *connection)
 #endif
 }
 
+/**
+ * Generates a unique connection ID by comparing ID candidates against its internal set data structure
+ * This function assumes that APX_SERVER_MAX_CONCURRENT_CONNECTIONS is much less than 2^32-1 and that the caller has previously checked that
+ * self->numConnections < APX_SERVER_MAX_CONCURRENT_CONNECTIONS
+ */
+static uint32_t apx_server_generate_connection_id(apx_server_t *self)
+{
+   for(;;)
+   {
+      bool result = adt_u32Set_contains(&self->connectionIdSet, self->nextConnectionId);
+      if (result == false)
+      {
+         adt_u32Set_insert(&self->connectionIdSet, self->nextConnectionId);
+         break;
+      }
+      self->nextConnectionId++;
+   }
+   return self->nextConnectionId;
+}

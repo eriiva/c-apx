@@ -100,6 +100,9 @@
     <Filter Include="apx\client\src">
       <UniqueIdentifier>{dcfa5f03-11fa-482c-af1b-ffbdbb810094}</UniqueIdentifier>
     </Filter>
+    <Filter Include="util\test">
+      <UniqueIdentifier>{a1c8f2b1-81b0-4c2f-8776-6a815adb10e8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\apx\common\test\test_main.c">
@@ -282,12 +285,6 @@
     <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_dataElement.c">
       <Filter>apx\common\test</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\apx\server\test\testsuite_apx_testServer.c">
-      <Filter>apx\server\test</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\apx\server\src\apx_testServer.c">
-      <Filter>apx\server\src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\apx\server\src\apx_serverConnection.c">
       <Filter>apx\server\src</Filter>
     </ClCompile>
@@ -305,6 +302,42 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\apx\client\test\testsuite_apx_sessionCmd.c">
       <Filter>apx\client\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\adt\src\adt_set.c">
+      <Filter>adt\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\apx\server\test\testsuite_apx_server.c">
+      <Filter>apx\server\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\apx\server\test\testsuite_apx_serverConnection.c">
+      <Filter>apx\server\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\util\test\testsuite_headerutil.c">
+      <Filter>util\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\util\test\testsuite_pack.c">
+      <Filter>util\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_fileManager.c">
+      <Filter>apx\common\test</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\apx\server\src\apx_server.c">
+      <Filter>apx\server\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\apx\common\src\apx_clientEventPlayer.c">
+      <Filter>apx\common\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\apx\common\src\apx_clientEventRecorder.c">
+      <Filter>apx\common\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\apx\common\src\apx_portDataBuffer.c">
+      <Filter>apx\common\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\apx\common\src\apx_serverEventPlayer.c">
+      <Filter>apx\common\src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\apx\common\src\apx_serverEventRecorder.c">
+      <Filter>apx\common\src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -490,6 +523,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\apx\client\inc\apx_cmd.h">
       <Filter>apx\client\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\adt\inc\adt_set.h">
+      <Filter>adt\inc</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

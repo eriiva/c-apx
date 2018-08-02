@@ -155,6 +155,7 @@
     <ClCompile Include="..\..\..\..\adt\src\adt_bytearray.c" />
     <ClCompile Include="..\..\..\..\adt\src\adt_hash.c" />
     <ClCompile Include="..\..\..\..\adt\src\adt_list.c" />
+    <ClCompile Include="..\..\..\..\adt\src\adt_set.c" />
     <ClCompile Include="..\..\..\..\adt\src\adt_stack.c" />
     <ClCompile Include="..\..\..\..\adt\src\adt_str.c" />
     <ClCompile Include="..\..\..\..\apx\client\src\apx_clientSession.c" />
@@ -163,6 +164,8 @@
     <ClCompile Include="..\..\..\..\apx\client\test\testsuite_apx_sessionCmd.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_allocator.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_attributeParser.c" />
+    <ClCompile Include="..\..\..\..\apx\common\src\apx_clientEventPlayer.c" />
+    <ClCompile Include="..\..\..\..\apx\common\src\apx_clientEventRecorder.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_dataElement.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_dataSignature.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_dataTrigger.c" />
@@ -178,10 +181,13 @@
     <ClCompile Include="..\..\..\..\apx\common\src\apx_parser.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_port.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_portAttributes.c" />
+    <ClCompile Include="..\..\..\..\apx\common\src\apx_portDataBuffer.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_portDataMap.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_portref.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_router.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_routerPortMapEntry.c" />
+    <ClCompile Include="..\..\..\..\apx\common\src\apx_serverEventPlayer.c" />
+    <ClCompile Include="..\..\..\..\apx\common\src\apx_serverEventRecorder.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\apx_stream.c" />
     <ClCompile Include="..\..\..\..\apx\common\src\filestream.c" />
     <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_allocator.c" />
@@ -189,6 +195,7 @@
     <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_dataElement.c" />
     <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_dataSignature.c" />
     <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_file.c" />
+    <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_fileManager.c" />
     <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_fileMap.c" />
     <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_node.c" />
     <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_nodeData.c" />
@@ -200,9 +207,10 @@
     <ClCompile Include="..\..\..\..\apx\common\test\testsuite_apx_router.c" />
     <ClCompile Include="..\..\..\..\apx\common\test\testsuite_dataTrigger.c" />
     <ClCompile Include="..\..\..\..\apx\common\test\test_main.c" />
+    <ClCompile Include="..\..\..\..\apx\server\src\apx_server.c" />
     <ClCompile Include="..\..\..\..\apx\server\src\apx_serverConnection.c" />
-    <ClCompile Include="..\..\..\..\apx\server\src\apx_testServer.c" />
-    <ClCompile Include="..\..\..\..\apx\server\test\testsuite_apx_testServer.c" />
+    <ClCompile Include="..\..\..\..\apx\server\test\testsuite_apx_server.c" />
+    <ClCompile Include="..\..\..\..\apx\server\test\testsuite_apx_serverConnection.c" />
     <ClCompile Include="..\..\..\..\bstr\src\bstr.c" />
     <ClCompile Include="..\..\..\..\cutest\CuTest.c" />
     <ClCompile Include="..\..\..\..\dtl_type\src\dtl_av.c" />
@@ -219,12 +227,15 @@
     <ClCompile Include="..\..\..\..\util\src\soa.c" />
     <ClCompile Include="..\..\..\..\util\src\soa_chunk.c" />
     <ClCompile Include="..\..\..\..\util\src\soa_fsa.c" />
+    <ClCompile Include="..\..\..\..\util\test\testsuite_headerutil.c" />
+    <ClCompile Include="..\..\..\..\util\test\testsuite_pack.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\adt\inc\adt_ary.h" />
     <ClInclude Include="..\..\..\..\adt\inc\adt_bytearray.h" />
     <ClInclude Include="..\..\..\..\adt\inc\adt_hash.h" />
     <ClInclude Include="..\..\..\..\adt\inc\adt_list.h" />
+    <ClInclude Include="..\..\..\..\adt\inc\adt_set.h" />
     <ClInclude Include="..\..\..\..\adt\inc\adt_stack.h" />
     <ClInclude Include="..\..\..\..\adt\inc\adt_str.h" />
     <ClInclude Include="..\..\..\..\apx\client\inc\apx_clientSession.h" />

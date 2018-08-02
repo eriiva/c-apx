@@ -4,21 +4,30 @@
 #ifndef APX_DEBUG_ENABLE
 #define APX_DEBUG_ENABLE 0
 #endif
+
 #include <errno.h>
 #include <malloc.h>
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
+#ifdef _MSC_VER
+# ifndef WIN32_LEAN_AND_MEAN
+# define WIN32_LEAN_AND_MEAN
+# endif
+#include <Windows.h>
+#endif
+#ifdef UNIT_TEST
+#include "testsocket.h"
+#else
+#include "msocket.h"
+#endif
 #include "apx_serverConnection.h"
 #include "apx_logging.h"
-#include "apx_server.h"
 #include "headerutil.h"
 #include "bstr.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
-
-
 
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
@@ -29,9 +38,20 @@
 #define MAX_DEBUG_MSG_SIZE 400
 #define HEX_DATA_LEN 3u
 
+#ifdef UNIT_TEST
+#define SOCKET_TYPE struct testsocket_tag
+#define SOCKET_DELETE testsocket_delete
+#define SOCKET_SEND testsocket_serverSend
+#else
+#define SOCKET_TYPE struct msocket_t
+#define SOCKET_DELETE msocket_delete
+#define SOCKET_SEND msocket_send
+#endif
+
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+static void apx_serverConnection_registerTransmitHandler(apx_serverConnection_t *self);
 static void apx_serverConnection_parseGreeting(apx_serverConnection_t *self, const uint8_t *msgBuf, int32_t msgLen);
 static uint8_t apx_serverConnection_parseMessage(apx_serverConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 static uint8_t *apx_serverConnection_getSendBuffer(void *arg, int32_t msgLen);
@@ -51,25 +71,24 @@ static int32_t apx_serverConnection_send(void *arg, int32_t offset, int32_t msgL
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-#ifdef UNIT_TEST
-int8_t apx_serverConnection_create(apx_serverConnection_t *self, testsocket_t *socket, struct apx_server_tag *server)
-#else
-int8_t apx_serverConnection_create(apx_serverConnection_t *self, msocket_t *socket, struct apx_server_tag *server)
-#endif
+int8_t apx_serverConnection_create(apx_serverConnection_t *self, uint32_t connectionId, SOCKET_TYPE *socketObject, struct apx_server_tag *server)
 {
-   if( (self != 0) && (socket != 0) )
+   if( (self != 0) && (socketObject != 0) )
    {
-#ifdef UNIT_TEST
-      self->testsocket=socket;
-#else
-      self->msocket = socket;
-#endif
+      int8_t result;
+      self->socketObject = socketObject;
       self->server=server;
       self->isGreetingParsed = false;
       self->debugMode = APX_DEBUG_NONE;
       self->numHeaderMaxLen = (int8_t) sizeof(uint32_t); //currently only 4-byte header is supported. There might be a future version where we support both 16-bit and 32-bit message headers
+      self->connectionId = connectionId;
       adt_bytearray_create(&self->sendBuffer, SEND_BUFFER_GROW_SIZE);
-      return apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE);
+      result = apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE);
+      if (result == 0)
+      {
+         apx_serverConnection_registerTransmitHandler(self);
+      }
+      return result;
    }
    errno=EINVAL;
    return -1;
@@ -81,25 +100,18 @@ void apx_serverConnection_destroy(apx_serverConnection_t *self)
    {
       apx_fileManager_destroy(&self->fileManager);
       adt_bytearray_destroy(&self->sendBuffer);
-#ifdef UNIT_TEST
-      testsocket_delete(self->testsocket);
-#else
-      msocket_delete(self->msocket);
-#endif
+      SOCKET_DELETE(self->socketObject);
    }
 }
 
-#ifdef UNIT_TEST
-apx_serverConnection_t *apx_serverConnection_new(testsocket_t *socket, struct apx_server_tag *server)
-#else
-apx_serverConnection_t *apx_serverConnection_new(msocket_t *socket, struct apx_server_tag *server)
-#endif
+
+apx_serverConnection_t *apx_serverConnection_new(uint32_t connectionId, SOCKET_TYPE *socket, struct apx_server_tag *server)
 {
    if (socket != 0)
    {
       apx_serverConnection_t *self = (apx_serverConnection_t*) malloc(sizeof(apx_serverConnection_t));
       if(self != 0){
-         int8_t result = apx_serverConnection_create(self, socket, server);
+         int8_t result = apx_serverConnection_create(self, connectionId, socket, server);
          if (result != 0)
          {
             free(self);
@@ -129,44 +141,13 @@ void apx_serverConnection_vdelete(void *arg)
 }
 
 /**
- * attaches the servers nodeManager to the fileManager in our connection
- */
-void apx_serverConnection_attachNodeManager(apx_serverConnection_t *self, apx_nodeManager_t *nodeManager)
-{
-   if ( (self != 0) && (nodeManager != 0) )
-   {
-      apx_nodeManager_attachFileManager(nodeManager, &self->fileManager);
-   }
-}
-
-/**
- * detaches the servers nodeManager from the fileManager in our connection
- */
-void apx_serverConnection_detachNodeManager(apx_serverConnection_t *self, apx_nodeManager_t *nodeManager)
-{
-   if ( (self != 0) && (nodeManager != 0) )
-   {
-      apx_nodeManager_shutdownFileManager(nodeManager, &self->fileManager);
-   }
-}
-
-/**
  * activates a new server connection
  */
 void apx_serverConnection_start(apx_serverConnection_t *self)
 {
-   if ( (self != 0) && (self->server != 0) )
+   if ( self != 0)
    {
-      apx_transmitHandler_t serverTransmitHandler;
-      //register transmit handler with our fileManager
-      serverTransmitHandler.arg = self;
-      serverTransmitHandler.send = apx_serverConnection_send;
-      serverTransmitHandler.getSendAvail = 0;
-      serverTransmitHandler.getSendBuffer = apx_serverConnection_getSendBuffer;
-      apx_fileManager_setTransmitHandler(&self->fileManager, &serverTransmitHandler);
-      //register connection with the server nodeManager
-      apx_nodeManager_attachFileManager(&self->server->nodeManager, &self->fileManager);
-      apx_fileManager_start(&self->fileManager);      
+      apx_fileManager_start(&self->fileManager);
    }
 }
 
@@ -223,9 +204,30 @@ void apx_serverConnection_setDebugMode(apx_serverConnection_t *self, int8_t debu
    }
 }
 
+apx_fileManager_t *apx_serverConnection_getFileManager(apx_serverConnection_t *self)
+{
+   if (self != 0)
+   {
+      return &self->fileManager;
+   }
+   return (apx_fileManager_t*) 0;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+
+static void apx_serverConnection_registerTransmitHandler(apx_serverConnection_t *self)
+{
+   apx_transmitHandler_t serverTransmitHandler;
+   //register transmit handler with our fileManager
+   serverTransmitHandler.arg = self;
+   serverTransmitHandler.send = apx_serverConnection_send;
+   serverTransmitHandler.getSendAvail = 0;
+   serverTransmitHandler.getSendBuffer = apx_serverConnection_getSendBuffer;
+   apx_fileManager_setTransmitHandler(&self->fileManager, &serverTransmitHandler);
+}
+
 /**
  * parses the greeting header. The header is similar to an HTTP header with an initial protocol line followed by one or more MIME-headers.
  * Instead of line ending \r\n we just just \n. The greeting ends when we encountered two consecutive \n\n.
@@ -420,12 +422,7 @@ static int32_t apx_serverConnection_send(void *arg, int32_t offset, int32_t msgL
             }
             APX_LOG_DEBUG("[APX_SRV_CONNECTION] %s", msg);
          }
-		 
-#ifdef UNIT_TEST
-		 testsocket_serverSend(self->testsocket, pBegin, msgLen+headerLen);
-#else
-		 msocket_send(self->msocket, pBegin, msgLen+headerLen);
-#endif
+         SOCKET_SEND(self->socketObject, pBegin, msgLen+headerLen);
          return 0;
       }
       else
@@ -435,3 +432,4 @@ static int32_t apx_serverConnection_send(void *arg, int32_t offset, int32_t msgL
    }
    return -1;
 }
+

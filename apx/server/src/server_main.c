@@ -86,7 +86,7 @@ int main(int argc, char **argv)
    }
 #endif
    apx_server_create(&m_server,m_port);
-   apx_server_setDebugMode(&m_server, g_debug);
+   apx_server_set_debug_mode(&m_server, g_debug);
    apx_server_start(&m_server);
    for(;;)
    {

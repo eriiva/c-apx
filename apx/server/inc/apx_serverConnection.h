@@ -13,34 +13,27 @@
 #include "adt_bytearray.h"
 #include "apx_fileManager.h"
 #include "apx_nodeManager.h"
-#ifdef _MSC_VER
-#include <Windows.h>
-#endif
-#ifdef UNIT_TEST
-#include "testsocket.h"
-#else
-#include "msocket.h"
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 struct apx_server_tag;
+#ifdef UNIT_TEST
+#define SOCKET_TYPE struct testsocket_tag
+#else
+#define SOCKET_TYPE struct msocket_t
+#endif
+SOCKET_TYPE; //this is a forward declaration of the declared type just above
 
 typedef struct apx_serverConnection_tag
 {
    apx_fileManager_t fileManager;
-#ifdef UNIT_TEST
-   testsocket_t *testsocket;
-   struct apx_server_tag *server;
-#else
-   msocket_t *msocket;
-   struct apx_server_tag *server;
-#endif
-
+   adt_bytearray_t sendBuffer;
+   uint32_t connectionId;
+   SOCKET_TYPE *socketObject; //we try to avoid redefining the word "socket" here since socket is an actual OS-defined function
+   struct apx_server_tag *server; //apx_serverConnection class does not actively use this pointer, it just stores it for apx_server.
    bool isGreetingParsed;
    int8_t debugMode;
-   adt_bytearray_t sendBuffer;
    uint8_t numHeaderMaxLen;
 }apx_serverConnection_t;
 
@@ -52,25 +45,18 @@ typedef struct apx_serverConnection_tag
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-#ifdef UNIT_TEST
-int8_t apx_serverConnection_create(apx_serverConnection_t *self, testsocket_t *socket, struct apx_server_tag *server);
-#else
-int8_t apx_serverConnection_create(apx_serverConnection_t *self, msocket_t *socket, struct apx_server_tag *server);
-#endif
+int8_t apx_serverConnection_create(apx_serverConnection_t *self, uint32_t connectionId, SOCKET_TYPE *socketObject, struct apx_server_tag *server);
 void apx_serverConnection_destroy(apx_serverConnection_t *self);
-#ifdef UNIT_TEST
-apx_serverConnection_t *apx_serverConnection_new(testsocket_t *socket, struct apx_server_tag *server);
-#else
-apx_serverConnection_t *apx_serverConnection_new(msocket_t *socket, struct apx_server_tag *server);
-#endif
+apx_serverConnection_t *apx_serverConnection_new(uint32_t connectionId, SOCKET_TYPE *socketObject, struct apx_server_tag *server);
 void apx_serverConnection_delete(apx_serverConnection_t *self);
 void apx_serverConnection_vdelete(void *arg);
 
-void apx_serverConnection_attachNodeManager(apx_serverConnection_t *self, apx_nodeManager_t *nodeManager);
-void apx_serverConnection_detachNodeManager(apx_serverConnection_t *self, apx_nodeManager_t *nodeManager);
 void apx_serverConnection_start(apx_serverConnection_t *self);
 void apx_serverConnection_setDebugMode(apx_serverConnection_t *self, int8_t debugMode);
 
 int8_t apx_serverConnection_dataReceived(apx_serverConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
+apx_fileManager_t *apx_serverConnection_getFileManager(apx_serverConnection_t *self);
+
+#undef SOCKET_TYPE
 
 #endif //APX_SERVER_CONNECTION_H

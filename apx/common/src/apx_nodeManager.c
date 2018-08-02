@@ -294,7 +294,6 @@ void apx_nodeManager_attachLocalNode(apx_nodeManager_t *self, apx_nodeData_t *no
             apx_nodeManager_attachLocalNodeToFileManager(nodeData, fileManager);
          }
       }while(pIter != 0);
-
    }
 }
 
@@ -327,7 +326,6 @@ void apx_nodeManager_attachFileManager(apx_nodeManager_t *self, struct apx_fileM
       //add fileManager to list
       adt_list_insert(&self->fileManagerList, (void*) fileManager);
       apx_fileManager_setNodeManager(fileManager, self);
-
       adt_hash_iter_init(&self->localNodeDataMap);
       do
       {

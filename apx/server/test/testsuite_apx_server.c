@@ -29,6 +29,7 @@
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_server_create(CuTest* tc);
 static void test_apx_server_greeting(CuTest* tc);
+static void test_apx_server_each_connection_get_new_id(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -50,6 +51,7 @@ CuSuite* testSuite_apx_server(void)
 
    SUITE_ADD_TEST(suite, test_apx_server_create);
    SUITE_ADD_TEST(suite, test_apx_server_greeting);
+   SUITE_ADD_TEST(suite, test_apx_server_each_connection_get_new_id);
 
    return suite;
 }
@@ -63,6 +65,7 @@ static void test_apx_server_create(CuTest* tc)
    apx_server_create(&server);
    CuAssertTrue(tc, adt_u32Set_is_empty(&server.connectionIdSet));
    CuAssertUIntEquals(tc, 0, server.nextConnectionId);
+   CuAssertUIntEquals(tc, 0, server.numConnections);
    apx_server_destroy(&server);
 }
 
@@ -113,3 +116,32 @@ static void test_apx_server_greeting(CuTest* tc)
    free(sendBuffer);
 }
 
+static void test_apx_server_each_connection_get_new_id(CuTest* tc)
+{
+   apx_server_t server;
+   testsocket_t *sockets[10];
+   testsocket_t *lastSocket;
+   apx_serverConnection_t *conn;
+   uint32_t connectionIdExpected = 0;
+   int i;
+   apx_server_create(&server);
+   for (i=0;i<10;i++)
+   {
+      char msg[15];
+      sockets[i] = testsocket_new();
+      apx_server_accept_test_socket(&server, sockets[i]);
+      conn = apx_server_get_last_connection(&server);
+      CuAssertPtrNotNull(tc, conn);
+      sprintf(msg, "i=%d",i);
+      CuAssertUIntEquals_Msg(tc, &msg[0], connectionIdExpected++, conn->connectionId);
+   }
+   //resetting internal variable nextConnectionId to 0 shall still yield next generated ID to be unique
+   server.nextConnectionId=0;
+   lastSocket = testsocket_new();
+   apx_server_accept_test_socket(&server, lastSocket);
+   conn = apx_server_get_last_connection(&server);
+   CuAssertPtrNotNull(tc, conn);
+   CuAssertUIntEquals(tc, 10, conn->connectionId);
+   apx_server_destroy(&server);
+
+}
