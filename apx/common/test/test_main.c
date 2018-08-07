@@ -22,10 +22,12 @@ CuSuite* testsuite_apx_attributesParser(void);
 CuSuite* testSuite_apx_dataElement(void);
 CuSuite* testSuite_remotefile(void);
 CuSuite* testSuite_apx_server(void);
+CuSuite* testSuite_apx_serverConnection(void);
 CuSuite* testSuite_apx_clientSession(void);
 CuSuite* testSuite_apx_sessionCmd(void);
+CuSuite* testSuite_apx_fileManagerShared(void);
+CuSuite* testSuite_apx_fileManagerRemote(void);
 CuSuite* testSuite_apx_fileManager(void);
-CuSuite* testSuite_apx_serverConnection(void);
 
 //util
 CuSuite* testsuite_headerutil(void);
@@ -35,6 +37,9 @@ void RunAllTests(void)
 {
    CuString *output = CuStringNew();
    CuSuite* suite = CuSuiteNew();
+
+   CuSuiteAddSuite(suite, testsuite_headerutil());
+   CuSuiteAddSuite(suite, testsuite_pack());
 
    CuSuiteAddSuite(suite, testsuite_apx_dataSignature());
    CuSuiteAddSuite(suite, testsuite_apx_port());
@@ -50,15 +55,17 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testSuite_apx_nodeData());
    CuSuiteAddSuite(suite, testSuite_apx_allocator());
    CuSuiteAddSuite(suite, testSuite_remotefile());
+
    CuSuiteAddSuite(suite, testsuite_apx_attributesParser());
    CuSuiteAddSuite(suite, testSuite_apx_dataElement());
    CuSuiteAddSuite(suite, testSuite_apx_serverConnection());
    CuSuiteAddSuite(suite, testSuite_apx_server());
    CuSuiteAddSuite(suite, testSuite_apx_clientSession());
    CuSuiteAddSuite(suite, testSuite_apx_sessionCmd());
+
+   CuSuiteAddSuite(suite, testSuite_apx_fileManagerShared());
+   CuSuiteAddSuite(suite, testSuite_apx_fileManagerRemote());
    CuSuiteAddSuite(suite, testSuite_apx_fileManager());
-   CuSuiteAddSuite(suite, testsuite_headerutil());
-   CuSuiteAddSuite(suite, testsuite_pack());
 
    CuSuiteRun(suite);
    CuSuiteSummary(suite, output);

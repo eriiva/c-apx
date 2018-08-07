@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file:    apx_clientEventRecorder.h
-* \author:  Conny Gustafsson
-* \date:    2018-05-01
-* \brief:   Receives APX events from server and records them into a binary log file
+* \file      apx_fileManagerShared.c
+* \author    Conny Gustafsson
+* \date      2018-08-02
+* \brief     APX Filemanager data component
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,34 +23,76 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-
-#ifndef APX_CLIENT_EVENT_RECORDER_H
-#define APX_CLIENT_EVENT_RECORDER_H
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <stdint.h>
-#include "apx_file.h"
-#include "apx_eventFile.h"
+#include <errno.h>
+#include "apx_fileManagerShared.h"
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_clientEventRecorder_tag
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE VARIABLES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+int8_t apx_fileManagerShared_create(apx_fileManagerShared_t *self, uint32_t fmid)
 {
-   apx_file_t *file;
-}apx_clientEventRecorder_t;
+   if (self != 0)
+   {
+      int8_t result = apx_allocator_create(&self->allocator, APX_MAX_NUM_MESSAGES);
+      if (result == 0)
+      {
+         self->fmid = fmid;
+         self->arg = (void*) 0;
+         self->fileOpenRequestedByRemote = (void (*)(void *, const rmf_cmdOpenFile_t *)) 0;
+         self->fileCreatedByRemote = (void (*)(void *, const struct apx_file_tag*)) 0;
+         apx_allocator_start(&self->allocator);
+      }
+      return result;
+   }
+   errno = EINVAL;
+   return -1;
+}
+
+void apx_fileManagerShared_destroy(apx_fileManagerShared_t *self)
+{
+   if (self != 0)
+   {
+      apx_allocator_stop(&self->allocator);
+      apx_allocator_destroy(&self->allocator);
+   }
+}
+
+uint8_t *apx_fileManagerShared_alloc(apx_fileManagerShared_t *self, size_t size)
+{
+   if (self != 0)
+   {
+      return apx_allocator_alloc(&self->allocator, size);
+   }
+   return (uint8_t*) 0;
+}
+
+void apx_fileManagerShared_free(apx_fileManagerShared_t *self, uint8_t *ptr, size_t size)
+{
+   if (self != 0)
+   {
+      apx_allocator_free(&self->allocator, ptr, size);
+   }
+}
+
+
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
+// PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
-void apx_clientEventRecorder_create(apx_clientEventRecorder_t *self);
-void apx_clientEventRecorder_destroy(apx_clientEventRecorder_t *self);
-apx_clientEventRecorder_t *apx_clientEventRecorder_new(void);
-void apx_clientEventRecorder_delete(apx_clientEventRecorder_t *self);
 
-#endif //APX_CLIENT_EVENT_RECORDER_H

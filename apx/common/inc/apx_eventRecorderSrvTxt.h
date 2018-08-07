@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file:    apx_clientEventRecorder.h
-* \author:  Conny Gustafsson
-* \date:    2018-05-01
-* \brief:   Receives APX events from server and records them into a binary log file
+* \file      apx_eventRecorderSrvTxt.h
+* \author    Conny Gustafsson
+* \date      2018-08-07
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,34 +23,39 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
+#ifndef APX_EVENT_RECORDER_SRV_TXT_H
+#define APX_EVENT_RECORDER_SRV_TXT_H
 
-#ifndef APX_CLIENT_EVENT_RECORDER_H
-#define APX_CLIENT_EVENT_RECORDER_H
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
-#include "apx_file.h"
-#include "apx_eventFile.h"
+#include <stdio.h>
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_clientEventRecorder_tag
-{
-   apx_file_t *file;
-}apx_clientEventRecorder_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
+//forward declarations
+struct apx_fileManager_tag;
+
+typedef struct apx_eventRecorderSrvTxt_t
+{
+   char *fileName;
+   FILE *fp;
+}apx_eventRecorderSrvTxt_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_clientEventRecorder_create(apx_clientEventRecorder_t *self);
-void apx_clientEventRecorder_destroy(apx_clientEventRecorder_t *self);
-apx_clientEventRecorder_t *apx_clientEventRecorder_new(void);
-void apx_clientEventRecorder_delete(apx_clientEventRecorder_t *self);
+void apx_eventRecorderSrvTxt_create(apx_eventRecorderSrvTxt_t *self, const char *fileName);
+void apx_eventRecorderSrvTxt_destroy(apx_eventRecorderSrvTxt_t *self);
+apx_eventRecorderSrvTxt_t *apx_eventRecorderSrvTxt_new(const char *fileName);
+void apx_eventRecorderSrvTxt_delete(apx_eventRecorderSrvTxt_t *self);
 
-#endif //APX_CLIENT_EVENT_RECORDER_H
+void apx_eventRecorderSrvTxt_registerAsListener(apx_eventRecorderSrvTxt_t *self, struct apx_fileManager_tag *fileManager);
+
+#endif //APX_EVENT_RECORDER_SRV_TXT_H

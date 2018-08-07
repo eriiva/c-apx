@@ -4,6 +4,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_server.h"
 #include "apx_logging.h"
+#include "apx_eventRecorderSrvTxt.h"
 #include <assert.h>
 
 
@@ -75,6 +76,7 @@ void apx_server_create(apx_server_t *self, uint16_t port)
       adt_u32Set_create(&self->connectionIdSet);
       self->nextConnectionId = 0u;
       self->numConnections = 0u;
+      self->eventRecorderTxt = (apx_eventRecorderSrvTxt_t*) 0;
    }
 }
 
@@ -99,11 +101,15 @@ void apx_server_destroy(apx_server_t *self)
       apx_server_destroy_socket_servers(self);
       apx_nodeManager_destroy(&self->nodeManager);
       apx_router_destroy(&self->router);
+      if (self->eventRecorderTxt != 0)
+      {
+         apx_eventRecorderSrvTxt_delete(self->eventRecorderTxt);
+      }
       MUTEX_DESTROY(self->lock);
    }
 }
 
-void apx_server_set_debug_mode(apx_server_t *self, int8_t debugMode)
+void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode)
 {
    if (self != 0)
    {
@@ -112,6 +118,15 @@ void apx_server_set_debug_mode(apx_server_t *self, int8_t debugMode)
       apx_router_setDebugMode(&self->router, debugMode);
    }
 }
+
+void apx_server_setLogFile(apx_server_t *self, const char *fileName)
+{
+   if (self != 0)
+   {
+      self->eventRecorderTxt = apx_eventRecorderSrvTxt_new(fileName);
+   }
+}
+
 
 #ifdef UNIT_TEST
 void apx_server_accept_test_socket(apx_server_t *self, testsocket_t *socket)
@@ -123,10 +138,9 @@ apx_serverConnection_t *apx_server_get_last_connection(apx_server_t *self)
 {
    if (self != 0)
    {
-      adt_list_elem_t *elem = adt_list_last(&self->connections);
-      if (elem != 0)
+      if (adt_list_is_empty(&self->connections) == false)
       {
-         return (apx_serverConnection_t*) elem->pItem;
+         return (apx_serverConnection_t*) adt_list_last(&self->connections);
       }
    }
    return (apx_serverConnection_t*) 0;
@@ -192,6 +206,10 @@ static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_
    #endif
             fileManager = apx_serverConnection_getFileManager(newConnection);
             apx_nodeManager_attachFileManager(&self->nodeManager, fileManager);
+            if (self->eventRecorderTxt != 0)
+            {
+               apx_eventRecorderSrvTxt_registerAsListener(self->eventRecorderTxt, fileManager);
+            }
             apx_serverConnection_start(newConnection);
             SOCKET_START_IO(sock);
          }

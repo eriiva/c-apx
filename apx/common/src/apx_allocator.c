@@ -158,13 +158,13 @@ uint8_t *apx_allocator_alloc(apx_allocator_t *self, size_t size)
    return data;
 }
 
-void apx_allocator_free(apx_allocator_t *self, uint8_t *ptr, uint32_t size)
+void apx_allocator_free(apx_allocator_t *self, uint8_t *ptr, size_t size)
 {
    if (self != 0)
    {
       rbf_data_t data;
       data.ptr=ptr;
-      data.size=size;
+      data.size=(uint32_t) size;
       //1. enqueue message
       SPINLOCK_ENTER(self->lock);
       rbfs_insert(&self->messages,(const uint8_t*) &data);
@@ -174,6 +174,14 @@ void apx_allocator_free(apx_allocator_t *self, uint8_t *ptr, uint32_t size)
    }
 }
 
+bool apx_allocator_isRunning(apx_allocator_t *self)
+{
+   if ( self != 0)
+   {
+      return self->isRunning;
+   }
+   return false;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS

@@ -8,6 +8,7 @@
 #include <string.h>
 #include "CuTest.h"
 #include "apx_server.h"
+#include "apx_eventFile.h"
 #include "rmf.h"
 #ifdef _WIN32
 #include <Windows.h>
@@ -50,7 +51,7 @@ CuSuite* testSuite_apx_server(void)
    CuSuite* suite = CuSuiteNew();
 
    SUITE_ADD_TEST(suite, test_apx_server_create);
-   SUITE_ADD_TEST(suite, test_apx_server_greeting);
+   //SUITE_ADD_TEST(suite, test_apx_server_greeting);
    SUITE_ADD_TEST(suite, test_apx_server_each_connection_get_new_id);
 
    return suite;

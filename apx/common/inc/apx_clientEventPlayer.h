@@ -32,7 +32,7 @@
 #include <stdint.h>
 #include "rmf.h"
 #include "apx_file.h"
-#include "apx_event.h"
+#include "apx_eventFile.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES

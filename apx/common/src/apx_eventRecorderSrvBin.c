@@ -1,9 +1,8 @@
 /*****************************************************************************
-* \file:    apx_serverEventRecorder.h
-* \author:  Conny Gustafsson
-* \date:    2018-05-01
-* \brief:   Listens to internal events from apx_nodeManager/apx_router and transforms them
-*           into apx events ready to be send to client
+* \file      apx_serverEventRecorder.c
+* \author    Conny Gustafsson
+* \date      2018-05-01
+* \brief     Records APX events into its internal pendingBuffer and occasionally sends them out to a logging object
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -27,11 +26,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <string.h>
-#include <stdlib.h>
-#include "apx_serverEventRecorder.h"
-#include "apx_fileManager.h"
-#include "apx_file.h"
+#include <malloc.h>
+#include <errno.h>
+#include "apx_eventRecorderSrvBin.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -52,19 +49,57 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_serverEventRecorder_create(apx_serverEventRecorder_t *self, struct apx_fileManager_tag *parent)
+#if 0
+void apx_remoteFileLog_create(apx_remoteFileLog_t *self, struct apx_fileManager_tag *manager)
 {
-   if ( (self != 0) && (parent != 0) )
+   if ( (self != 0) && (manager != 0) )
    {
       apx_file_t *apx_file;
       rmf_fileInfo_t info;
-      self->parent = parent;
+      self->manager = manager;
       rmf_fileInfo_create(&info, APX_EVENT_SRV_FILE_NAME, APX_RMF_EVENT_FILE_ADDRESS, APX_EVENT_FILE_LEN, RMF_FILE_TYPE_STREAM);
       apx_file = apx_file_new(APX_EVENT_FILE, &info);
       if (apx_file != 0)
       {
+#if 0
          apx_fileManager_attachLocalDataFile(parent, apx_file); //note that file manager takes ownership of apx_file and will be responsible for deleting it.
+#endif
       }
+   }
+}
+
+void apx_remoteFileLog_destroy(apx_remoteFileLog_t *self)
+{
+   if (self != 0)
+   {
+   }
+}
+
+apx_remoteFileLog_t *apx_remoteFileLog_new(struct apx_fileManager_tag *parent)
+{
+   apx_remoteFileLog_t *self = (apx_remoteFileLog_t*) malloc(sizeof(apx_remoteFileLog_t));
+   if(self != 0)
+   {
+      apx_remoteFileLog_create(self, parent);
+   }
+   return self;
+}
+
+void apx_remoteFileLog_delete(apx_remoteFileLog_t *self)
+{
+   if(self != 0)
+   {
+      apx_remoteFileLog_destroy(self);
+      free(self);
+   }
+}
+#endif
+void apx_serverEventRecorder_create(apx_serverEventRecorder_t *self, uint32_t maxPendSize)
+{
+   if (self != 0)
+   {
+      adt_bytearray_create(&self->pendingBuffer, ADT_BYTE_ARRAY_DEFAULT_GROW_SIZE);
+      self->maxPendSize = maxPendSize;
    }
 }
 
@@ -72,15 +107,16 @@ void apx_serverEventRecorder_destroy(apx_serverEventRecorder_t *self)
 {
    if (self != 0)
    {
+      adt_bytearray_destroy(&self->pendingBuffer);
    }
 }
 
-apx_serverEventRecorder_t *apx_serverEventRecorder_new(struct apx_fileManager_tag *parent)
+apx_serverEventRecorder_t *apx_serverEventRecorder_new(uint32_t maxPendSize)
 {
    apx_serverEventRecorder_t *self = (apx_serverEventRecorder_t*) malloc(sizeof(apx_serverEventRecorder_t));
    if(self != 0)
    {
-      apx_serverEventRecorder_create(self, parent);
+      apx_serverEventRecorder_create(self, maxPendSize);
    }
    return self;
 }
@@ -93,7 +129,6 @@ void apx_serverEventRecorder_delete(apx_serverEventRecorder_t *self)
       free(self);
    }
 }
-
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS

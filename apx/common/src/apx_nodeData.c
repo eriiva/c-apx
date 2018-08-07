@@ -304,7 +304,9 @@ void apx_nodeData_outPortDataNotify(apx_nodeData_t *self, apx_offset_t offset, a
 #ifdef APX_EMBEDDED
          apx_es_fileManager_onFileUpdate(self->fileManager, self->outPortDataFile, offset, length);
 #else
+#if 0
          apx_fileManager_triggerFileUpdatedEvent(self->fileManager, self->outPortDataFile, offset, length);
+#endif
 #endif
       }
    }

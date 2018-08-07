@@ -80,20 +80,22 @@ void apx_router_attachNodeInfo(apx_router_t *self, apx_nodeInfo_t *nodeInfo)
       int32_t requirePortLen;
       int32_t providePortLen;
       int32_t nodeInfoListLen;
-      char debugInfoStr[APX_DEBUG_INFO_MAX_LEN];
+//      char debugInfoStr[APX_DEBUG_INFO_MAX_LEN];
 
       apx_node_t *node = nodeInfo->node;
-
+#if 0
       debugInfoStr[0]=0;
+
       if ( (nodeInfo->nodeData != 0) && (nodeInfo->nodeData->fileManager->debugInfo) != 0)
       {
          snprintf(debugInfoStr, APX_DEBUG_INFO_MAX_LEN, " (%p)", nodeInfo->nodeData->fileManager->debugInfo);
       }
-
+#endif
       assert(node != 0);
 
-
+#if 0
       APX_LOG_DEBUG("[APX_ROUTER]%s Attaching %s",debugInfoStr, node->name);
+#endif
       nodeInfoListLen = adt_ary_length(&self->nodeInfoList);
       requirePortLen = adt_ary_length(&node->requirePortList);
       providePortLen = adt_ary_length(&node->providePortList);
@@ -104,7 +106,9 @@ void apx_router_attachNodeInfo(apx_router_t *self, apx_nodeInfo_t *nodeInfo)
          if (elem == nodeInfo)
          {
             //node already attached, ignore request
+#if 0
             APX_LOG_WARNING("[APX_ROUTER]%s Node with name %s is already attached",debugInfoStr, node->name);
+#endif
             return;
          }
       }
@@ -168,16 +172,16 @@ void apx_router_detachNodeInfo(apx_router_t *self, apx_nodeInfo_t *nodeInfo)
       int32_t numRequireRefs;
       adt_ary_t requireRefs; //array of apx_portref_t*
       apx_node_t *node = nodeInfo->node;
-      char debugInfoStr[APX_DEBUG_INFO_MAX_LEN];
+//      char debugInfoStr[APX_DEBUG_INFO_MAX_LEN];
       assert(node != 0);
-
+#if 0
       debugInfoStr[0]=0;
       if ( (nodeInfo->nodeData != 0) && (nodeInfo->nodeData->fileManager->debugInfo != 0) )
       {
          snprintf(debugInfoStr, APX_DEBUG_INFO_MAX_LEN, " (%p)", nodeInfo->nodeData->fileManager->debugInfo);
       }
-
       APX_LOG_DEBUG("[APX_ROUTER]%s Detaching %s", debugInfoStr, node->name);
+#endif
       nodeInfoListLen = adt_ary_length(&self->nodeInfoList);
       requirePortLen = adt_ary_length(&node->requirePortList);
       providePortLen = adt_ary_length(&node->providePortList);

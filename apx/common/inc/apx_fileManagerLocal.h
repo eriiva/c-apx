@@ -1,9 +1,8 @@
 /*****************************************************************************
-* \file:    apx_serverEventRecorder.h
-* \author:  Conny Gustafsson
-* \date:    2018-05-01
-* \brief:   Listens to internal events from apx_nodeManager/apx_router and transforms them
-*           into apx events ready to be send to client
+* \file      apx_fileManagerLocal.h
+* \author    Conny Gustafsson
+* \date      2018-08-02
+* \brief     APX Filemanager local representation
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -24,38 +23,32 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
+#ifndef APX_FILE_MANAGER_SENDER_H
+#define APX_FILE_MANAGER_SENDER_H
 
-#ifndef APX_SERVER_EVENT_RECORDER_H
-#define APX_SERVER_EVENT_RECORDER_H
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <stdint.h>
-#include "apx_file.h"
-#include "apx_event.h"
+#include "apx_fileManagerShared.h"
+#include "apx_transmitHandler.h"
+
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC CONSTANTS AND DATA TYPES
+// CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-//forward declaration
-struct apx_fileManager_tag;
-
-typedef struct apx_serverEventRecorder_tag
+typedef struct apx_fileManagerSender_tag
 {
-   apx_file_t *file;
-   struct apx_fileManager_tag *parent; //weak pointer to parent file manager
-}apx_serverEventRecorder_t;
+   apx_transmitHandler_t transmitHandler;
+   apx_fileManagerData_t sharedData; //weak pointer
+}apx_fileManagerSender_t;
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
+// GLOBAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+void apx_fileManagerSender_create(apx_fileManagerSender_t *self, apx_fileManagerData_t *sharedData);
+void apx_fileManagerSender_destroy(apx_fileManagerSender_t *self);
+void apx_fileManagerSender_start(apx_fileManagerSender_t *self);
+void apx_fileManagerSender_stop(apx_fileManagerSender_t *self);
 
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
-void apx_serverEventRecorder_create(apx_serverEventRecorder_t *self, struct apx_fileManager_tag *parent);
-void apx_serverEventRecorder_destroy(apx_serverEventRecorder_t *self);
-apx_serverEventRecorder_t *apx_serverEventRecorder_new(struct apx_fileManager_tag *parent);
-void apx_serverEventRecorder_delete(apx_serverEventRecorder_t *self);
 
-#endif //APX_SERVER_EVENT_RECORDER_H
+#endif //APX_FILE_MANAGER_SENDER_H

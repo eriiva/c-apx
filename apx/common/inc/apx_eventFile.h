@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file:    apx_clientEventRecorder.h
+* \file:    apx_event.h
 * \author:  Conny Gustafsson
 * \date:    2018-05-01
-* \brief:   Receives APX events from server and records them into a binary log file
+* \brief:   Shared header containing event-related definitions
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -24,33 +24,31 @@
 *
 ******************************************************************************/
 
-#ifndef APX_CLIENT_EVENT_RECORDER_H
-#define APX_CLIENT_EVENT_RECORDER_H
+#ifndef APX_EVENT_FILE_H
+#define APX_EVENT_FILE_H
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
+#include "rmf.h"
 #include "apx_file.h"
-#include "apx_eventFile.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_clientEventRecorder_tag
-{
-   apx_file_t *file;
-}apx_clientEventRecorder_t;
+#define APX_EVENT_SRV_FILE_NAME "apx_srv.evt" //used by server to record internal events
+#define APX_EVENT_CLI_FILE_NAME "apx_cli.evt" //used by client to play events to server
+#define APX_EVENT_FILE_LEN 0x200000 //2MB
+#define APX_RMF_EVENT_FILE_ADDRESS 0x3FDFFC00
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
 
+
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_clientEventRecorder_create(apx_clientEventRecorder_t *self);
-void apx_clientEventRecorder_destroy(apx_clientEventRecorder_t *self);
-apx_clientEventRecorder_t *apx_clientEventRecorder_new(void);
-void apx_clientEventRecorder_delete(apx_clientEventRecorder_t *self);
 
-#endif //APX_CLIENT_EVENT_RECORDER_H
+
+#endif //APX_EVENT_FILE_H

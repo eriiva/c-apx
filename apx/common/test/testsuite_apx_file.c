@@ -8,7 +8,7 @@
 #include <string.h>
 #include "CuTest.h"
 #include "apx_file.h"
-#include "apx_event.h"
+#include "apx_eventFile.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif

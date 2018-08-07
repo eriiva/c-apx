@@ -1,8 +1,9 @@
 /*****************************************************************************
-* \file:    apx_clientEventRecorder.h
+* \file:    apx_serverEventRecorder.h
 * \author:  Conny Gustafsson
 * \date:    2018-05-01
-* \brief:   Receives APX events from server and records them into a binary log file
+* \brief:   Listens to internal events from apx_nodeManager/apx_router and transforms them
+*           into apx events ready to be send to client
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -24,22 +25,25 @@
 *
 ******************************************************************************/
 
-#ifndef APX_CLIENT_EVENT_RECORDER_H
-#define APX_CLIENT_EVENT_RECORDER_H
+#ifndef APX_SERVER_EVENT_RECORDER_H
+#define APX_SERVER_EVENT_RECORDER_H
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
-#include "apx_file.h"
-#include "apx_eventFile.h"
+#include "adt_bytearray.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_clientEventRecorder_tag
+//forward declaration
+struct apx_fileManager_tag;
+
+typedef struct apx_serverEventRecorder_tag
 {
-   apx_file_t *file;
-}apx_clientEventRecorder_t;
+   adt_bytearray_t pendingBuffer;
+   uint32_t maxPendSize;
+}apx_serverEventRecorder_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -48,9 +52,9 @@ typedef struct apx_clientEventRecorder_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_clientEventRecorder_create(apx_clientEventRecorder_t *self);
-void apx_clientEventRecorder_destroy(apx_clientEventRecorder_t *self);
-apx_clientEventRecorder_t *apx_clientEventRecorder_new(void);
-void apx_clientEventRecorder_delete(apx_clientEventRecorder_t *self);
+void apx_serverEventRecorder_create(apx_serverEventRecorder_t *self, uint32_t maxPendSize);
+void apx_serverEventRecorder_destroy(apx_serverEventRecorder_t *self);
+apx_serverEventRecorder_t *apx_serverEventRecorder_new(uint32_t maxPendSize);
+void apx_serverEventRecorder_delete(apx_serverEventRecorder_t *self);
 
-#endif //APX_CLIENT_EVENT_RECORDER_H
+#endif //APX_SERVER_EVENT_RECORDER_H

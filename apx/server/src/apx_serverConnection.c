@@ -23,6 +23,7 @@
 #endif
 #include "apx_serverConnection.h"
 #include "apx_logging.h"
+#include "apx_transmitHandler.h"
 #include "headerutil.h"
 #include "bstr.h"
 #ifdef MEM_LEAK_CHECK
@@ -75,7 +76,7 @@ int8_t apx_serverConnection_create(apx_serverConnection_t *self, uint32_t connec
 {
    if( (self != 0) && (socketObject != 0) )
    {
-      int8_t result;
+      int8_t result = 0;
       self->socketObject = socketObject;
       self->server=server;
       self->isGreetingParsed = false;
@@ -83,7 +84,7 @@ int8_t apx_serverConnection_create(apx_serverConnection_t *self, uint32_t connec
       self->numHeaderMaxLen = (int8_t) sizeof(uint32_t); //currently only 4-byte header is supported. There might be a future version where we support both 16-bit and 32-bit message headers
       self->connectionId = connectionId;
       adt_bytearray_create(&self->sendBuffer, SEND_BUFFER_GROW_SIZE);
-      result = apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE);
+      result = apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE, connectionId);
       if (result == 0)
       {
          apx_serverConnection_registerTransmitHandler(self);
@@ -199,7 +200,7 @@ void apx_serverConnection_setDebugMode(apx_serverConnection_t *self, int8_t debu
       self->debugMode = debugMode;
       if (debugMode > APX_DEBUG_2_LOW)
       {
-         apx_fileManager_setDebugInfo(&self->fileManager, (void*) self);
+         //apx_fileManager_setDebugInfo(&self->fileManager, (void*) self);
       }
    }
 }
@@ -219,13 +220,16 @@ apx_fileManager_t *apx_serverConnection_getFileManager(apx_serverConnection_t *s
 
 static void apx_serverConnection_registerTransmitHandler(apx_serverConnection_t *self)
 {
+#if 0
    apx_transmitHandler_t serverTransmitHandler;
    //register transmit handler with our fileManager
    serverTransmitHandler.arg = self;
    serverTransmitHandler.send = apx_serverConnection_send;
    serverTransmitHandler.getSendAvail = 0;
    serverTransmitHandler.getSendBuffer = apx_serverConnection_getSendBuffer;
+
    apx_fileManager_setTransmitHandler(&self->fileManager, &serverTransmitHandler);
+#endif
 }
 
 /**
@@ -259,7 +263,6 @@ static void apx_serverConnection_parseGreeting(apx_serverConnection_t *self, con
             {
                APX_LOG_INFO("%s", "[APX_SRV_CONNECTION] Greeting parsed");
             }
-
             apx_fileManager_onConnected(&self->fileManager);
             break;
          }
@@ -325,7 +328,9 @@ static uint8_t apx_serverConnection_parseMessage(apx_serverConnection_t *self, c
          }
          else
          {
+#if 0
             apx_fileManager_parseMessage(&self->fileManager, pNext, msgLen);
+#endif
          }
       }
       else

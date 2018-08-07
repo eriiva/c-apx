@@ -23,9 +23,6 @@ typedef struct apx_fileMap_tag
 //////////////////////////////////////////////////////////////////////////////
 void apx_fileMap_create(apx_fileMap_t *self);
 void apx_fileMap_destroy(apx_fileMap_t *self);
-int8_t apx_fileMap_autoInsertDataFile(apx_fileMap_t *self, apx_file_t *pFile);
-int8_t apx_fileMap_autoInsertPortDataFile(apx_fileMap_t *self, apx_file_t *pFile);
-int8_t apx_fileMap_autoInsertDefinitionFile(apx_fileMap_t *self, apx_file_t *pFile);
 int8_t apx_fileMap_insertFile(apx_fileMap_t *self, apx_file_t *pFile);
 int8_t apx_fileMap_removeFile(apx_fileMap_t *self, apx_file_t *pFile);
 apx_file_t *apx_fileMap_findByAddress(apx_fileMap_t *self, uint32_t address);

@@ -23,6 +23,10 @@
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+
+//forward declarations
+struct apx_eventRecorderSrvTxt_t;
+
 typedef struct apx_server_tag
 {
 #ifndef UNIT_TEST
@@ -39,6 +43,7 @@ typedef struct apx_server_tag
    adt_u32Set_t connectionIdSet;
    uint32_t nextConnectionId;
    uint32_t numConnections;
+   struct apx_eventRecorderSrvTxt_t *eventRecorderTxt;
 }apx_server_t;
 
 #define APX_SERVER_MAX_CONCURRENT_CONNECTIONS 10000
@@ -58,7 +63,8 @@ void apx_server_create(apx_server_t *self, uint16_t port);
 #endif
 void apx_server_destroy(apx_server_t *self);
 void apx_server_start(apx_server_t *self);
-void apx_server_set_debug_mode(apx_server_t *self, int8_t debugMode);
+void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode);
+void apx_server_setLogFile(apx_server_t *self, const char *fileName);
 #ifdef UNIT_TEST
 void apx_server_accept_test_socket(apx_server_t *self, testsocket_t *socket);
 apx_serverConnection_t *apx_server_get_last_connection(apx_server_t *self);

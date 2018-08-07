@@ -33,17 +33,23 @@
 
 //forward declarations
 struct apx_file_tag;
+struct apx_fileManager_tag;
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 typedef struct apx_eventListener_tag
 {
-   void (*fileCreate)(uint32_t fmid, struct apx_file_tag *file);
-   void (*fileRevoke)(uint32_t fmid, struct apx_file_tag *file);
-   void (*fileOpen)(uint32_t fmid, struct apx_file_tag *file);
-   void (*fileClose)(uint32_t fmid, struct apx_file_tag *file);
-   void (*fileWrite)(uint32_t fmid, struct apx_file_tag *file, uint32_t offset, int32_t length);
+   void *arg;
+   void (*fileManagerStart)(void *arg, struct apx_fileManager_tag *fileManager);
+   void (*fileManagerStop)(void *arg, struct apx_fileManager_tag *fileManager);
+   void (*headerAccepted)(void *arg, struct apx_fileManager_tag *fileManager);
+   void (*fileCreate)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file);
+   void (*fileRevoke)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file);
+   void (*fileOpen)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file);
+   void (*fileClose)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file);
+   void (*fileWrite)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file, uint32_t offset, int32_t length);
 }apx_eventListener_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -53,6 +59,8 @@ typedef struct apx_eventListener_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-
+apx_eventListener_t *apx_eventListener_clone(apx_eventListener_t *other);
+void apx_eventListener_delete(apx_eventListener_t *self);
+void apx_eventListener_vdelete(void *arg);
 
 #endif //APX_EVENT_LISTENER_H

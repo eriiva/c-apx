@@ -44,6 +44,7 @@
 #define RMF_CMD_FILE_OPEN          (uint32_t) 10  //opens a file
 #define RMF_CMD_FILE_CLOSE         (uint32_t) 11  //closes a file
 #define RMF_CMD_FILE_READ          (uint32_t) 12  //read parts of an open file (TBD)
+#define RMF_CMD_INVALID_WRITE      (uint32_t) 400 //remote attempted to write in an invalid memory area
 #define RMF_CMD_INVALID_MSG        (uint32_t) 0xFFFFFFFF //invalid command (default value)
 
 #define RMF_DIGEST_SIZE          32u //32 bytes is suitable for storing a sha256 hash
@@ -111,7 +112,7 @@ typedef struct rmf_fileInfo_tag
 int32_t rmf_packHeader(uint8_t *dataBuf, int32_t bufLen, uint32_t address, bool more_bit);
 int32_t rmf_packHeaderBeforeData(uint8_t *dataBuf, int32_t bufLen, uint32_t address, bool more_bit);
 int32_t rmf_unpackMsg(const uint8_t *buf, int32_t bufLen, rmf_msg_t *msg);
-int32_t rmf_serialize_cmdFileInfo(uint8_t *buf, int32_t bufLen, rmf_fileInfo_t *fileInfo);
+int32_t rmf_serialize_cmdFileInfo(uint8_t *buf, int32_t bufLen, const rmf_fileInfo_t *fileInfo);
 int32_t rmf_deserialize_cmdFileInfo(const uint8_t *buf, int32_t bufLen, rmf_fileInfo_t *fileInfo);
 int32_t rmf_serialize_cmdOpenFile(uint8_t *buf, int32_t bufLen, rmf_cmdOpenFile_t *cmdOpenFile);
 int32_t rmf_deserialize_cmdOpenFile(const uint8_t *buf, int32_t bufLen, rmf_cmdOpenFile_t *cmdOpenFile);

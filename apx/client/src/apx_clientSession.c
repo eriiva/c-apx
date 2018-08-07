@@ -190,7 +190,7 @@ void apx_clientSession_stopThread(apx_clientSession_t *self)
 #ifdef _MSC_VER
       DWORD result;
 #endif
-      apx_cmd_t msg = {RMF_MSG_EXIT,0,0}; //{msgType, msgData, msgDestructor}
+      apx_cmd_t msg = {APX_MSG_EXIT,0,0}; //{msgType, msgData, msgDestructor}
       SPINLOCK_ENTER(self->lock);
       rbfs_insert(&self->messages,(const uint8_t*) &msg);
       SPINLOCK_LEAVE(self->lock);

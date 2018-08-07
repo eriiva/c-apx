@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file:    apx_clientEventRecorder.h
-* \author:  Conny Gustafsson
-* \date:    2018-05-01
-* \brief:   Receives APX events from server and records them into a binary log file
+* \file      apx_fileManagerCommon.h
+* \author    Conny Gustafsson
+* \date      2018-08-02
+* \brief     APX FileManager common definitions
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,34 +23,46 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
+#ifndef APX_FILE_MANAGER_COMMON_H
+#define APX_FILE_MANAGER_COMMON_H
 
-#ifndef APX_CLIENT_EVENT_RECORDER_H
-#define APX_CLIENT_EVENT_RECORDER_H
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <stdint.h>
-#include "apx_file.h"
-#include "apx_eventFile.h"
+#include "apx_fileManagerCfg.h"
+#if defined(_MSC_PLATFORM_TOOLSET) && (_MSC_PLATFORM_TOOLSET<=110)
+#include "msc_bool.h"
+#else
+#include <stdbool.h>
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_clientEventRecorder_tag
+
+//forward declarations
+struct apx_nodeData_tag;
+struct apx_nodeManager_tag;
+struct apx_serverEventRecorder_tag;
+struct apx_serverEventPlayer_tag;
+struct apx_clientEventRecorder_tag;
+struct apx_clientEventPlayer_tag;
+
+#define APX_FILEMANAGER_CLIENT_MODE 0
+#define APX_FILEMANAGER_SERVER_MODE 1
+
+
+typedef struct apx_serverEventContainer_tag
 {
-   apx_file_t *file;
-}apx_clientEventRecorder_t;
+   struct apx_serverEventRecorder_tag *recorder;
+   struct apx_serverEventPlayer_tag *player;
+}apx_serverEventContainer_t;
 
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
+typedef struct apx_clientEventContainer_tag
+{
+   struct apx_clientEventRecorder_tag *recorder;
+   struct apx_clientEventPlayer_tag *player;
+}apx_clientEventContainer_t;
 
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
-void apx_clientEventRecorder_create(apx_clientEventRecorder_t *self);
-void apx_clientEventRecorder_destroy(apx_clientEventRecorder_t *self);
-apx_clientEventRecorder_t *apx_clientEventRecorder_new(void);
-void apx_clientEventRecorder_delete(apx_clientEventRecorder_t *self);
 
-#endif //APX_CLIENT_EVENT_RECORDER_H
+#endif //APX_FILE_MANAGER_COMMON_H

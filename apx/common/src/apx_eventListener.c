@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file:    apx_event.h
-* \author:  Conny Gustafsson
-* \date:    2018-05-01
-* \brief:   Shared header containing event-related definitions
+* \file      apx_eventListener.c
+* \author    Conny Gustafsson
+* \date      2018-08-05
+* \brief     APX event listener
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,32 +23,61 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-
-#ifndef APX_EVENT_H
-#define APX_EVENT_H
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <stdint.h>
-#include "rmf.h"
-#include "apx_file.h"
-#include "apx_event.h"
+#include "apx_eventListener.h"
+#include <malloc.h>
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define APX_EVENT_SRV_FILE_NAME "apx_srv.event"
-#define APX_EVENT_CLI_FILE_NAME "apx_cli.event"
-#define APX_EVENT_FILE_LEN 0x200000 //2MB
-#define APX_RMF_EVENT_FILE_ADDRESS 0x3FDFFC00
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
+// PRIVATE VARIABLES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+apx_eventListener_t *apx_eventListener_clone(apx_eventListener_t *other)
+{
+   if (other != 0)
+   {
+      apx_eventListener_t *self = (apx_eventListener_t*) malloc(sizeof(apx_eventListener_t));
+      if (self != 0)
+      {
+         *self = *other;
+      }
+      return self;
+   }
+   return (apx_eventListener_t*) 0;
+}
+
+void apx_eventListener_delete(apx_eventListener_t *self)
+{
+   if (self != 0)
+   {
+      free(self);
+   }
+}
+
+void apx_eventListener_vdelete(void *arg)
+{
+   apx_eventListener_delete((apx_eventListener_t *) 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
 
-#endif //APX_EVENT_H

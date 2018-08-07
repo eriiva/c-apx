@@ -188,7 +188,7 @@ int32_t rmf_unpackMsg(const uint8_t *buf, int32_t bufLen, rmf_msg_t *msg)
  * On failure: returns 0 if buffer is too small, -1 on any other error
  * On success: returns number of bytes written in buffer
  */
-int32_t rmf_serialize_cmdFileInfo(uint8_t *buf, int32_t bufLen, rmf_fileInfo_t *fileInfo)
+int32_t rmf_serialize_cmdFileInfo(uint8_t *buf, int32_t bufLen, const rmf_fileInfo_t *fileInfo)
 {
    if ( (buf != 0) && (fileInfo !=0) && (bufLen>0) )
    {

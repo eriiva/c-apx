@@ -68,6 +68,7 @@ void apx_allocator_destroy(apx_allocator_t *self);
 void apx_allocator_start(apx_allocator_t *self);
 void apx_allocator_stop(apx_allocator_t *self);
 uint8_t *apx_allocator_alloc(apx_allocator_t *self, size_t size);
-void apx_allocator_free(apx_allocator_t *self, uint8_t *ptr, uint32_t size);
+void apx_allocator_free(apx_allocator_t *self, uint8_t *ptr, size_t size);
+bool apx_allocator_isRunning(apx_allocator_t *self);
 
 #endif //APX_ALLOCATOR_H

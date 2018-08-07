@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "apx_clientConnection.h"
 #include "apx_client.h"
+#include "apx_transmitHandler.h"
 #include "headerutil.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
@@ -50,7 +51,7 @@ int8_t apx_clientConnection_create(apx_clientConnection_t *self, msocket_t *msoc
       self->isAcknowledgeSeen = false;
       self->client = client;
       self->maxMsgHeaderSize = (uint8_t) sizeof(uint32_t);
-      apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_CLIENT_MODE);
+      apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_CLIENT_MODE, 0);
       adt_bytearray_create(&self->sendBuffer, SEND_BUFFER_GROW_SIZE);
       return 0;
    }
@@ -66,8 +67,9 @@ void apx_clientConnection_destroy(apx_clientConnection_t *self)
       {
          msocket_delete(self->msocket);
       }
-
+#if 0
       apx_fileManager_destroy(&self->fileManager);
+#endif
       adt_bytearray_destroy(&self->sendBuffer);
    }
 }
@@ -114,6 +116,7 @@ void apx_clientConnection_start(apx_clientConnection_t *self)
 {
    if (self != 0)
    {
+#if 0
       apx_transmitHandler_t serverTransmitHandler;
       //register transmit handler with our fileManager
       serverTransmitHandler.arg = self;
@@ -121,9 +124,12 @@ void apx_clientConnection_start(apx_clientConnection_t *self)
       serverTransmitHandler.getSendAvail = 0;
       serverTransmitHandler.getSendBuffer = apx_clientConnection_getSendBuffer;
       apx_fileManager_setTransmitHandler(&self->fileManager, &serverTransmitHandler);
+#endif
       //register connection with the server nodeManager
       apx_nodeManager_attachFileManager(&self->client->nodeManager, &self->fileManager);
+#if 0
       apx_fileManager_start(&self->fileManager);
+#endif
       apx_clientConnection_sendGreeting(self);
    }
 }
@@ -226,13 +232,17 @@ static int8_t apx_clientConnection_parseMessage(apx_clientConnection_t *self, co
                     (pNext[7] == 0x00) )
                {
                   self->isAcknowledgeSeen = true;
+#if 0
                   apx_fileManager_onConnected(&self->fileManager);
+#endif
                }
             }
          }
          else
          {
+#if 0
             apx_fileManager_parseMessage(&self->fileManager, pNext, msgLen);
+#endif
          }
       }
       else

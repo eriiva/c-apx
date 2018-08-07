@@ -11,6 +11,7 @@
 #include <Windows.h>
 #else
 #include <unistd.h>
+#include <signal.h>
 #endif
 #include "apx_server.h"
 #include "apx_types.h"
@@ -29,12 +30,15 @@
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static int parse_args(int argc, char **argv);
+static void signal_handler_setup(void);
+void signal_handler(int signum);
 static void printUsage(char *name);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
 int8_t g_debug; // Global so apx_logging can use it from everywhere
+int m_runFlag = 1;
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL VARIABLES
@@ -61,6 +65,7 @@ int main(int argc, char **argv)
 #endif
    g_debug = 0;
    m_port = DEFAULT_PORT;
+   m_runFlag = 1;
    printf("APX Server %s\n", SW_VERSION_STR);
    if(argc>1)
    {
@@ -85,10 +90,12 @@ int main(int argc, char **argv)
       return 1;
    }
 #endif
+   signal_handler_setup();
    apx_server_create(&m_server,m_port);
-   apx_server_set_debug_mode(&m_server, g_debug);
+   apx_server_setDebugMode(&m_server, g_debug);
+   apx_server_setLogFile(&m_server, "apx.evt");
    apx_server_start(&m_server);
-   for(;;)
+   while(m_runFlag != 0)
    {
       SLEEP(1000); //main thread is sleeping while child threads do all the work
 #if CLEANUP_TEST
@@ -101,7 +108,8 @@ int main(int argc, char **argv)
        printf("Shutdown in %d\n", m_count);
     }
 #endif
-   }   
+   }
+   printf("cleaning up\n");
    apx_server_destroy(&m_server);
 #ifdef _WIN32
    WSACleanup();
@@ -116,6 +124,23 @@ int main(int argc, char **argv)
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+
+static void signal_handler_setup(void)
+{
+   if(signal (SIGINT, signal_handler) == SIG_IGN) {
+      signal (SIGINT, SIG_IGN);
+   }
+   if(signal (SIGTERM, signal_handler) == SIG_IGN) {
+      signal (SIGTERM, SIG_IGN);
+   }
+}
+
+void signal_handler(int signum)
+{
+   (void)signum;
+   m_runFlag = false;
+}
+
 static int parse_args(int argc, char **argv)
 {
    int i;
@@ -172,5 +197,3 @@ static void printUsage(char *name)
 {   
    printf("%s -p<port> [--debug=<level 1-4>]\n",name);
 }
-
-
