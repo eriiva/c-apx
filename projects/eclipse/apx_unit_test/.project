@@ -40,6 +40,11 @@
 			<locationURI>PARENT-3-PROJECT_LOC/adt/src</locationURI>
 		</link>
 		<link>
+			<name>autosar/inc</name>
+			<type>2</type>
+			<location>C:/Users/cogu/repo/c-apx/autosar/inc</location>
+		</link>
+		<link>
 			<name>bstr/inc</name>
 			<type>2</type>
 			<locationURI>PARENT-3-PROJECT_LOC/bstr/inc</locationURI>

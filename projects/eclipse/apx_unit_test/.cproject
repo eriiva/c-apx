@@ -40,6 +40,7 @@
 									<listOptionValue builtIn="false" value="../../../../apx/server/inc"/>
 									<listOptionValue builtIn="false" value="../../../../dtl_type/inc"/>
 									<listOptionValue builtIn="false" value="../../../../bstr/inc"/>
+									<listOptionValue builtIn="false" value="../../../../autosar/inc"/>
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.preprocessor.def.symbols.121028398" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="MEM_LEAK_CHECK"/>
@@ -62,7 +63,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="apx/common/src/apx_fileManager_old.c|apx/common/src/apx_fileManagerLocal.c|apx/common/src/apx_fileManagerSender.c|apx/common/src/apx_fileManagerReceiver.c|apx/server/src/server_main.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="apx/common/src/apx_fileManager_old.c|apx/common/src/apx_fileManagerSender.c|apx/common/src/apx_fileManagerReceiver.c|apx/server/src/server_main.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -109,7 +110,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="apx/common/src/apx_fileManager_old.c|apx/common/src/apx_fileManagerLocal.c|apx/common/src/apx_fileManagerSender.c|apx/common/src/apx_fileManagerReceiver.c|apx/server/src/server_main.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="apx/common/src/apx_fileManager_old.c|apx/common/src/apx_fileManagerSender.c|apx/common/src/apx_fileManagerReceiver.c|apx/server/src/server_main.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

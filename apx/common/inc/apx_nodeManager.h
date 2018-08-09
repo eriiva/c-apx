@@ -7,8 +7,8 @@
 #include "adt_hash.h"
 #include "adt_list.h"
 #include "apx_parser.h"
-#include "apx_node.h"
-#include "apx_nodeInfo.h"
+//#include "apx_node.h"
+//#include "apx_nodeInfo.h"
 #include "apx_stream.h"
 #include "apx_file.h"
 #ifdef _WIN32
@@ -27,6 +27,7 @@
 struct apx_fileManager_tag;
 struct apx_file_tag;
 struct apx_router_tag;
+struct apx_nodeData_tag;
 
 typedef struct apx_nodeManager_tag
 {
@@ -38,7 +39,7 @@ typedef struct apx_nodeManager_tag
    adt_hash_t localNodeDataMap; //hash containing weak references to apx_nodeData_t for locally connected nodes. only used in client mode
    adt_list_t fileManagerList; //linked list of attached file managers (so far there is a one-to-one relationship between connection and fileManager)
    int8_t debugMode;
-   MUTEX_T lock; //locking mechanism
+   MUTEX_T mutex; //locking mechanism
 }apx_nodeManager_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -51,13 +52,16 @@ typedef struct apx_nodeManager_tag
 //////////////////////////////////////////////////////////////////////////////
 void apx_nodeManager_create(apx_nodeManager_t *self);
 void apx_nodeManager_destroy(apx_nodeManager_t *self);
+apx_nodeManager_t *apx_nodeManager_new(void);
+void apx_nodeManager_delete(apx_nodeManager_t *self);
 void apx_nodeManager_remoteFileAdded(apx_nodeManager_t *self, struct apx_fileManager_tag *fileManager, apx_file_t *remoteFile);
 void apx_nodeManager_remoteFileRemoved(apx_nodeManager_t *self, struct apx_fileManager_tag *fileManager, apx_file_t *remoteFile);
 void apx_nodeManager_remoteFileWritten(apx_nodeManager_t *self, struct apx_fileManager_tag *fileManager, apx_file_t *remoteFile, uint32_t offset, int32_t length);
 void apx_nodeManager_setRouter(apx_nodeManager_t *self, struct apx_router_tag *router);
-void apx_nodeManager_attachLocalNode(apx_nodeManager_t *self, apx_nodeData_t *nodeData);
+void apx_nodeManager_attachLocalNode(apx_nodeManager_t *self,  struct apx_nodeData_tag *nodeData);
 void apx_nodeManager_attachFileManager(apx_nodeManager_t *self, struct apx_fileManager_tag *fileManager);
 void apx_nodeManager_shutdownFileManager(apx_nodeManager_t *self, struct apx_fileManager_tag *fileManager);
 void apx_nodeManager_setDebugMode(apx_nodeManager_t *self, int8_t debugMode);
+struct apx_nodeData_tag *apx_nodeManager_findLocalNode(apx_nodeManager_t *self);
 
 #endif //APX_NODE_MANAGER_H

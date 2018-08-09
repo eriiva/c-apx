@@ -26,8 +26,10 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <apx_fileManagerLocal.h>
+#include <errno.h>
+#include "apx_fileManagerLocal.h"
 #include "rmf.h"
+#include "apx_file.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -39,6 +41,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+#if 0
 static int8_t apx_fileManagerWorker_startThread(apx_fileManager_t *self);
 static THREAD_PROTO(threadTask, arg);
 
@@ -48,7 +51,7 @@ static void apx_fileManagerWorker_fileWriteCmdHandler(apx_fileManager_t *self, a
 
 static void apx_fileManagerWorker_sendFileInfo(apx_fileManager_t *self, rmf_fileInfo_t *fileInfo);
 static void apx_fileManagerWorker_sendAck(apx_fileManager_t *self);
-
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -62,6 +65,53 @@ static void apx_fileManagerWorker_sendAck(apx_fileManager_t *self);
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+
+void apx_fileManagerLocal_create(apx_fileManagerLocal_t *self, apx_fileManagerShared_t *shared)
+{
+   if (self != 0)
+   {
+      MUTEX_INIT(self->mutex);
+      apx_fileMap_create(&self->localFileMap);
+      self->shared = shared;
+   }
+}
+
+void apx_fileManagerLocal_destroy(apx_fileManagerLocal_t *self)
+{
+   if (self != 0)
+   {
+      apx_fileMap_destroy(&self->localFileMap);
+      MUTEX_DESTROY(self->mutex);
+   }
+}
+
+void apx_fileManagerLocal_start(apx_fileManagerLocal_t *self)
+{
+
+}
+
+void apx_fileManagerLocal_stop(apx_fileManagerLocal_t *self)
+{
+
+}
+
+void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file_tag *localFile)
+{
+   apx_fileMap_insertFile(&self->localFileMap, localFile);
+}
+
+int32_t apx_fileManagerLocal_getNumFiles(apx_fileManagerLocal_t *self)
+{
+   if (self != 0)
+   {
+      return apx_fileMap_length(&self->localFileMap);
+   }
+   errno = EINVAL;
+   return -1;
+}
+
+
+#if 0
 static void apx_fileManager_processOpenFile(apx_fileManager_t *self, const rmf_cmdOpenFile_t *cmdOpenFile)
 {
    if ( (self != 0) && (cmdOpenFile != 0) )
@@ -420,3 +470,4 @@ static void apx_fileManagerWorker_sendFileOpen(apx_fileManager_t *self, uint32_t
       }
    }
 }
+#endif

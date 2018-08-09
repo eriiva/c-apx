@@ -10,6 +10,13 @@
 #include "apx_client.h"
 #include "apx_transmitHandler.h"
 #include "headerutil.h"
+#include "apx_fileManager.h"
+#include "apx_clientNodeManager.h"
+#ifdef UNIT_TEST
+#include "testsocket.h"
+#else
+#include "msocket.h"
+#endif
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -22,13 +29,32 @@
 #define MAX_HEADER_LEN 128
 #define SEND_BUFFER_GROW_SIZE 4096 //4KB
 
+#ifdef UNIT_TEST
+#define SOCKET_TYPE struct testsocket_tag
+#define SOCKET_DELETE testsocket_delete
+#define SOCKET_SEND testsocket_serverSend
+#define SOCKET_SET_HANDLER testsocket_setClientHandler
+#else
+#define SOCKET_TYPE struct msocket_t
+#define SOCKET_DELETE msocket_delete
+#define SOCKET_SEND msocket_send
+#define SOCKET_SET_HANDLER msocket_sethandler
+#endif
+
+
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+static void apx_clientConnection_registerSocketHandler(apx_clientConnection_t *self);
+static int8_t apx_clientConnection_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
+static void apx_clientConnection_disconnected(void *arg);
+static void apx_clientConnection_connected(void *arg, const char *addr, uint16_t port);
 static int8_t apx_clientConnection_parseMessage(apx_clientConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 static uint8_t *apx_clientConnection_getSendBuffer(void *arg, int32_t msgLen);
 static int32_t apx_clientConnection_send(void *arg, int32_t offset, int32_t msgLen);
 static void apx_clientConnection_sendGreeting(apx_clientConnection_t *self);
+static void apx_clientConnection_start(apx_clientConnection_t *self);
+static int8_t apx_clientConnection_dataReceived(apx_clientConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -43,11 +69,11 @@ static void apx_clientConnection_sendGreeting(apx_clientConnection_t *self);
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-int8_t apx_clientConnection_create(apx_clientConnection_t *self, msocket_t *msocket, struct apx_client_tag *client)
+int8_t apx_clientConnection_create(apx_clientConnection_t *self, struct apx_client_tag *client)
 {
-   if( (self != 0) && (msocket != 0) &&  (client != 0))
+   if( (self != 0) &&  (client != 0))
    {
-      self->msocket = msocket;
+      self->socketObject = (SOCKET_TYPE*) 0;
       self->isAcknowledgeSeen = false;
       self->client = client;
       self->maxMsgHeaderSize = (uint8_t) sizeof(uint32_t);
@@ -63,24 +89,22 @@ void apx_clientConnection_destroy(apx_clientConnection_t *self)
 {
    if (self != 0)
    {
-      if (self->msocket != 0)
+      if (self->socketObject != 0)
       {
-         msocket_delete(self->msocket);
+         SOCKET_DELETE(self->socketObject);
       }
-#if 0
       apx_fileManager_destroy(&self->fileManager);
-#endif
       adt_bytearray_destroy(&self->sendBuffer);
    }
 }
 
-apx_clientConnection_t *apx_clientConnection_new(msocket_t *msocket, struct apx_client_tag *client)
+apx_clientConnection_t *apx_clientConnection_new(struct apx_client_tag *client)
 {
-   if ( (msocket != 0) && (client != 0))
+   if ( client != 0 )
    {
       apx_clientConnection_t *self = (apx_clientConnection_t*) malloc(sizeof(apx_clientConnection_t));
       if(self != 0){
-         int8_t result = apx_clientConnection_create(self,msocket,client);
+         int8_t result = apx_clientConnection_create(self, client);
          if (result != 0)
          {
             free(self);
@@ -109,6 +133,78 @@ void apx_clientConnection_vdelete(void *arg)
    apx_clientConnection_delete((apx_clientConnection_t*) arg);
 }
 
+#ifdef UNIT_TEST
+int8_t apx_clientConnection_connect(apx_clientConnection_t *self, SOCKET_TYPE *socketObject)
+{
+   if ( (self != 0) && (socketObject != 0) )
+   {
+      self->socketObject = socketObject;
+      apx_clientConnection_registerSocketHandler(self);
+      return 0;
+   }
+   return -1;
+}
+
+#else
+int8_t apx_clientConnection_connectTcp(apx_client_t *self, const char *address, uint16_t port)
+{
+   msocket_t *socketObject = msocket_new(AF_INET);
+   if (msocket != 0)
+   {
+      int8_t retval = 0;
+      self->socketObject = socketObject;
+      apx_clientConnection_registerSocketHandler(self);
+      retval = msocket_connect(socketObject, address, port);
+      if (retval != 0)
+      {
+         fprintf(stderr, "[apx_client] msocket_connect failed with %d\n",retval);
+      }
+      else
+      {
+         fprintf(stderr, "[apx_client] msocket_new returned NULL\n");
+      }
+      return retval;
+   }
+   return -1;
+}
+#endif
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+// LOCAL FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+
+static void apx_clientConnection_registerSocketHandler(apx_clientConnection_t *self)
+{
+   msocket_handler_t handlerTable;
+   assert(self->socketObject != 0);
+   memset(&handlerTable,0,sizeof(handlerTable));
+   handlerTable.tcp_connected=apx_clientConnection_connected;
+   handlerTable.tcp_data=apx_clientConnection_data;
+   handlerTable.tcp_disconnected = apx_clientConnection_disconnected;
+   SOCKET_SET_HANDLER(self->socketObject,&handlerTable, self);
+}
+
+static int8_t apx_clientConnection_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
+{
+   apx_clientConnection_t *self = (apx_clientConnection_t*) arg;
+   return apx_clientConnection_dataReceived(self, dataBuf, dataLen, parseLen);
+}
+
+static void apx_clientConnection_disconnected(void *arg)
+{
+   printf("[apx_client] server closed connection\n");
+}
+
+static void apx_clientConnection_connected(void *arg,const char *addr,uint16_t port)
+{
+   apx_clientConnection_t *self = (apx_clientConnection_t*) arg;
+   apx_clientConnection_start(self);
+}
+
 /**
  * activates the server connection and sends out the greeting
  */
@@ -126,7 +222,7 @@ void apx_clientConnection_start(apx_clientConnection_t *self)
       apx_fileManager_setTransmitHandler(&self->fileManager, &serverTransmitHandler);
 #endif
       //register connection with the server nodeManager
-      apx_nodeManager_attachFileManager(&self->client->nodeManager, &self->fileManager);
+      apx_clientNodeManager_attachFileManager(self->client->nodeManager, &self->fileManager);
 #if 0
       apx_fileManager_start(&self->fileManager);
 #endif
@@ -135,43 +231,6 @@ void apx_clientConnection_start(apx_clientConnection_t *self)
 }
 
 
-/**
- * called from apx_client when data has been received on the msocket
- */
-int8_t apx_clientConnection_dataReceived(apx_clientConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
-{
-   if ( (self != 0) && (dataBuf != 0) )
-   {
-      uint32_t totalParseLen = 0;
-      uint32_t remain = dataLen;
-      int8_t result = 0;
-      const uint8_t *pNext = dataBuf;
-      while(totalParseLen<dataLen)
-      {
-         uint32_t internalParseLen = 0;
-         result=apx_clientConnection_parseMessage(self, pNext, remain, &internalParseLen);
-         if ( (result == 0) && (internalParseLen!=0) )
-         {
-            assert(internalParseLen<=dataLen);
-            pNext+=internalParseLen;
-            totalParseLen+=internalParseLen;
-            remain-=internalParseLen;
-         }
-         else
-         {
-            break;
-         }
-      }
-      //no more complete messages can be parsed. There may be a partial message left in buffer, but we ignore it until more data has been recevied.      
-      *parseLen = totalParseLen;
-      return result;
-   }
-   return -1;
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTIONS
-//////////////////////////////////////////////////////////////////////////////
 
 void apx_clientConnection_sendGreeting(apx_clientConnection_t *self)
 {
@@ -322,13 +381,44 @@ static int32_t apx_clientConnection_send(void *arg, int32_t offset, int32_t msgL
          //place header just before user data begin
          pBegin = sendBuffer+(self->maxMsgHeaderSize+offset-headerLen); //the part in the parenthesis is where the user data begins
          memcpy(pBegin, header, headerLen);         
-         msocket_send(self->msocket, pBegin, msgLen+headerLen);
+         SOCKET_SEND(self->socketObject, pBegin, msgLen+headerLen);
          return 0;
       }
       else
       {
          assert(0);
       }
+   }
+   return -1;
+}
+
+static int8_t apx_clientConnection_dataReceived(apx_clientConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
+{
+   if ( (self != 0) && (dataBuf != 0) )
+   {
+      uint32_t totalParseLen = 0;
+      uint32_t remain = dataLen;
+      int8_t result = 0;
+      const uint8_t *pNext = dataBuf;
+      while(totalParseLen<dataLen)
+      {
+         uint32_t internalParseLen = 0;
+         result=apx_clientConnection_parseMessage(self, pNext, remain, &internalParseLen);
+         if ( (result == 0) && (internalParseLen!=0) )
+         {
+            assert(internalParseLen<=dataLen);
+            pNext+=internalParseLen;
+            totalParseLen+=internalParseLen;
+            remain-=internalParseLen;
+         }
+         else
+         {
+            break;
+         }
+      }
+      //no more complete messages can be parsed. There may be a partial message left in buffer, but we ignore it until more data has been recevied.
+      *parseLen = totalParseLen;
+      return result;
    }
    return -1;
 }

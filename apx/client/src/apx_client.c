@@ -7,6 +7,9 @@
 #include <assert.h>
 #include <stdio.h>
 #include "apx_client.h"
+#include "apx_clientConnection.h"
+#include "apx_clientNodeManager.h"
+#include "msocket.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -17,13 +20,9 @@
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 
-
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static int8_t tcp_client_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
-static void tcp_client_disconnected(void *arg);
-void tcp_client_connected(void *arg,const char *addr,uint16_t port);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -41,8 +40,17 @@ int8_t apx_client_create(apx_client_t *self)
 {
    if( self != 0 )
    {
-      self->connection = 0;
-      apx_nodeManager_create(&self->nodeManager);
+      self->nodeManager = apx_clientNodeManager_new();
+      if (self->nodeManager == 0)
+      {
+         return -1;
+      }
+      self->connection = apx_clientConnection_new(self);
+      if (self->connection == 0)
+      {
+         apx_clientNodeManager_delete(self->nodeManager);
+         return -1;
+      }
       return 0;
    }
    errno=EINVAL;
@@ -53,18 +61,16 @@ void apx_client_destroy(apx_client_t *self)
 {
    if (self != 0)
    {
-      if (self->connection != 0)
-      {
-         apx_clientConnection_delete(self->connection);
-      }
-      apx_nodeManager_destroy(&self->nodeManager);
+      apx_clientConnection_delete(self->connection);
+      apx_clientNodeManager_delete(self->nodeManager);
    }
 }
 
 apx_client_t *apx_client_new(void)
 {
    apx_client_t *self = (apx_client_t*) malloc(sizeof(apx_client_t));
-   if(self != 0){
+   if(self != 0)
+   {
       int8_t result = apx_client_create(self);
       if (result != 0)
       {
@@ -72,7 +78,8 @@ apx_client_t *apx_client_new(void)
          self=0;
       }
    }
-   else{
+   else
+   {
       errno = ENOMEM;
    }
    return self;
@@ -92,32 +99,25 @@ void apx_client_vdelete(void *arg)
    apx_client_delete((apx_client_t*) arg);
 }
 
-int8_t apx_client_connect_tcp(apx_client_t *self, const char *address, uint16_t port)
+#ifdef UNIT_TEST
+int8_t apx_client_connect(apx_client_t *self, struct testsocket_tag *socketObject)
 {
-   int8_t retval = 0;
-   msocket_t *msocket = msocket_new(AF_INET);
-   if (msocket != 0)
+   if (self != 0)
    {
-      msocket_handler_t handlerTable;
-      self->connection = apx_clientConnection_new(msocket,self);
-      assert(self->connection != 0);
-      memset(&handlerTable,0,sizeof(handlerTable));
-      handlerTable.tcp_connected=tcp_client_connected;
-      handlerTable.tcp_data=tcp_client_data;
-      handlerTable.tcp_disconnected = tcp_client_disconnected;
-      msocket_sethandler(msocket,&handlerTable,self->connection);
-      retval = msocket_connect(msocket, address, port);
-      if (retval != 0)
-      {
-         fprintf(stderr, "[apx_client] msocket_connect failed with %d\n",retval);
-      }
+      return apx_clientConnection_connect(self->connection, socketObject);
    }
-   else
-   {
-      fprintf(stderr, "[apx_client] msocket_new returned NULL\n");
-   }
-   return retval;
+   return -1;
 }
+#else
+int8_t apx_client_connectTcp(apx_client_t *self, const char *address, uint16_t port)
+{
+   if (self != 0)
+   {
+      return apx_clientConnection_connectTcp(self->connection, address, port);
+   }
+}
+#endif
+
 
 /**
  * attached the nodeData to the local nodeManager in the client
@@ -126,7 +126,7 @@ void apx_client_attachLocalNode(apx_client_t *self, apx_nodeData_t *nodeData)
 {
    if ( (self != 0) && (nodeData != 0) )
    {
-      apx_nodeManager_attachLocalNode(&self->nodeManager, nodeData); //client1 is the proxy
+      apx_clientNodeManager_attachLocalNode(self->nodeManager, nodeData);
    }
 }
 
@@ -134,21 +134,5 @@ void apx_client_attachLocalNode(apx_client_t *self, apx_nodeData_t *nodeData)
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static int8_t tcp_client_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
-{
-   apx_clientConnection_t *clientConnection = (apx_clientConnection_t*) arg;
-   return apx_clientConnection_dataReceived(clientConnection, dataBuf, dataLen, parseLen);
-}
-
-static void tcp_client_disconnected(void *arg)
-{
-   printf("[apx_client] server closed connection\n");
-}
-
-void tcp_client_connected(void *arg,const char *addr,uint16_t port)
-{
-   apx_clientConnection_t *clientConnection = (apx_clientConnection_t*) arg;   
-   apx_clientConnection_start(clientConnection);
-}
 
 

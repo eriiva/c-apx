@@ -5,6 +5,7 @@
 #include <malloc.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
 #include "apx_logging.h"
 #ifdef _MSC_VER
 #include <process.h>

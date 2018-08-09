@@ -59,7 +59,7 @@ void apx_fileManager_unregisterEventListener(apx_fileManager_t *self, void *hand
 int32_t apx_fileManager_getNumEventListeners(apx_fileManager_t *self);
 
 void apx_fileManager_start(apx_fileManager_t *self);
-void apx_fileManager_onConnected(apx_fileManager_t *self);
+void apx_fileManager_onHeaderAccepted(apx_fileManager_t *self);
 int32_t apx_fileManager_parseMessage(apx_fileManager_t *self, const uint8_t *msgBuf, int32_t msgLen);
 uint32_t fileManager_getID(apx_fileManager_t *self);
 

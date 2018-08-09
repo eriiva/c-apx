@@ -136,7 +136,10 @@ void apx_fileManager_start(apx_fileManager_t *self)
    }
 }
 
-void apx_fileManager_onConnected(apx_fileManager_t *self)
+/**
+ * called by connection after it has successfully parsed the RMF header
+ */
+void apx_fileManager_onHeaderAccepted(apx_fileManager_t *self)
 {
    if (self != 0)
    {

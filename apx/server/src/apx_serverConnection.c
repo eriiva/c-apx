@@ -263,7 +263,7 @@ static void apx_serverConnection_parseGreeting(apx_serverConnection_t *self, con
             {
                APX_LOG_INFO("%s", "[APX_SRV_CONNECTION] Greeting parsed");
             }
-            apx_fileManager_onConnected(&self->fileManager);
+            apx_fileManager_onHeaderAccepted(&self->fileManager);
             break;
          }
          else

@@ -6,17 +6,22 @@
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
 #include <stdbool.h>
-#include "apx_clientConnection.h"
-#include "apx_nodeData.h"
-#include "msocket.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+//forward declarations
+struct apx_clientConnection_tag;
+struct apx_clientNodeManager_tag;
+struct apx_nodeData_tag;
+#ifdef UNIT_TEST
+struct testsocket_tag;
+#endif
+
 typedef struct apx_client_tag
 {
-   apx_clientConnection_t *connection;
-   apx_nodeManager_t nodeManager;
+   struct apx_clientConnection_tag *connection;
+   struct apx_clientNodeManager_tag *nodeManager;
 }apx_client_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -33,7 +38,17 @@ apx_client_t *apx_client_new(void);
 void apx_client_delete(apx_client_t *self);
 void apx_client_vdelete(void *arg);
 
-int8_t apx_client_connect_tcp(apx_client_t *self, const char *address, uint16_t port);
-void apx_client_attachLocalNode(apx_client_t *self, apx_nodeData_t *nodeData);
+#ifdef UNIT_TEST
+int8_t apx_client_connect(apx_client_t *self, struct testsocket_tag *socketObject);
+#else
+int8_t apx_client_connectTcp(apx_client_t *self, const char *address, uint16_t port);
+# ifndef _WIN32
+int8_t apx_client_connectUnix(apx_client_t *self, const char *path);
+# endif
+#endif
+void apx_client_attachLocalNode(apx_client_t *self, struct apx_nodeData_tag *nodeData);
+
+//backwards compatible API
+#define apx_client_connect_tcp apx_client_connectTcp
 
 #endif //APX_CLIENT_H

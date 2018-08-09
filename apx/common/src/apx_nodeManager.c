@@ -58,6 +58,7 @@ static bool apx_nodeManager_createInitData(apx_node_t *node, uint8_t *buf, int32
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+
 void apx_nodeManager_create(apx_nodeManager_t *self)
 {
    if (self != 0)
@@ -80,7 +81,7 @@ void apx_nodeManager_create(apx_nodeManager_t *self)
       adt_hash_create(&self->remoteNodeDataMap, apx_nodeData_vdelete);
       adt_hash_create(&self->localNodeDataMap, (void(*)(void*)) 0);
       adt_list_create(&self->fileManagerList, (void(*)(void*)) 0);
-      MUTEX_INIT(self->lock);
+      MUTEX_INIT(self->mutex);
    }
 }
 
@@ -94,7 +95,26 @@ void apx_nodeManager_destroy(apx_nodeManager_t *self)
       adt_hash_destroy(&self->remoteNodeDataMap);
       adt_hash_destroy(&self->localNodeDataMap);
       adt_list_destroy(&self->fileManagerList);
-      MUTEX_DESTROY(self->lock);
+      MUTEX_DESTROY(self->mutex);
+   }
+}
+
+apx_nodeManager_t *apx_nodeManager_new(void)
+{
+   apx_nodeManager_t *self = (apx_nodeManager_t*) malloc(sizeof(apx_nodeManager_t));
+   if(self != 0)
+   {
+      apx_nodeManager_create(self);
+   }
+   return self;
+}
+
+void apx_nodeManager_delete(apx_nodeManager_t *self)
+{
+   if(self != 0)
+   {
+      apx_nodeManager_destroy(self);
+      free(self);
    }
 }
 
@@ -112,9 +132,9 @@ void apx_nodeManager_remoteFileAdded(apx_nodeManager_t *self, struct apx_fileMan
          {
             apx_nodeData_t *nodeData;
             //this is potentially a new node, check if it exists already
-            MUTEX_LOCK(self->lock);
+            MUTEX_LOCK(self->mutex);
             nodeData = apx_nodeManager_getNodeData(self, basename);
-            MUTEX_UNLOCK(self->lock);
+            MUTEX_UNLOCK(self->mutex);
             if (nodeData == 0)
             {
                if (fileManager->mode == APX_FILEMANAGER_SERVER_MODE)
@@ -134,9 +154,9 @@ void apx_nodeManager_remoteFileAdded(apx_nodeManager_t *self, struct apx_fileMan
                      else
                      {
                         nodeData->definitionDataLen = remoteFile->fileInfo.length;
-                        MUTEX_LOCK(self->lock);
+                        MUTEX_LOCK(self->mutex);
                         adt_hash_set(&self->remoteNodeDataMap, basename, 0, nodeData);
-                        MUTEX_UNLOCK(self->lock);
+                        MUTEX_UNLOCK(self->mutex);
                         //now that memory has been allocated, send request to open the file (triggering file transfer)
 #if 0
                         apx_fileManager_sendFileOpen(fileManager, remoteFile->fileInfo.address);
@@ -165,9 +185,9 @@ void apx_nodeManager_remoteFileAdded(apx_nodeManager_t *self, struct apx_fileMan
          {
             apx_nodeData_t *nodeData;
             //this is potentially a new node, check if it exists already
-            MUTEX_LOCK(self->lock);
+            MUTEX_LOCK(self->mutex);
             nodeData = apx_nodeManager_getNodeData(self, basename);
-            MUTEX_UNLOCK(self->lock);
+            MUTEX_UNLOCK(self->mutex);
             if ( nodeData != 0 )
             {
                if (nodeData->inPortDataLen != remoteFile->fileInfo.length)
@@ -212,6 +232,7 @@ void apx_nodeManager_remoteFileAdded(apx_nodeManager_t *self, struct apx_fileMan
    }
 }
 
+
 /**
  * this is called by fileManager when a file has been removed
  */
@@ -234,9 +255,9 @@ void apx_nodeManager_remoteFileWritten(apx_nodeManager_t *self, struct apx_fileM
    {
       if (remoteFile->fileType == APX_DEFINITION_FILE)
       {
-         MUTEX_LOCK(self->lock);
+         MUTEX_LOCK(self->mutex);
          apx_nodeManager_createNode(self, remoteFile->nodeData->definitionDataBuf, remoteFile->nodeData->definitionDataLen, fileManager);
-         MUTEX_UNLOCK(self->lock);
+         MUTEX_UNLOCK(self->mutex);
       }
       else
       {
@@ -273,6 +294,7 @@ void apx_nodeManager_remoteFileWritten(apx_nodeManager_t *self, struct apx_fileM
    }
 }
 
+
 /**
  * setter for self->router
  */
@@ -284,24 +306,19 @@ void apx_nodeManager_setRouter(apx_nodeManager_t *self, struct apx_router_tag *r
    }
 }
 
+
 /**
  * attaches local node to nodeManager.
  * It is expected that at least the definitionDataBuf is set to non-NULL pointer
  */
 void apx_nodeManager_attachLocalNode(apx_nodeManager_t *self, apx_nodeData_t *nodeData)
 {
+
    if ( (self != 0) && (nodeData != 0) )
    {
-      adt_list_elem_t *pIter;
+      MUTEX_LOCK(self->mutex);
       apx_nodeManager_setLocalNodeData(self, nodeData);
-      //for each attached fileManager, create a new file
-      pIter = adt_list_iter_first(&self->fileManagerList);
-      while(pIter != 0)
-      {
-         apx_fileManager_t *fileManager = (apx_fileManager_t*) pIter->pItem;
-         apx_nodeManager_attachLocalNodeToFileManager(nodeData, fileManager);
-         pIter = adt_list_iter_next(pIter);
-      }
+      MUTEX_UNLOCK(self->mutex);
    }
 }
 
@@ -695,3 +712,4 @@ static bool apx_nodeManager_createInitData(apx_node_t *node, uint8_t *buf, int32
    }
    return false;
 }
+
