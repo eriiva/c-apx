@@ -33,7 +33,7 @@
 #include "ApxNode_TestNode1.h"
 #include "apx_client.h"
 #include "apx_clientConnection.h"
-#include "testsocketspy.h"
+#include "testsocket_spy.h"
 #include "apx_fileManager.h"
 #include "rmf.h"
 #include "CuTest.h"

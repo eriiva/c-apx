@@ -6,7 +6,7 @@
 #include "CuTest.h"
 #include "apx_serverConnection.h"
 #include "apx_server.h"
-#include "testsocketspy.h"
+#include "testsocket_spy.h"
 #include "apx_fileManager.h"
 #ifdef _WIN32
 #include <Windows.h>
