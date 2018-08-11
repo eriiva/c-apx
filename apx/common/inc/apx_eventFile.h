@@ -36,8 +36,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define APX_EVENT_SRV_FILE_NAME "apx_srv.evt" //used by server to record internal events
-#define APX_EVENT_CLI_FILE_NAME "apx_cli.evt" //used by client to play events to server
+#define APX_EVENT_SRV_FILE_NAME "apx_events_srv.stream" //used by server to record internal events
+#define APX_EVENT_CLI_FILE_NAME "apx_events_cli.stream" //used by client to play events to server
 #define APX_EVENT_FILE_LEN 0x200000 //2MB
 #define APX_RMF_EVENT_FILE_ADDRESS 0x3FDFFC00
 

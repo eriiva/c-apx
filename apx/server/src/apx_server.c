@@ -4,6 +4,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_server.h"
 #include "apx_logging.h"
+#include "apx_fileManager.h"
 #include "apx_eventRecorderSrvTxt.h"
 #include <assert.h>
 
@@ -268,7 +269,8 @@ static void apx_server_disconnected(void *arg)
       MUTEX_LOCK(server->lock);
       adt_list_remove(&server->connections, connection);
       server->numConnections--;
-      apx_nodeManager_shutdownFileManager(&server->nodeManager, &connection->fileManager);
+      apx_fileManager_stop(&connection->fileManager);
+      apx_nodeManager_detachFileManager(&server->nodeManager, &connection->fileManager);
       apx_server_cleanup_connection(connection);
       MUTEX_UNLOCK(server->lock);
    }

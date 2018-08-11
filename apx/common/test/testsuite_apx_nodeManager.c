@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      testsuite_apx_client.c
+* \file      testsuite_apx_nodeManager.c
 * \author    Conny Gustafsson
-* \date      2018-08-08
-* \brief     Description
+* \date      2018-08-10
+* \brief     Unit tests for apx_nodeManager
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -26,79 +26,84 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
+#include <string.h>
+#include <stdio.h>
+#include <assert.h>
 #include "ApxNode_TestNode1.h"
-#include "apx_client.h"
-#include "testsocket.h"
+#include "apx_fileManager.h"
+#include "apx_nodeManager.h"
 #include "CuTest.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
-// CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
+//////////////////////////////////////////////////////////////////////////////
+#define DEFAULT_CONNECTION_ID 0
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+static void test_apx_nodeManager_create(CuTest* tc);
+static void test_apx_nodeManager_attachLocalNode(CuTest *tc);
+static void test_apx_nodeManager_attachFileManagerWithOneLocalNodePresent(CuTest *tc);
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTION PROTOTYPES
+// PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_client_create(CuTest* tc);
-static void test_apx_client_connect(CuTest* tc);
-static void test_apx_client_attachLocalNode(CuTest* tc);
-
-//////////////////////////////////////////////////////////////////////////////
-// GLOBAL VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// LOCAL VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTIONS
-//////////////////////////////////////////////////////////////////////////////
-
-
-CuSuite* testSuite_apx_client(void)
+CuSuite* testSuite_apx_nodeManager(void)
 {
    CuSuite* suite = CuSuiteNew();
 
-   SUITE_ADD_TEST(suite, test_apx_client_create);
-   SUITE_ADD_TEST(suite, test_apx_client_connect);
-   SUITE_ADD_TEST(suite, test_apx_client_attachLocalNode);
+   SUITE_ADD_TEST(suite, test_apx_nodeManager_create);
+   SUITE_ADD_TEST(suite, test_apx_nodeManager_attachLocalNode);
+   SUITE_ADD_TEST(suite, test_apx_nodeManager_attachFileManagerWithOneLocalNodePresent);
 
    return suite;
 }
-
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTIONS
+// PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-
-static void test_apx_client_create(CuTest* tc)
+static void test_apx_nodeManager_create(CuTest* tc)
 {
-   apx_client_t *client = apx_client_new();
-   CuAssertPtrNotNull(tc, client);
-   CuAssertPtrNotNull(tc, client->nodeManager);
-   apx_client_delete(client);
+   apx_nodeManager_t nodeManager;
+   apx_nodeManager_create(&nodeManager);
+   CuAssertPtrEquals(tc, 0, nodeManager.router);
+   apx_nodeManager_destroy(&nodeManager);
 }
 
-static void test_apx_client_connect(CuTest* tc)
+static void test_apx_nodeManager_attachLocalNode(CuTest *tc)
 {
-   testsocket_t *sock;
-   apx_client_t *client = apx_client_new();
-   sock = testsocket_new();
-   CuAssertPtrNotNull(tc, client);
-   apx_client_delete(client);
-   testsocket_delete(sock);
-}
-
-static void test_apx_client_attachLocalNode(CuTest* tc)
-{
-   apx_nodeData_t *node;
-   apx_client_t *client = apx_client_new();
+   apx_nodeData_t *nodeData1;
+   apx_nodeData_t *nodeData2;
+   apx_nodeManager_t nodeManager;
+   apx_nodeManager_create(&nodeManager);
    ApxNode_Init_TestNode1();
-   node = ApxNode_GetNodeData_TestNode1();
-   CuAssertPtrNotNull(tc, node);
-   apx_client_attachLocalNode(client, node);
-   apx_client_delete(client);
+   nodeData1 = ApxNode_GetNodeData_TestNode1();
+   apx_nodeManager_attachLocalNode(&nodeManager, nodeData1);
+   nodeData2 = apx_nodeManager_findNodeData(&nodeManager, nodeData1->name);
+   CuAssertPtrEquals(tc, nodeData1, nodeData2);
+   apx_nodeManager_destroy(&nodeManager);
+}
+
+static void test_apx_nodeManager_attachFileManagerWithOneLocalNodePresent(CuTest *tc)
+{
+   apx_nodeData_t *nodeData;
+
+   apx_nodeManager_t nodeManager;
+   apx_fileManager_t fileManager;
+   apx_nodeManager_create(&nodeManager);
+   ApxNode_Init_TestNode1();
+   nodeData = ApxNode_GetNodeData_TestNode1();
+   apx_nodeManager_attachLocalNode(&nodeManager, nodeData);
+   apx_fileManager_create(&fileManager, APX_FILEMANAGER_CLIENT_MODE, DEFAULT_CONNECTION_ID);
+   CuAssertIntEquals(tc, 0, apx_fileManager_getNumLocalFiles(&fileManager));
+   apx_nodeManager_attachFileManager(&nodeManager, &fileManager);
+   CuAssertIntEquals(tc, 2, apx_fileManager_getNumLocalFiles(&fileManager));
+   apx_nodeManager_destroy(&nodeManager);
+   apx_fileManager_destroy(&fileManager);
 }

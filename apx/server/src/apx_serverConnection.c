@@ -24,6 +24,7 @@
 #include "apx_serverConnection.h"
 #include "apx_logging.h"
 #include "apx_transmitHandler.h"
+#include "apx_fileManager.h"
 #include "headerutil.h"
 #include "bstr.h"
 #ifdef MEM_LEAK_CHECK
@@ -141,6 +142,8 @@ void apx_serverConnection_vdelete(void *arg)
    apx_serverConnection_delete((apx_serverConnection_t*) arg);
 }
 
+
+
 /**
  * activates a new server connection
  */
@@ -148,6 +151,7 @@ void apx_serverConnection_start(apx_serverConnection_t *self)
 {
    if ( self != 0)
    {
+      apx_fileManager_triggerNewConnectionEvent(&self->fileManager);
       apx_fileManager_start(&self->fileManager);
    }
 }
@@ -220,16 +224,13 @@ apx_fileManager_t *apx_serverConnection_getFileManager(apx_serverConnection_t *s
 
 static void apx_serverConnection_registerTransmitHandler(apx_serverConnection_t *self)
 {
-#if 0
    apx_transmitHandler_t serverTransmitHandler;
    //register transmit handler with our fileManager
    serverTransmitHandler.arg = self;
    serverTransmitHandler.send = apx_serverConnection_send;
    serverTransmitHandler.getSendAvail = 0;
    serverTransmitHandler.getSendBuffer = apx_serverConnection_getSendBuffer;
-
    apx_fileManager_setTransmitHandler(&self->fileManager, &serverTransmitHandler);
-#endif
 }
 
 /**
@@ -263,7 +264,7 @@ static void apx_serverConnection_parseGreeting(apx_serverConnection_t *self, con
             {
                APX_LOG_INFO("%s", "[APX_SRV_CONNECTION] Greeting parsed");
             }
-            apx_fileManager_onHeaderAccepted(&self->fileManager);
+            apx_fileManager_onHeaderReceived(&self->fileManager);
             break;
          }
          else

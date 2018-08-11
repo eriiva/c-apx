@@ -35,6 +35,7 @@
 									<listOptionValue builtIn="false" value="../../../../apx/server/inc"/>
 									<listOptionValue builtIn="false" value="../../../../apx/client/inc"/>
 									<listOptionValue builtIn="false" value="../../../../remotefile/inc"/>
+									<listOptionValue builtIn="false" value="../../../../apx/client/test"/>
 									<listOptionValue builtIn="false" value="../../../../msocket/inc"/>
 									<listOptionValue builtIn="false" value="../../../../cutest"/>
 									<listOptionValue builtIn="false" value="../../../../apx/server/inc"/>
@@ -44,6 +45,7 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.preprocessor.def.symbols.121028398" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="MEM_LEAK_CHECK"/>
+									<listOptionValue builtIn="false" value="ADT_RBFS_ENABLE=1"/>
 									<listOptionValue builtIn="false" value="UNIT_TEST"/>
 								</option>
 								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.option.optimization.level.1492512790" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>

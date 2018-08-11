@@ -119,16 +119,11 @@ static void test_apx_file_addEventListener(CuTest* tc)
 {
    apx_file_t *file1;
    rmf_fileInfo_t info1;
-   apx_eventListener_t listener1;
    info1.address = 0x0;
    strcpy(info1.name,"test.out");
    info1.digestType = RMF_DIGEST_TYPE_NONE;
    info1.fileType = RMF_FILE_TYPE_FIXED;
    info1.length = 10;
    file1 = apx_file_new(APX_OUTDATA_FILE, &info1);
-   memset(&listener1, 0, sizeof(listener1));
-   CuAssertIntEquals(tc, 0, adt_list_length(&file1->event_listeners));
-   apx_file_addEventListener(file1, &listener1);
-   CuAssertIntEquals(tc, 1, adt_list_length(&file1->event_listeners));
    apx_file_delete(file1);
 }

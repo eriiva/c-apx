@@ -19,7 +19,7 @@
 #include "apx_nodeManager.h"
 #include "apx_fileManager.h"
 #include "apx_nodeData.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 #include "apx_nodeInfo.h"
 #include "apx_router.h"
 #include "apx_logging.h" //internal logging
@@ -39,13 +39,17 @@
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void apx_nodeManager_createNode(apx_nodeManager_t *self, const uint8_t *definitionBuf, int32_t definitionLen, struct apx_fileManager_tag *fileManager);
-static apx_nodeData_t *apx_nodeManager_getNodeData(const apx_nodeManager_t *self, const char *name);
 static void apx_nodeManager_setLocalNodeData(apx_nodeManager_t *self, apx_nodeData_t *nodeData);
-static void apx_nodeManager_executePortTriggerFunction(const apx_dataTriggerFunction_t *triggerFunction, const apx_file_t *file);
-static void apx_nodeManager_attachLocalNodeToFileManager(apx_nodeData_t *nodeData, apx_fileManager_t *fileManager);
+static void apx_nodeManager_executePortTriggerFunction(const apx_dataTriggerFunction_t *triggerFunction, const apx_file2_t *file);
 static void apx_nodeManager_removeRemoteNodeData(apx_nodeManager_t *self, apx_nodeData_t *nodeData);
 static void apx_nodeManager_removeNodeInfo(apx_nodeManager_t *self, apx_nodeInfo_t *nodeInfo);
 static bool apx_nodeManager_createInitData(apx_node_t *node, uint8_t *buf, int32_t bufLen);
+static void apx_nodeManager_attachLocalNodesToFileManager(apx_nodeManager_t *self, apx_fileManager_t *fileManager);
+static void apx_nodeManager_attachLocalNodeToFileManager(apx_nodeData_t *nodeData, apx_fileManager_t *fileManager);
+static void apx_nodeManager_registerEventListenerToFileManager(apx_nodeManager_t *self, apx_fileManager_t *fileManager);
+static void apx_nodeManager_remoteFileCreated(void *arg, struct apx_fileManager_tag *fileManager, apx_file2_t *remoteFile);
+static void apx_nodeManager_remoteFileRevoked(void *arg, apx_fileManager_t *fileManager, apx_file2_t *remotefile);
+static void apx_nodeManager_remoteFileWritten(void *arg, apx_fileManager_t *fileManager, const apx_file2_t *remoteFile, uint32_t offset, int32_t length);
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -63,24 +67,11 @@ void apx_nodeManager_create(apx_nodeManager_t *self)
 {
    if (self != 0)
    {
-      apx_istream_handler_t apx_istream_handler;
       adt_hash_create(&self->nodeInfoMap, apx_nodeInfo_vdelete);
-      apx_parser_create(&self->parser);
-      memset(&apx_istream_handler,0,sizeof(apx_istream_handler));
       self->router = (apx_router_t*) 0;
       self->debugMode = APX_DEBUG_NONE;
-      apx_istream_handler.arg = &self->parser;
-      apx_istream_handler.open = apx_parser_vopen;
-      apx_istream_handler.close = apx_parser_vclose;
-      apx_istream_handler.node = apx_parser_vnode;
-      apx_istream_handler.datatype = apx_parser_vdatatype;
-      apx_istream_handler.provide = apx_parser_vprovide;
-      apx_istream_handler.require = apx_parser_vrequire;
-      apx_istream_handler.node_end = apx_parser_vnode_end;
-      apx_istream_create(&self->apx_istream,&apx_istream_handler);
       adt_hash_create(&self->remoteNodeDataMap, apx_nodeData_vdelete);
       adt_hash_create(&self->localNodeDataMap, (void(*)(void*)) 0);
-      adt_list_create(&self->fileManagerList, (void(*)(void*)) 0);
       MUTEX_INIT(self->mutex);
    }
 }
@@ -89,12 +80,10 @@ void apx_nodeManager_destroy(apx_nodeManager_t *self)
 {
    if(self != 0)
    {
-      apx_parser_destroy(&self->parser);
       adt_hash_destroy(&self->nodeInfoMap);
-      apx_istream_destroy(&self->apx_istream);
+
       adt_hash_destroy(&self->remoteNodeDataMap);
       adt_hash_destroy(&self->localNodeDataMap);
-      adt_list_destroy(&self->fileManagerList);
       MUTEX_DESTROY(self->mutex);
    }
 }
@@ -121,179 +110,6 @@ void apx_nodeManager_delete(apx_nodeManager_t *self)
 /**
  * this is called by fileManager when a new file is seen
  */
-void apx_nodeManager_remoteFileAdded(apx_nodeManager_t *self, struct apx_fileManager_tag *fileManager, apx_file_t *remoteFile)
-{
-   if ( (self != 0) && (fileManager != 0) && (remoteFile != 0) )
-   {
-      if ( remoteFile->fileType == APX_DEFINITION_FILE )
-      {
-         char *basename = apx_file_basename(remoteFile);
-         if (basename != 0)
-         {
-            apx_nodeData_t *nodeData;
-            //this is potentially a new node, check if it exists already
-            MUTEX_LOCK(self->mutex);
-            nodeData = apx_nodeManager_getNodeData(self, basename);
-            MUTEX_UNLOCK(self->mutex);
-            if (nodeData == 0)
-            {
-               if (fileManager->mode == APX_FILEMANAGER_SERVER_MODE)
-               {
-                  //create new nodeData structure and initiate download of file
-                  nodeData = apx_nodeData_newRemote(basename, false); //setting weakref to false will force apx_nodeData_delete to delete all buffers we created here
-                  if (nodeData != 0)
-                  {
-                     nodeData->definitionDataBuf = (uint8_t*) malloc(remoteFile->fileInfo.length);
-                     if (nodeData->definitionDataBuf==0)
-                     {
-                        APX_LOG_ERROR("[APX_NODE_MANAGER] out of memory when attempting to create definitionDataBuf of length %d for node %s", (int) remoteFile->fileInfo.length, basename);
-                        free(basename);
-                        apx_nodeData_delete(nodeData);
-                        return;
-                     }
-                     else
-                     {
-                        nodeData->definitionDataLen = remoteFile->fileInfo.length;
-                        MUTEX_LOCK(self->mutex);
-                        adt_hash_set(&self->remoteNodeDataMap, basename, 0, nodeData);
-                        MUTEX_UNLOCK(self->mutex);
-                        //now that memory has been allocated, send request to open the file (triggering file transfer)
-#if 0
-                        apx_fileManager_sendFileOpen(fileManager, remoteFile->fileInfo.address);
-#endif
-                        //the following line binds our new nodeData object to the apx_file_t structure
-                        remoteFile->nodeData=nodeData;
-                     }
-                  }
-               }
-               else
-               {
-                  //client mode
-               }
-            }
-            else
-            {
-               APX_LOG_ERROR("[APX_NODE_MANAGER] node already exists: %s", basename);
-            }
-            free(basename);
-         }
-      }
-      else if ( (remoteFile->fileType == APX_INDATA_FILE) )
-      {
-         char *basename = apx_file_basename(remoteFile);
-         if (basename != 0)
-         {
-            apx_nodeData_t *nodeData;
-            //this is potentially a new node, check if it exists already
-            MUTEX_LOCK(self->mutex);
-            nodeData = apx_nodeManager_getNodeData(self, basename);
-            MUTEX_UNLOCK(self->mutex);
-            if ( nodeData != 0 )
-            {
-               if (nodeData->inPortDataLen != remoteFile->fileInfo.length)
-               {
-#if 0
-                  APX_LOG_ERROR("[APX_NODE_MANAGER(%s)] file %s has length %d, expected %d\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name, remoteFile->fileInfo.length, nodeData->inPortDataLen);
-#endif
-               }
-               else
-               {
-                  if ( nodeData->inPortDataBuf == 0)
-                  {
-#if 0
-                     APX_LOG_ERROR("[APX_NODE_MANAGER(%s)] cannot open file %s, inPortDataBuf is NULL\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name);
-#endif
-                  }
-                  else
-                  {                     
-                     remoteFile->nodeData=nodeData;
-#if 0
-                     apx_fileManager_sendFileOpen(fileManager, remoteFile->fileInfo.address);
-#endif
-                  }
-               }
-            }
-            free(basename);
-         }
-      }
-      else if (remoteFile->fileType == APX_USER_DATA_FILE)
-      {
-         if(self->debugMode >= APX_DEBUG_2_LOW)
-         {
-#if 0
-            APX_LOG_INFO("[APX_NODE_MANAGER(%s)] Unsupported file: %s\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name);
-#endif
-         }
-      }
-      else
-      {
-         
-      }
-   }
-}
-
-
-/**
- * this is called by fileManager when a file has been removed
- */
-void apx_nodeManager_remotefileRemoved(apx_nodeManager_t *self, struct apx_fileManager_tag *fileManager, apx_file_t *remotefile)
-{
-   // Suppress warnings about unused parameters
-   (void)self;
-   (void)fileManager;
-   (void)remotefile;
-
-   //printf("apx_nodeManager_remotefileRemoved\n");
-}
-
-/**
- * this is called by fileManager when a file has been written to
- */
-void apx_nodeManager_remoteFileWritten(apx_nodeManager_t *self, struct apx_fileManager_tag *fileManager, apx_file_t *remoteFile, uint32_t offset, int32_t length)
-{
-   if ( (self != 0) && (remoteFile != 0) )
-   {
-      if (remoteFile->fileType == APX_DEFINITION_FILE)
-      {
-         MUTEX_LOCK(self->mutex);
-         apx_nodeManager_createNode(self, remoteFile->nodeData->definitionDataBuf, remoteFile->nodeData->definitionDataLen, fileManager);
-         MUTEX_UNLOCK(self->mutex);
-      }
-      else
-      {
-         uint32_t endOffset = offset + length;
-         if ( (offset == 0) && (length == (int32_t) remoteFile->fileInfo.length) )
-         {
-            //printf("[APX_NODE_MANAGER(%s)] file received name=%s, len=%u\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name, length);
-         }
-         else
-         {
-            //printf("[APX_NODE_MANAGER(%s)] file updated name=%s, offset=%d, len=%u\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name, offset, length);
-         }
-         if (remoteFile->fileType == APX_OUTDATA_FILE)
-         {
-            apx_nodeInfo_t *nodeInfo = remoteFile->nodeData->nodeInfo;
-            assert(nodeInfo != 0);
-            while (offset < endOffset)
-            {
-               apx_dataTriggerFunction_t *triggerFunction;
-               triggerFunction = apx_nodeInfo_getTriggerFunction(nodeInfo, offset);
-               if (triggerFunction != 0)
-               {
-                  apx_nodeManager_executePortTriggerFunction(triggerFunction, remoteFile);
-                  offset = triggerFunction->srcOffset + triggerFunction->dataLength;
-               }
-               else
-               {
-                  //fprintf(stderr, "APX_NODE_MANAGER(%s)] no trigger function found for file %s at offset %d\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name, offset);               
-                  offset++;
-               }
-            }
-         }
-      }
-   }
-}
-
 
 /**
  * setter for self->router
@@ -330,41 +146,15 @@ void apx_nodeManager_attachFileManager(apx_nodeManager_t *self, struct apx_fileM
 {
    if ( (self != 0) && (fileManager != 0) )
    {
-      //search for duplicates
-      adt_list_elem_t *pIter;
-      void **ppVal;
-      pIter = adt_list_iter_first(&self->fileManagerList);
-      while(pIter != 0)
+      apx_nodeManager_attachLocalNodesToFileManager(self, fileManager);
+      if (apx_fileManager_isServerMode(fileManager) == true)
       {
-         if (pIter->pItem == (void*) fileManager)
-         {
-            printf("FileManager already attached to list\n");
-            //fileManager already attached to list, take no action
-            return;
-         }
-         pIter = adt_list_iter_next(pIter);
+         apx_nodeManager_registerEventListenerToFileManager(self, fileManager);
       }
-      //add fileManager to list
-      adt_list_insert(&self->fileManagerList, (void*) fileManager);
-#if 0
-      apx_fileManager_setNodeManager(fileManager, self);
-#endif
-      adt_hash_iter_init(&self->localNodeDataMap);
-      do
-      {
-         const char *key;
-         uint32_t keyLen;
-         ppVal = adt_hash_iter_next(&self->localNodeDataMap, &key, &keyLen);
-         if (ppVal != 0 )
-         {
-            apx_nodeData_t *nodeData = *ppVal;
-            apx_nodeManager_attachLocalNodeToFileManager(nodeData, fileManager);
-         }
-      } while(ppVal != 0);
    }
 }
 
-void apx_nodeManager_shutdownFileManager(apx_nodeManager_t *self, struct apx_fileManager_tag *fileManager)
+void apx_nodeManager_detachFileManager(apx_nodeManager_t *self, struct apx_fileManager_tag *fileManager)
 {
    if ( (self != 0) && (fileManager != 0) )
    {
@@ -374,8 +164,7 @@ void apx_nodeManager_shutdownFileManager(apx_nodeManager_t *self, struct apx_fil
       adt_ary_t detachedFiles;
       adt_ary_t nodesToBeDeleted; //list of string pointers to apx_nodeData_t
 
-      adt_list_remove(&self->fileManagerList, fileManager);
-      adt_ary_create(&detachedFiles, apx_file_vdelete);
+      adt_ary_create(&detachedFiles, apx_file2_vdelete);
       adt_ary_create(&nodesToBeDeleted, apx_nodeData_vdelete);
 #if 0
       apx_fileManager_stop(fileManager);
@@ -384,11 +173,13 @@ void apx_nodeManager_shutdownFileManager(apx_nodeManager_t *self, struct apx_fil
       numFiles = adt_ary_length(&detachedFiles);
       for (i=0; i<numFiles; i++)
       {
-         apx_file_t *file = (apx_file_t*) adt_ary_value(&detachedFiles, i);
+#if 0 //TODO: REPLACE WITH SOMETHING MORE GENERIC
+         apx_file2_t *file = (apx_file2_t*) adt_ary_value(&detachedFiles, i);
          if (file->nodeData != 0)
          {
             adt_ary_push_unique(&nodesToBeDeleted, file->nodeData);
          }
+#endif
       }
       numNodes = adt_ary_length(&nodesToBeDeleted);
       for (i = 0; i < numNodes; i++)
@@ -419,6 +210,25 @@ void apx_nodeManager_setDebugMode(apx_nodeManager_t *self, int8_t debugMode)
    }
 }
 
+struct apx_nodeData_tag *apx_nodeManager_findNodeData(apx_nodeManager_t *self, const char *name)
+{
+   if ( (self != 0) && (name != 0) )
+   {
+      void** ppVal;
+      ppVal = adt_hash_get(&self->remoteNodeDataMap, name, 0);
+      if (ppVal != 0)
+      {
+         return (apx_nodeData_t*) *ppVal;
+      }
+      ppVal = adt_hash_get(&self->localNodeDataMap, name, 0);
+      if (ppVal != 0)
+      {
+         return (apx_nodeData_t*) *ppVal;
+      }
+   }
+   return (struct apx_nodeData_tag*) 0;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
@@ -428,6 +238,7 @@ void apx_nodeManager_setDebugMode(apx_nodeManager_t *self, int8_t debugMode)
  */
 static void apx_nodeManager_createNode(apx_nodeManager_t *self, const uint8_t *definitionBuf, int32_t definitionLen, struct apx_fileManager_tag *fileManager)
 {
+#if 0
    if( (self != 0) && (definitionBuf != 0) && (definitionLen > 0) )
    {
       int32_t numNodes;
@@ -460,11 +271,11 @@ static void apx_nodeManager_createNode(apx_nodeManager_t *self, const uint8_t *d
             apx_nodeData_t *nodeData=0;
             char fileName[RMF_MAX_FILE_NAME];
             char *p;
-            int32_t inPortDataLen;
+            //int32_t inPortDataLen;
             int32_t outPortDataLen;
 
 
-            nodeData = apx_nodeManager_getNodeData(self, apxNode->name);
+            nodeData = apx_nodeManager_findNodeData(self, apxNode->name);
             if (nodeData == 0)
             {
                APX_LOG_ERROR("[APX_NODE_MANAGER] %s", "Failed to create nodeData object");
@@ -481,7 +292,7 @@ static void apx_nodeManager_createNode(apx_nodeManager_t *self, const uint8_t *d
             //if node has output data, search a file called "<node_name>.out"
             if (outPortDataLen > 0)
             {
-               apx_file_t *outDataFile = 0;
+               apx_file2_t *outDataFile = 0;
                strcpy(fileName,apxNode->name);
                p=fileName+strlen(fileName);
                strcpy(p,".out");
@@ -497,6 +308,7 @@ static void apx_nodeManager_createNode(apx_nodeManager_t *self, const uint8_t *d
                   }
                   else
                   {
+#if 0 //TODO: REPLACE WITH SOMETHING MORE GENERIC
                      if (outDataFile->nodeData==0)
                      {
                         outDataFile->nodeData=nodeData;
@@ -506,6 +318,7 @@ static void apx_nodeManager_createNode(apx_nodeManager_t *self, const uint8_t *d
                         nodeData->outPortDirtyFlags = (uint8_t*) malloc(outPortDataLen);
                         assert(nodeData->outPortDirtyFlags);
                         nodeData->outPortDataLen = outPortDataLen;
+#endif
 #if 0
                         APX_LOG_INFO("[APX_NODE_MANAGER]%s Server opening client file %s[%d,%d]", debugInfoStr, fileName, outDataFile->fileInfo.address, outDataFile->fileInfo.length);
 #endif
@@ -521,10 +334,11 @@ static void apx_nodeManager_createNode(apx_nodeManager_t *self, const uint8_t *d
                   APX_LOG_WARNING("[APX_NODE_MANAGER] '%s': no file found", fileName);
                }
             }
+#if 0
             if (inPortDataLen > 0)
             {
                //create local inPortData file
-               apx_file_t *inDataFile;
+               apx_file2_t *inDataFile;
                bool result;
                strcpy(fileName,apxNode->name);
                p=fileName+strlen(fileName);
@@ -554,6 +368,7 @@ static void apx_nodeManager_createNode(apx_nodeManager_t *self, const uint8_t *d
                   APX_LOG_ERROR("[APX_NODE_MANAGER]%s Server failed to create local file '%s'", debugInfoStr, fileName);
 #endif
                }
+#endif
             }
             //router is set, attach the newly create nodeInfo to the router
             if (self->router != 0)
@@ -566,28 +381,7 @@ static void apx_nodeManager_createNode(apx_nodeManager_t *self, const uint8_t *d
       }
       apx_parser_clearNodes(&self->parser);
    }
-}
-
-/**
- * searches both local and remote nodeData maps using name as key
- */
-static apx_nodeData_t *apx_nodeManager_getNodeData(const apx_nodeManager_t *self, const char *name)
-{
-   if ( (self != 0) && (name != 0) )
-   {
-      void** ppVal;
-      ppVal = adt_hash_get(&self->remoteNodeDataMap, name, 0);
-      if (ppVal != 0)
-      {
-         return (apx_nodeData_t*) *ppVal;
-      }
-      ppVal = adt_hash_get(&self->localNodeDataMap, name, 0);
-      if (ppVal != 0)
-      {
-         return (apx_nodeData_t*) *ppVal;
-      }
-   }
-   return (apx_nodeData_t*) 0;
+#endif
 }
 
 /**
@@ -604,8 +398,9 @@ static void apx_nodeManager_setLocalNodeData(apx_nodeManager_t *self, apx_nodeDa
 /**
  * applies the portTriggerFunction
  */
-static void apx_nodeManager_executePortTriggerFunction(const apx_dataTriggerFunction_t *triggerFunction, const apx_file_t *file)
+static void apx_nodeManager_executePortTriggerFunction(const apx_dataTriggerFunction_t *triggerFunction, const apx_file2_t *file)
 {
+#if 0
    if( (triggerFunction != 0) && (file != 0) )
    {
       if (file->fileType == APX_OUTDATA_FILE)
@@ -638,30 +433,9 @@ static void apx_nodeManager_executePortTriggerFunction(const apx_dataTriggerFunc
          }
       }
    }
+#endif
 }
 
-static void apx_nodeManager_attachLocalNodeToFileManager(apx_nodeData_t *nodeData, apx_fileManager_t *fileManager)
-{
-   if (nodeData->definitionDataLen > 0)
-   {
-      apx_file_t *definitionFile;
-      definitionFile = apx_file_newLocalDefinitionFile(nodeData);
-      assert(definitionFile != 0);
-#if 0
-      apx_fileManager_attachLocalDefinitionFile(fileManager, definitionFile);
-#endif
-
-   }
-   if (nodeData->outPortDataLen)
-   {
-      apx_file_t *outPortDataFile;
-      outPortDataFile = apx_file_newLocalOutPortDataFile(nodeData);
-      assert(outPortDataFile != 0);
-#if 0
-      apx_fileManager_attachLocalPortDataFile(fileManager, outPortDataFile);
-#endif
-   }
-}
 
 static void apx_nodeManager_removeRemoteNodeData(apx_nodeManager_t *self, apx_nodeData_t *nodeData)
 {
@@ -711,5 +485,233 @@ static bool apx_nodeManager_createInitData(apx_node_t *node, uint8_t *buf, int32
       return true;
    }
    return false;
+}
+
+static void apx_nodeManager_attachLocalNodesToFileManager(apx_nodeManager_t *self, apx_fileManager_t *fileManager)
+{
+   adt_hash_iter_init(&self->localNodeDataMap);
+   void **ppVal;
+   do
+   {
+      const char *key;
+      uint32_t keyLen;
+      ppVal = adt_hash_iter_next(&self->localNodeDataMap, &key, &keyLen);
+      if (ppVal != 0 )
+      {
+         apx_nodeData_t *nodeData = *ppVal;
+         apx_nodeManager_attachLocalNodeToFileManager(nodeData, fileManager);
+      }
+   } while(ppVal != 0);
+}
+
+static void apx_nodeManager_attachLocalNodeToFileManager(apx_nodeData_t *nodeData, apx_fileManager_t *fileManager)
+{
+#if 0
+   if (nodeData->definitionDataLen > 0)
+   {
+      apx_file2_t *definitionFile = apx_file_newLocalDefinitionFile(nodeData);
+      if (definitionFile != 0)
+      {
+         apx_fileManager_attachLocalFile(fileManager, definitionFile);
+      }
+   }
+   if (nodeData->outPortDataLen > 0)
+   {
+      apx_file2_t *outPortDataFile = apx_file_newLocalOutPortDataFile(nodeData);
+      if (outPortDataFile != 0)
+      {
+         apx_nodeData_setOutPortDataFile(nodeData, outPortDataFile);
+         apx_fileManager_attachLocalFile(fileManager, outPortDataFile);
+      }
+   }
+#endif
+}
+
+static void apx_nodeManager_registerEventListenerToFileManager(apx_nodeManager_t *self, apx_fileManager_t *fileManager)
+{
+#if 0
+   apx_fileManagerEventListener_t listener;
+   memset(&listener, 0, sizeof(listener));
+   listener.arg = self;
+   listener.fileCreate = apx_nodeManager_remoteFileCreated;
+   listener.fileRevoke = apx_nodeManager_remoteFileRevoked;
+   listener.fileWrite = apx_nodeManager_remoteFileWritten;
+   apx_fileManager_registerEventListener(fileManager, &listener);
+#endif
+}
+
+
+static void apx_nodeManager_remoteFileCreated(void *arg, struct apx_fileManager_tag *fileManager, apx_file2_t *remoteFile)
+{
+#if 0
+   apx_nodeManager_t *self = (apx_nodeManager_t *) arg;
+   if ( (self != 0) && (fileManager != 0) && (remoteFile != 0) && (remoteFile->isRemoteFile == true))
+   {
+      if ( remoteFile->fileType == APX_DEFINITION_FILE )
+      {
+         char *basename = apx_file_basename(remoteFile);
+         if (basename != 0)
+         {
+            apx_nodeData_t *nodeData;
+            //this is potentially a new node, check if it exists already
+            MUTEX_LOCK(self->mutex);
+            nodeData = apx_nodeManager_findNodeData(self, basename);
+            MUTEX_UNLOCK(self->mutex);
+            if (nodeData == 0)
+            {
+               if (fileManager->mode == APX_FILEMANAGER_SERVER_MODE)
+               {
+                  //create new nodeData structure and initiate download of file
+                  nodeData = apx_nodeData_newRemote(basename, false); //setting weakref to false will force apx_nodeData_delete to delete all buffers we created here
+                  if (nodeData != 0)
+                  {
+                     nodeData->definitionDataBuf = (uint8_t*) malloc(remoteFile->fileInfo.length);
+                     if (nodeData->definitionDataBuf==0)
+                     {
+                        APX_LOG_ERROR("[APX_NODE_MANAGER] out of memory when attempting to create definitionDataBuf of length %d for node %s", (int) remoteFile->fileInfo.length, basename);
+                        free(basename);
+                        apx_nodeData_delete(nodeData);
+                        return;
+                     }
+                     else
+                     {
+                        nodeData->definitionDataLen = remoteFile->fileInfo.length;
+                        MUTEX_LOCK(self->mutex);
+                        adt_hash_set(&self->remoteNodeDataMap, basename, 0, nodeData);
+                        MUTEX_UNLOCK(self->mutex);
+                        //now that memory has been allocated, send request to open the file (triggering file transfer)
+#if 0
+                        apx_fileManager_sendFileOpen(fileManager, remoteFile->fileInfo.address);
+#endif
+                        //the following line binds our new nodeData object to the apx_file2_t structure
+                        remoteFile->nodeData=nodeData;
+                     }
+                  }
+               }
+               else
+               {
+                  //client mode
+               }
+            }
+            else
+            {
+               APX_LOG_ERROR("[APX_NODE_MANAGER] node already exists: %s", basename);
+            }
+            free(basename);
+         }
+      }
+      else if ( (remoteFile->fileType == APX_INDATA_FILE) )
+      {
+         char *basename = apx_file_basename(remoteFile);
+         if (basename != 0)
+         {
+            apx_nodeData_t *nodeData;
+            //this is potentially a new node, check if it exists already
+            MUTEX_LOCK(self->mutex);
+            nodeData = apx_nodeManager_findNodeData(self, basename);
+            MUTEX_UNLOCK(self->mutex);
+            if ( nodeData != 0 )
+            {
+               if (nodeData->inPortDataLen != remoteFile->fileInfo.length)
+               {
+#if 0
+                  APX_LOG_ERROR("[APX_NODE_MANAGER(%s)] file %s has length %d, expected %d\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name, remoteFile->fileInfo.length, nodeData->inPortDataLen);
+#endif
+               }
+               else
+               {
+                  if ( nodeData->inPortDataBuf == 0)
+                  {
+#if 0
+                     APX_LOG_ERROR("[APX_NODE_MANAGER(%s)] cannot open file %s, inPortDataBuf is NULL\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name);
+#endif
+                  }
+                  else
+                  {
+                     remoteFile->nodeData=nodeData;
+#if 0
+                     apx_fileManager_sendFileOpen(fileManager, remoteFile->fileInfo.address);
+#endif
+                  }
+               }
+            }
+            free(basename);
+         }
+      }
+      else if (remoteFile->fileType == APX_USER_DATA_FILE)
+      {
+         if(self->debugMode >= APX_DEBUG_2_LOW)
+         {
+#if 0
+            APX_LOG_INFO("[APX_NODE_MANAGER(%s)] Unsupported file: %s\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name);
+#endif
+         }
+      }
+      else
+      {
+
+      }
+   }
+#endif
+}
+
+
+/**
+ * this is caled by fileManager when a file has been removed
+ */
+static void apx_nodeManager_remoteFileRevoked(void *arg, struct apx_fileManager_tag *fileManager, apx_file2_t *remotefile)
+{
+   //printf("apx_nodeManager_remotefileRemoved\n");
+}
+
+/**
+ * this is called by fileManager when a file has been written to
+ */
+static void apx_nodeManager_remoteFileWritten(void *arg, struct apx_fileManager_tag *fileManager, const apx_file2_t *remoteFile, uint32_t offset, int32_t length)
+{
+#if 0
+   apx_nodeManager_t *self = (apx_nodeManager_t *) arg;
+   if ( (self != 0) && (remoteFile != 0) )
+   {
+      if (remoteFile->fileType == APX_DEFINITION_FILE)
+      {
+         MUTEX_LOCK(self->mutex);
+         apx_nodeManager_createNode(self, remoteFile->nodeData->definitionDataBuf, remoteFile->nodeData->definitionDataLen, fileManager);
+         MUTEX_UNLOCK(self->mutex);
+      }
+      else
+      {
+         uint32_t endOffset = offset + length;
+         if ( (offset == 0) && (length == (int32_t) remoteFile->fileInfo.length) )
+         {
+            //printf("[APX_NODE_MANAGER(%s)] file received name=%s, len=%u\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name, length);
+         }
+         else
+         {
+            //printf("[APX_NODE_MANAGER(%s)] file updated name=%s, offset=%d, len=%u\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name, offset, length);
+         }
+         if (remoteFile->fileType == APX_OUTDATA_FILE)
+         {
+            apx_nodeInfo_t *nodeInfo = remoteFile->nodeData->nodeInfo;
+            assert(nodeInfo != 0);
+            while (offset < endOffset)
+            {
+               apx_dataTriggerFunction_t *triggerFunction;
+               triggerFunction = apx_nodeInfo_getTriggerFunction(nodeInfo, offset);
+               if (triggerFunction != 0)
+               {
+                  apx_nodeManager_executePortTriggerFunction(triggerFunction, remoteFile);
+                  offset = triggerFunction->srcOffset + triggerFunction->dataLength;
+               }
+               else
+               {
+                  //fprintf(stderr, "APX_NODE_MANAGER(%s)] no trigger function found for file %s at offset %d\n", apx_fileManager_modeString(fileManager), remoteFile->fileInfo.name, offset);
+                  offset++;
+               }
+            }
+         }
+      }
+   }
+#endif
 }
 

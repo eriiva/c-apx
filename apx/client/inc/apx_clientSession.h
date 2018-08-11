@@ -19,7 +19,7 @@
 #include "osmacro.h"
 #include "apx_clientConnection.h"
 #include "apx_sessionCmd.h"
-#include "ringbuf.h"
+#include "adt_ringbuf.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -43,7 +43,7 @@ typedef struct apx_clientSession_tag
    SPINLOCK_T lock;  //variable lock
    SEMAPHORE_T semaphore; //thread semaphore
 
-   rbfs_t messages; //pending messages (ringbuffer)
+   adt_rbfs_t messages; //pending messages (ringbuffer)
    size_t ringbufferLen;
    uint8_t *ringbufferData;
    bool isRunning; //when false it's time to shut down

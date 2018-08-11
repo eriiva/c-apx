@@ -8,6 +8,15 @@
 #include <stdbool.h>
 #include "adt_bytearray.h"
 #include "apx_fileManager.h"
+#ifdef _WIN32
+# ifndef WIN32_LEAN_AND_MEAN
+# define WIN32_LEAN_AND_MEAN
+# endif
+# include <Windows.h>
+#else
+# include <pthread.h>
+#endif
+#include "osmacro.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
@@ -30,6 +39,8 @@ typedef struct apx_clientConnection_tag
 {
    struct apx_fileManager_tag fileManager;
    SOCKET_TYPE *socketObject;
+   SPINLOCK_T lock;
+   bool isConnected;
    bool isAcknowledgeSeen;
    adt_bytearray_t sendBuffer;
    uint8_t maxMsgHeaderSize;

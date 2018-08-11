@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_clientNodeManager.h
+* \file      numheader.h
 * \author    Conny Gustafsson
-* \date      2018-08-09
-* \brief     client node manager
+* \date      2018-08-11
+* \brief     NumHeader implementation (replaces headerutil)
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,53 +23,35 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_CLIENT_NODE_MANAGER
-#define APX_CLIENT_NODE_MANAGER
+#ifndef NUMHEADER_H
+#define NUMHEADER_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
-#include "adt_hash.h"
-#include "adt_list.h"
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <pthread.h>
-#endif
-#include "osmacro.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-//forward declarations
-struct apx_fileManager_tag;
-struct apx_file_tag;
-struct apx_router_tag;
-struct apx_nodeData_tag;
+#define NUMHEADER16_MAX_NUM_SHORT ((uint16_t) 127u)
+#define NUMHEADER16_MAX_NUM_LONG ((uint16_t) 32895u) //128+32767
+#define NUMHEADER16_SIZE 2u
 
-typedef struct apx_clientNodeManager_tag
-{
-   adt_hash_t localNodeDataMap; //hash containing weak references to apx_nodeData_t for locally connected nodes. only used in client mode
-   adt_list_t fileManagerList;
-   MUTEX_T mutex; //locking mechanism
-}apx_clientNodeManager_t;
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
+#define NUMHEADER32_MAX_NUM_SHORT ((uint32_t) 127u)
+#define NUMHEADER32_MAX_NUM_LONG ((uint32_t) 2147483647ul) //should be the same as INT_MAX
+#define NUMHEADER32_SIZE 4u
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_clientNodeManager_create(apx_clientNodeManager_t *self);
-void apx_clientNodeManager_destroy(apx_clientNodeManager_t *self);
-apx_clientNodeManager_t *apx_clientNodeManager_new(void);
-void apx_clientNodeManager_delete(apx_clientNodeManager_t *self);
-void apx_clientNodeManager_attachLocalNode(apx_clientNodeManager_t *self,  struct apx_nodeData_tag *nodeData);
-void apx_clientNodeManager_attachFileManager(apx_clientNodeManager_t *self, struct apx_fileManager_tag *fileManager);
-void apx_clientNodeManager_detachFileManager(apx_clientNodeManager_t *self, struct apx_fileManager_tag *fileManager);
-struct apx_nodeData_tag *apx_clientNodeManager_findLocalNode(apx_clientNodeManager_t *self, const char *name);
 
 
-#endif //APX_CLIENT_NODE_MANAGER
+int32_t numheader_encode16(uint8_t *buf, int32_t maxBufLen, uint16_t value);
+const uint8_t * numheader_decode16(const uint8_t *pBegin, const uint8_t *pEnd, uint16_t *value);
+
+int32_t numheader_encode32(uint8_t *buf, int32_t maxBufLen, uint32_t value);
+const uint8_t *numheader_decode32(const uint8_t *pBegin, const uint8_t *pEnd, uint32_t *value);
+
+
+#endif //NUMHEADER_H

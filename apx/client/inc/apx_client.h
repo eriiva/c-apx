@@ -12,7 +12,7 @@
 //////////////////////////////////////////////////////////////////////////////
 //forward declarations
 struct apx_clientConnection_tag;
-struct apx_clientNodeManager_tag;
+struct apx_nodeManager_tag;
 struct apx_nodeData_tag;
 #ifdef UNIT_TEST
 struct testsocket_tag;
@@ -21,7 +21,7 @@ struct testsocket_tag;
 typedef struct apx_client_tag
 {
    struct apx_clientConnection_tag *connection;
-   struct apx_clientNodeManager_tag *nodeManager;
+   struct apx_nodeManager_tag *nodeManager;
 }apx_client_t;
 
 //////////////////////////////////////////////////////////////////////////////

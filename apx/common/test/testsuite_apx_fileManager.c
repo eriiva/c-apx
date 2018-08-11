@@ -7,6 +7,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "CuTest.h"
+#include "ApxNode_TestNode1.h"
 #include "apx_fileManager.h"
 #include "apx_eventListener.h"
 #include "apx_file.h"
@@ -23,17 +24,15 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_fileManager_server_create(CuTest* tc);
-static void test_apx_fileManager_client_create(CuTest* tc);
-static void test_apx_fileManager_createLocalFiles(CuTest* tc);
+static void test_apx_fileManager_createInServerMode(CuTest* tc);
+static void test_apx_fileManager_createInClientMode(CuTest* tc);
 static void test_apx_fileManager_attachLocalFiles(CuTest* tc);
 static void test_apx_fileManager_registerListener(CuTest* tc);
-static void test_apx_fileManager_eventListener_createFile(CuTest* tc);
-static void test_apx_fileManager_eventListener_createLocalFiles(CuTest* tc);
+static void test_apx_fileManager_createRemoteFile(CuTest* tc);
 static void test_apx_fileManager_eventListener_sendLocalFiles(CuTest* tc);
 
 static void eventListenerSpy_init(void);
-static void eventListenerSpy_fileCreate(void *arg, apx_fileManager_t *fileManager, const apx_file_t *file);
+static void eventListenerSpy_fileCreate(void *arg, apx_fileManager_t *fileManager, apx_file_t *file);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -56,12 +55,11 @@ CuSuite* testSuite_apx_fileManager(void)
 {
    CuSuite* suite = CuSuiteNew();
 
-   SUITE_ADD_TEST(suite, test_apx_fileManager_server_create);
-   SUITE_ADD_TEST(suite, test_apx_fileManager_client_create);
-   SUITE_ADD_TEST(suite, test_apx_fileManager_createLocalFiles);
+   SUITE_ADD_TEST(suite, test_apx_fileManager_createInServerMode);
+   SUITE_ADD_TEST(suite, test_apx_fileManager_createInClientMode);
    SUITE_ADD_TEST(suite, test_apx_fileManager_attachLocalFiles);
    SUITE_ADD_TEST(suite, test_apx_fileManager_registerListener);
-   SUITE_ADD_TEST(suite, test_apx_fileManager_eventListener_createFile);
+   SUITE_ADD_TEST(suite, test_apx_fileManager_createRemoteFile);
    SUITE_ADD_TEST(suite, test_apx_fileManager_eventListener_sendLocalFiles);
 
    return suite;
@@ -71,7 +69,7 @@ CuSuite* testSuite_apx_fileManager(void)
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
-static void test_apx_fileManager_server_create(CuTest* tc)
+static void test_apx_fileManager_createInServerMode(CuTest* tc)
 {
    apx_fileManager_t manager;
    apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT);
@@ -79,21 +77,40 @@ static void test_apx_fileManager_server_create(CuTest* tc)
    apx_fileManager_destroy(&manager);
 }
 
-static void test_apx_fileManager_client_create(CuTest* tc)
+static void test_apx_fileManager_createInClientMode(CuTest* tc)
 {
    apx_fileManager_t manager;
    apx_fileManager_create(&manager, APX_FILEMANAGER_CLIENT_MODE, CONNECTION_ID_DEFAULT);
    apx_fileManager_destroy(&manager);
 }
 
-static void test_apx_fileManager_createLocalFiles(CuTest* tc)
-{
-
-}
-
 static void test_apx_fileManager_attachLocalFiles(CuTest* tc)
 {
-
+   apx_eventListener_t listener;
+   apx_nodeData_t *nodeData;
+   apx_file_t *definitionFile;
+   apx_file_t *outDataFile;
+   memset(&listener, 0, sizeof(listener));
+   eventListenerSpy_init();
+   listener.fileCreate = eventListenerSpy_fileCreate;
+   apx_fileManager_t manager;
+   apx_fileManager_create(&manager, APX_FILEMANAGER_CLIENT_MODE, CONNECTION_ID_DEFAULT);
+   apx_fileManager_registerEventListener(&manager, &listener);
+   ApxNode_Init_TestNode1();
+   nodeData = ApxNode_GetNodeData_TestNode1();
+   definitionFile = apx_file_newLocalDefinitionFile(nodeData);
+   outDataFile = apx_file_newLocalOutPortDataFile(nodeData);
+   CuAssertPtrNotNull(tc, definitionFile);
+   CuAssertPtrNotNull(tc, outDataFile);
+   CuAssertIntEquals(tc, 0, m_numfileCreateCalls);
+   CuAssertIntEquals(tc, 0, apx_fileManager_getNumLocalFiles(&manager));
+   apx_fileManager_attachLocalFile(&manager, definitionFile);
+   apx_fileManager_attachLocalFile(&manager, outDataFile);
+   CuAssertIntEquals(tc, 2, m_numfileCreateCalls);
+   CuAssertIntEquals(tc, 2, apx_fileManager_getNumLocalFiles(&manager));
+   CuAssertTrue(tc, !m_lastFile->isRemoteFile);
+   CuAssertTrue(tc, !m_lastFile->isOpen);
+   apx_fileManager_destroy(&manager);
 }
 
 static void test_apx_fileManager_registerListener(CuTest* tc)
@@ -108,11 +125,10 @@ static void test_apx_fileManager_registerListener(CuTest* tc)
    CuAssertIntEquals(tc, 1, apx_fileManager_getNumEventListeners(&manager));
    apx_fileManager_unregisterEventListener(&manager, handle);
    CuAssertIntEquals(tc, 0, apx_fileManager_getNumEventListeners(&manager));
-
    apx_fileManager_destroy(&manager);
 }
 
-static void test_apx_fileManager_eventListener_createFile(CuTest* tc)
+static void test_apx_fileManager_createRemoteFile(CuTest* tc)
 {
    apx_eventListener_t listener;
    uint8_t buffer[100];
@@ -130,6 +146,8 @@ static void test_apx_fileManager_eventListener_createFile(CuTest* tc)
    msgLen += rmf_serialize_cmdFileInfo(&buffer[msgLen], sizeof(buffer)-msgLen, &info);
    CuAssertIntEquals(tc, msgLen, apx_fileManager_parseMessage(&manager, &buffer[0], msgLen));
    CuAssertIntEquals(tc, 1, m_numfileCreateCalls);
+   CuAssertTrue(tc, m_lastFile->isRemoteFile);
+   CuAssertTrue(tc, !m_lastFile->isOpen);
    apx_fileManager_destroy(&manager);
 }
 
@@ -140,7 +158,7 @@ static void eventListenerSpy_init(void)
    m_lastFile = 0;
 }
 
-static void eventListenerSpy_fileCreate(void *arg, apx_fileManager_t *fileManager, const apx_file_t *file)
+static void eventListenerSpy_fileCreate(void *arg, apx_fileManager_t *fileManager, apx_file_t *file)
 {
    m_numfileCreateCalls++;
    m_lastFileManager = fileManager;

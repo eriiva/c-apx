@@ -62,7 +62,7 @@ int8_t apx_allocator_create(apx_allocator_t *self, uint16_t maxPendingMessages)
       {
          return -1;
       }
-      rbfs_create(&self->messages,self->ringBufferData,(uint16_t) numElem,(uint8_t) elemSize);
+      adt_rbfs_create(&self->messages,self->ringBufferData,(uint16_t) numElem,(uint8_t) elemSize);
       soa_init(&self->soa);
       return 0;
    }
@@ -102,7 +102,7 @@ void apx_allocator_stop(apx_allocator_t *self)
       //1. enqueue message
       SPINLOCK_ENTER(self->lock);
       self->isRunning = false;
-      rbfs_insert(&self->messages,(const uint8_t*) &data);
+      adt_rbfs_insert(&self->messages,(const uint8_t*) &data);
       SPINLOCK_LEAVE(self->lock);
       //2. wake workerThread
       SEMAPHORE_POST(self->semaphore);
@@ -167,7 +167,7 @@ void apx_allocator_free(apx_allocator_t *self, uint8_t *ptr, size_t size)
       data.size=(uint32_t) size;
       //1. enqueue message
       SPINLOCK_ENTER(self->lock);
-      rbfs_insert(&self->messages,(const uint8_t*) &data);
+      adt_rbfs_insert(&self->messages,(const uint8_t*) &data);
       SPINLOCK_LEAVE(self->lock);
       //2. wake worker thread
       SEMAPHORE_POST(self->semaphore);
@@ -230,7 +230,7 @@ static THREAD_PROTO(threadTask,arg)
 #endif
          {
             SPINLOCK_ENTER(self->lock);
-            rbfs_remove(&self->messages,(uint8_t*) &data);
+            adt_rbfs_remove(&self->messages,(uint8_t*) &data);
             SPINLOCK_LEAVE(self->lock);
             messages_processed++;
             if (data.ptr != 0)

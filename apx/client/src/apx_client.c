@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include "apx_client.h"
 #include "apx_clientConnection.h"
-#include "apx_clientNodeManager.h"
+#include "apx_nodeManager.h"
 #include "msocket.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
@@ -40,7 +40,7 @@ int8_t apx_client_create(apx_client_t *self)
 {
    if( self != 0 )
    {
-      self->nodeManager = apx_clientNodeManager_new();
+      self->nodeManager = apx_nodeManager_new();
       if (self->nodeManager == 0)
       {
          return -1;
@@ -48,7 +48,7 @@ int8_t apx_client_create(apx_client_t *self)
       self->connection = apx_clientConnection_new(self);
       if (self->connection == 0)
       {
-         apx_clientNodeManager_delete(self->nodeManager);
+         apx_nodeManager_delete(self->nodeManager);
          return -1;
       }
       return 0;
@@ -62,7 +62,7 @@ void apx_client_destroy(apx_client_t *self)
    if (self != 0)
    {
       apx_clientConnection_delete(self->connection);
-      apx_clientNodeManager_delete(self->nodeManager);
+      apx_nodeManager_delete(self->nodeManager);
    }
 }
 
@@ -126,7 +126,7 @@ void apx_client_attachLocalNode(apx_client_t *self, apx_nodeData_t *nodeData)
 {
    if ( (self != 0) && (nodeData != 0) )
    {
-      apx_clientNodeManager_attachLocalNode(self->nodeManager, nodeData);
+      apx_nodeManager_attachLocalNode(self->nodeManager, nodeData);
    }
 }
 

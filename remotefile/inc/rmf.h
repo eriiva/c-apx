@@ -98,7 +98,9 @@ typedef struct rmf_fileInfo_tag
 }rmf_fileInfo_t;
 
 #define CMD_FILE_INFO_BASE_SIZE (4+4+4+2+2+RMF_DIGEST_SIZE) //44 bytes plus additional 4 bytes to store value of RMF_FILE_INFO
+#define CMD_FILE_INFO_MAX_SIZE (CMD_FILE_INFO_BASE_SIZE + RMF_MAX_FILE_NAME +1)
 #define RMF_FILE_OPEN_CMD_LEN 8
+#define RMF_ACK_CMD_LEN 4
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -108,7 +110,6 @@ typedef struct rmf_fileInfo_tag
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-//int32_t rmf_packMsg(uint8_t *buf, int32_t bufLen, uint32_t address, uint8_t *data, int32_t dataLen, int32_t *consumed);
 int32_t rmf_packHeader(uint8_t *dataBuf, int32_t bufLen, uint32_t address, bool more_bit);
 int32_t rmf_packHeaderBeforeData(uint8_t *dataBuf, int32_t bufLen, uint32_t address, bool more_bit);
 int32_t rmf_unpackMsg(const uint8_t *buf, int32_t bufLen, rmf_msg_t *msg);

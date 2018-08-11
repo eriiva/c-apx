@@ -29,8 +29,7 @@
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_server_create(CuTest* tc);
-static void test_apx_server_greeting(CuTest* tc);
-static void test_apx_server_each_connection_get_new_id(CuTest* tc);
+static void test_apx_server_eachConnectionGetNewId(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -51,8 +50,7 @@ CuSuite* testSuite_apx_server(void)
    CuSuite* suite = CuSuiteNew();
 
    SUITE_ADD_TEST(suite, test_apx_server_create);
-   //SUITE_ADD_TEST(suite, test_apx_server_greeting);
-   SUITE_ADD_TEST(suite, test_apx_server_each_connection_get_new_id);
+   SUITE_ADD_TEST(suite, test_apx_server_eachConnectionGetNewId);
 
    return suite;
 }
@@ -70,7 +68,8 @@ static void test_apx_server_create(CuTest* tc)
    apx_server_destroy(&server);
 }
 
-static void test_apx_server_greeting(CuTest* tc)
+#if 0
+static void test_apx_server_sendsEventFileAfterGreeting(CuTest* tc)
 {
    apx_server_t server;
    testsocket_t *socket;
@@ -100,7 +99,7 @@ static void test_apx_server_greeting(CuTest* tc)
    memcpy(&sendBuffer[u32HeaderLen], greeting, greetingLen);
    testsocket_clientSend(socket, sendBuffer, u32HeaderLen+greetingLen);
    CuAssertIntEquals(tc, u32HeaderLen+greetingLen, adt_bytearray_length(&socket->pendingServer));
-   testSocket_run(socket);
+   testsocket_run(socket);
    SLEEP(10);
    CuAssertIntEquals(tc, 0, adt_bytearray_length(&socket->pendingServer));
    dataLen = adt_bytearray_length(&socket->pendingClient);
@@ -116,8 +115,8 @@ static void test_apx_server_greeting(CuTest* tc)
    apx_server_destroy(&server);
    free(sendBuffer);
 }
-
-static void test_apx_server_each_connection_get_new_id(CuTest* tc)
+#endif
+static void test_apx_server_eachConnectionGetNewId(CuTest* tc)
 {
    apx_server_t server;
    testsocket_t *sockets[10];

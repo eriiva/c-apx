@@ -11,7 +11,7 @@
 #include "apx_transmitHandler.h"
 #include "headerutil.h"
 #include "apx_fileManager.h"
-#include "apx_clientNodeManager.h"
+#include "apx_nodeManager.h"
 #ifdef UNIT_TEST
 #include "testsocket.h"
 #else
@@ -32,7 +32,7 @@
 #ifdef UNIT_TEST
 #define SOCKET_TYPE struct testsocket_tag
 #define SOCKET_DELETE testsocket_delete
-#define SOCKET_SEND testsocket_serverSend
+#define SOCKET_SEND testsocket_clientSend
 #define SOCKET_SET_HANDLER testsocket_setClientHandler
 #else
 #define SOCKET_TYPE struct msocket_t
@@ -50,10 +50,16 @@ static int8_t apx_clientConnection_data(void *arg, const uint8_t *dataBuf, uint3
 static void apx_clientConnection_disconnected(void *arg);
 static void apx_clientConnection_connected(void *arg, const char *addr, uint16_t port);
 static int8_t apx_clientConnection_parseMessage(apx_clientConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
+//primary transmitHandler interface
 static uint8_t *apx_clientConnection_getSendBuffer(void *arg, int32_t msgLen);
 static int32_t apx_clientConnection_send(void *arg, int32_t offset, int32_t msgLen);
+//secondary transmitHandler interface
+static uint8_t* apx_clientConnection_getSendBufferRaw(void *arg, int32_t dataLen);
+static int32_t apx_clientConnection_sendRaw(void *arg, int32_t dataLen);
+
 static void apx_clientConnection_sendGreeting(apx_clientConnection_t *self);
 static void apx_clientConnection_start(apx_clientConnection_t *self);
+static void apx_clientConnection_stop(apx_clientConnection_t *self);
 static int8_t apx_clientConnection_dataReceived(apx_clientConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 
 
@@ -77,8 +83,10 @@ int8_t apx_clientConnection_create(apx_clientConnection_t *self, struct apx_clie
       self->isAcknowledgeSeen = false;
       self->client = client;
       self->maxMsgHeaderSize = (uint8_t) sizeof(uint32_t);
+      self->isConnected = false;
       apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_CLIENT_MODE, 0);
       adt_bytearray_create(&self->sendBuffer, SEND_BUFFER_GROW_SIZE);
+      SPINLOCK_INIT(self->lock);
       return 0;
    }
    errno=EINVAL;
@@ -95,6 +103,7 @@ void apx_clientConnection_destroy(apx_clientConnection_t *self)
       }
       apx_fileManager_destroy(&self->fileManager);
       adt_bytearray_destroy(&self->sendBuffer);
+      SPINLOCK_DESTROY(self->lock);
    }
 }
 
@@ -103,7 +112,8 @@ apx_clientConnection_t *apx_clientConnection_new(struct apx_client_tag *client)
    if ( client != 0 )
    {
       apx_clientConnection_t *self = (apx_clientConnection_t*) malloc(sizeof(apx_clientConnection_t));
-      if(self != 0){
+      if(self != 0)
+      {
          int8_t result = apx_clientConnection_create(self, client);
          if (result != 0)
          {
@@ -111,7 +121,8 @@ apx_clientConnection_t *apx_clientConnection_new(struct apx_client_tag *client)
             self=0;
          }
       }
-      else{
+      else
+      {
          errno = ENOMEM;
       }
       return self;
@@ -196,13 +207,26 @@ static int8_t apx_clientConnection_data(void *arg, const uint8_t *dataBuf, uint3
 
 static void apx_clientConnection_disconnected(void *arg)
 {
-   printf("[apx_client] server closed connection\n");
+   apx_clientConnection_t *self = (apx_clientConnection_t*) arg;
+   if (self != 0)
+   {
+      SPINLOCK_ENTER(self->lock);
+      self->isConnected = false;
+      SPINLOCK_LEAVE(self->lock);
+      apx_clientConnection_stop(self);
+   }
 }
 
 static void apx_clientConnection_connected(void *arg,const char *addr,uint16_t port)
 {
    apx_clientConnection_t *self = (apx_clientConnection_t*) arg;
-   apx_clientConnection_start(self);
+   if (self != 0)
+   {
+      SPINLOCK_ENTER(self->lock);
+      self->isConnected = true;
+      SPINLOCK_LEAVE(self->lock);
+      apx_clientConnection_start(self);
+   }
 }
 
 /**
@@ -210,37 +234,39 @@ static void apx_clientConnection_connected(void *arg,const char *addr,uint16_t p
  */
 void apx_clientConnection_start(apx_clientConnection_t *self)
 {
-   if (self != 0)
-   {
-#if 0
-      apx_transmitHandler_t serverTransmitHandler;
+      apx_transmitHandler_t transmitHandler;
       //register transmit handler with our fileManager
-      serverTransmitHandler.arg = self;
-      serverTransmitHandler.send = apx_clientConnection_send;
-      serverTransmitHandler.getSendAvail = 0;
-      serverTransmitHandler.getSendBuffer = apx_clientConnection_getSendBuffer;
-      apx_fileManager_setTransmitHandler(&self->fileManager, &serverTransmitHandler);
-#endif
+      transmitHandler.arg = self;
+      transmitHandler.send = apx_clientConnection_send;
+      transmitHandler.getSendAvail = 0;
+      transmitHandler.getSendBuffer = apx_clientConnection_getSendBuffer;
+      transmitHandler.getSendBufferRaw = apx_clientConnection_getSendBufferRaw;
+      transmitHandler.sendRaw = apx_clientConnection_sendRaw;
+      apx_fileManager_setTransmitHandler(&self->fileManager, &transmitHandler);
       //register connection with the server nodeManager
-      apx_clientNodeManager_attachFileManager(self->client->nodeManager, &self->fileManager);
-#if 0
+      apx_nodeManager_attachFileManager(self->client->nodeManager, &self->fileManager);
       apx_fileManager_start(&self->fileManager);
-#endif
       apx_clientConnection_sendGreeting(self);
-   }
 }
 
-
+static void apx_clientConnection_stop(apx_clientConnection_t *self)
+{
+   if (self != 0)
+   {
+      apx_fileManager_stop(&self->fileManager);
+   }
+}
 
 void apx_clientConnection_sendGreeting(apx_clientConnection_t *self)
 {
    uint8_t *sendBuffer;
    uint32_t greetingLen;
    char greeting[RMF_GREETING_MAX_LEN];
+   char *p = &greeting[0];
    strcpy(greeting, RMF_GREETING_START);
-   //headers end with an additional newline
-   strcat(greeting, "\n");
-   greetingLen = (uint32_t) strlen(greeting);
+   p += strlen(greeting);
+   p += sprintf(p, "%s32\n\n", RMF_NUMHEADER_FORMAT);
+   greetingLen = (uint32_t) (p-greeting);
    sendBuffer = apx_clientConnection_getSendBuffer((void*) self, greetingLen);
    if (sendBuffer != 0)
    {
@@ -291,9 +317,7 @@ static int8_t apx_clientConnection_parseMessage(apx_clientConnection_t *self, co
                     (pNext[7] == 0x00) )
                {
                   self->isAcknowledgeSeen = true;
-#if 0
-                  apx_fileManager_onConnected(&self->fileManager);
-#endif
+                  apx_fileManager_onHeaderAccepted(&self->fileManager);
                }
             }
          }
@@ -345,7 +369,7 @@ static uint8_t *apx_clientConnection_getSendBuffer(void *arg, int32_t msgLen)
 }
 
 /**
- * callback for fileManager when it requests to send buffer (which it previously retreived by  apx_serverConnection_getSendBuffer
+ * callback for fileManager when it requests to send buffer (which was previously returned by apx_serverConnection_getSendBuffer
  */
 static int32_t apx_clientConnection_send(void *arg, int32_t offset, int32_t msgLen)
 {
@@ -391,6 +415,57 @@ static int32_t apx_clientConnection_send(void *arg, int32_t offset, int32_t msgL
    }
    return -1;
 }
+
+//secondary transmitHandler interface
+static uint8_t* apx_clientConnection_getSendBufferRaw(void *arg, int32_t dataLen)
+{
+   apx_clientConnection_t *self = (apx_clientConnection_t*) arg;
+   if ( (self != 0) && (dataLen>0) )
+   {
+      int8_t result=0;
+      int32_t currentLen = adt_bytearray_length(&self->sendBuffer);
+      if (currentLen<dataLen)
+      {
+         result = adt_bytearray_resize(&self->sendBuffer, (uint32_t) dataLen);
+      }
+      if (result == 0)
+      {
+         uint8_t *data = adt_bytearray_data(&self->sendBuffer);
+         assert(data != 0);
+         return &data[0]; //return a pointer directly after the message header size.
+      }
+   }
+   return (uint8_t*) 0;
+}
+
+static int32_t apx_clientConnection_sendRaw(void *arg, int32_t dataLen)
+{
+   apx_clientConnection_t *self = (apx_clientConnection_t*) arg;
+   if ( (self != 0) && (dataLen>0) )
+   {
+      bool isConnected;
+      SPINLOCK_ENTER(self->lock);
+      isConnected = self->isConnected;
+      SPINLOCK_LEAVE(self->lock);
+      if (isConnected)
+      {
+         int32_t sendBufferLen;
+         uint8_t *sendBuffer = adt_bytearray_data(&self->sendBuffer);
+         sendBufferLen = adt_bytearray_length(&self->sendBuffer);
+         if (dataLen > sendBufferLen)
+         {
+            return -1;
+         }
+         SOCKET_SEND(self->socketObject, sendBuffer, dataLen);
+      }
+      else
+      {
+         return 0;
+      }
+   }
+   return -1;
+}
+
 
 static int8_t apx_clientConnection_dataReceived(apx_clientConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
 {

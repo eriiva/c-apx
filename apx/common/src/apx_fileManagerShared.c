@@ -27,7 +27,9 @@
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include <errno.h>
+#include <string.h>
 #include "apx_fileManagerShared.h"
+#include "rmf.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -54,7 +56,7 @@ int8_t apx_fileManagerShared_create(apx_fileManagerShared_t *self, uint32_t fmid
          self->fmid = fmid;
          self->arg = (void*) 0;
          self->fileOpenRequestedByRemote = (void (*)(void *, const rmf_cmdOpenFile_t *)) 0;
-         self->fileCreatedByRemote = (void (*)(void *, const struct apx_file_tag*)) 0;
+         self->fileCreated = (void (*)(void *, const struct apx_file_tag*)) 0;
          apx_allocator_start(&self->allocator);
       }
       return result;
@@ -87,6 +89,44 @@ void apx_fileManagerShared_free(apx_fileManagerShared_t *self, uint8_t *ptr, siz
    {
       apx_allocator_free(&self->allocator, ptr, size);
    }
+}
+
+int32_t apx_fileManagerShared_calcFileInfoMsgSize(const struct rmf_fileInfo_tag *fileInfo)
+{
+   int32_t msgLen = 5+CMD_FILE_INFO_BASE_SIZE;
+   msgLen+=strlen(fileInfo->name);
+   return msgLen;
+}
+
+int32_t apx_fileManagerShared_serializeFileInfo(uint8_t *bufData, int32_t bufLen, const struct rmf_fileInfo_tag *fileInfo)
+{
+   if ((bufData != 0) && (bufLen > 0) && (fileInfo != 0))
+   {
+      int32_t msgLen = apx_fileManagerShared_calcFileInfoMsgSize(fileInfo);
+      if (msgLen<=bufLen)
+      {
+         int32_t result;
+         result = rmf_packHeader(bufData, bufLen, RMF_CMD_START_ADDR, false);
+         if (result > 0)
+         {
+            bufData+=result;
+            bufLen-=result;
+            result = rmf_serialize_cmdFileInfo(bufData, bufLen, fileInfo);
+            if (result > 0)
+            {
+               result = msgLen;
+            }
+         }
+         return result;
+      }
+      else
+      {
+         errno = EMSGSIZE; //message too large
+         return -1;
+      }
+   }
+   errno = EINVAL;
+   return -1;
 }
 
 

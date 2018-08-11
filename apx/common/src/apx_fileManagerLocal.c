@@ -27,9 +27,12 @@
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include <errno.h>
+#include <string.h>
+#include <assert.h>
 #include "apx_fileManagerLocal.h"
 #include "rmf.h"
 #include "apx_file.h"
+#include "numheader.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -97,7 +100,14 @@ void apx_fileManagerLocal_stop(apx_fileManagerLocal_t *self)
 
 void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file_tag *localFile)
 {
-   apx_fileMap_insertFile(&self->localFileMap, localFile);
+   if ((self != 0) && (localFile != 0))
+   {
+      apx_fileMap_insertFile(&self->localFileMap, localFile);
+      if (self->shared->fileCreated != 0)
+      {
+         self->shared->fileCreated(self->shared->arg, localFile);
+      }
+   }
 }
 
 int32_t apx_fileManagerLocal_getNumFiles(apx_fileManagerLocal_t *self)
@@ -108,6 +118,26 @@ int32_t apx_fileManagerLocal_getNumFiles(apx_fileManagerLocal_t *self)
    }
    errno = EINVAL;
    return -1;
+}
+
+void apx_fileManagerLocal_sendFileInfo(apx_fileManagerLocal_t *self)
+{
+   if ( (self != 0) && (self->shared->sendFileInfo != 0) )
+   {
+      MUTEX_LOCK(self->mutex);
+      adt_list_t *files = apx_fileMap_getList(&self->localFileMap);
+      if (files != 0)
+      {
+         adt_list_elem_t *iter = adt_list_iter_first(files);
+         while (iter != 0)
+         {
+            apx_file_t *file = (apx_file_t*)iter->pItem;
+            self->shared->sendFileInfo(self->shared->arg, file);
+            iter = adt_list_iter_next(iter);
+         }
+      }
+      MUTEX_UNLOCK(self->mutex);
+   }
 }
 
 

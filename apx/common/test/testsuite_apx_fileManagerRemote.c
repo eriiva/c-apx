@@ -78,7 +78,7 @@ static void test_apx_fileManagerRemote_processFileInfo(CuTest* tc)
    int32_t msgLen;
    CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&shared, 0));
    apx_fileManagerRemote_create(&remote, &shared);
-   shared.fileCreatedByRemote = fileCreatedByRemoteSpy;
+   shared.fileCreated = fileCreatedByRemoteSpy;
    fileManagerRemoteSpy_init();
    rmf_fileInfo_create(&info, "test.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
    msgLen = rmf_packHeader(&buffer[0], sizeof(buffer), RMF_CMD_START_ADDR, false);

@@ -209,9 +209,9 @@ static void apx_fileManagerRemote_processFileInfo(apx_fileManagerRemote_t *self,
          }
          else
          {
-            if (self->shared->fileCreatedByRemote != 0)
+            if (self->shared->fileCreated != 0)
             {
-               self->shared->fileCreatedByRemote(self->shared->arg, remoteFile);
+               self->shared->fileCreated(self->shared->arg, remoteFile);
             }
          }
       }

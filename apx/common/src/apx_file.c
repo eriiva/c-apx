@@ -72,9 +72,6 @@ int8_t apx_file_createLocalFileFromNodeData(apx_file_t *self, uint8_t fileType, 
          }
          strcpy(name+len, ext);
          rmf_fileInfo_create(&self->fileInfo, name, RMF_INVALID_ADDRESS, filelen, RMF_FILE_TYPE_FIXED);
-#ifndef APX_EMBEDDED
-         adt_list_create(&self->event_listeners, (void (*)(void*)) 0);
-#endif
          return 0;
       }
    }
@@ -103,9 +100,6 @@ int8_t apx_file_create(apx_file_t *self, uint8_t fileType, const rmf_fileInfo_t 
          {
             self->fileType = fileType;
          }
-#ifndef APX_EMBEDDED
-         adt_list_create(&self->event_listeners, (void (*)(void*)) 0);
-#endif
       }
       return result;
    }
@@ -118,9 +112,6 @@ void apx_file_destroy(apx_file_t *self)
    if (self != 0)
    {
       rmf_fileInfo_destroy(&self->fileInfo);
-#ifndef APX_EMBEDDED
-         adt_list_destroy(&self->event_listeners);
-#endif
    }
 }
 
@@ -324,25 +315,6 @@ int8_t apx_file_write(apx_file_t *self, const uint8_t *pSrc, uint32_t offset, ui
    }
    return -1;
 }
-
-void apx_file_addEventListener(apx_file_t *self, apx_eventListener_t *eventListener)
-{
-   if ( (self != 0) && (eventListener != 0) )
-   {
-      adt_list_insert_unique(&self->event_listeners, eventListener);
-   }
-}
-
-void apx_file_removeEventListener(apx_file_t *self, apx_eventListener_t *eventListener)
-{
-   if ( (self != 0) && (eventListener != 0) )
-   {
-      adt_list_remove(&self->event_listeners, eventListener);
-   }
-}
-
-
-
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS

@@ -13,7 +13,6 @@
 #include "apx_nodeData.h"
 #include "rmf.h"
 #ifndef APX_EMBEDDED
-#include <adt_list.h>
 #include "apx_eventListener.h"
 #endif
 
@@ -41,9 +40,6 @@ typedef struct apx_file_tag
    uint8_t fileType;
    apx_nodeData_t *nodeData;
    rmf_fileInfo_t fileInfo;
-#ifndef APX_EMBEDDED
-   adt_list_t event_listeners; //list of weak pointers to registered event listeners
-#endif
 } apx_file_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -71,8 +67,6 @@ void apx_file_open(apx_file_t *self);
 void apx_file_close(apx_file_t *self);
 int8_t apx_file_read(apx_file_t *self, uint8_t *pDest, uint32_t offset, uint32_t length);
 int8_t apx_file_write(apx_file_t *self, const uint8_t *pSrc, uint32_t offset, uint32_t length);
-void apx_file_addEventListener(apx_file_t *self, apx_eventListener_t *eventListener);
-void apx_file_removeEventListener(apx_file_t *self, apx_eventListener_t *eventListener);
 
 #endif //APX_FILE_H
 

@@ -47,7 +47,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void apx_eventRecorderSrvTxt_onfileManagerStart(void *arg, struct apx_fileManager_tag *fileManager);
+static void apx_eventRecorderSrvTxt_onNewConnection(void *arg, struct apx_fileManager_tag *fileManager);
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -107,19 +107,19 @@ void apx_eventRecorderSrvTxt_registerAsListener(apx_eventRecorderSrvTxt_t *self,
    apx_eventListener_t listener;
    memset(&listener, 0, sizeof(listener));
    listener.arg = self;
-   listener.fileManagerStart = apx_eventRecorderSrvTxt_onfileManagerStart;
+   listener.newConnection = apx_eventRecorderSrvTxt_onNewConnection;
    apx_fileManager_registerEventListener(fileManager, &listener);
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static void apx_eventRecorderSrvTxt_onfileManagerStart(void *arg, struct apx_fileManager_tag *fileManager)
+static void apx_eventRecorderSrvTxt_onNewConnection(void *arg, struct apx_fileManager_tag *fileManager)
 {
    apx_eventRecorderSrvTxt_t *self = (apx_eventRecorderSrvTxt_t *) arg;
    if ( (self != 0) && (fileManager != 0) && (self->fp != 0) )
    {
-      fprintf(self->fp, "[%u] onfileManagerStart\n", fileManager_getID(fileManager));
+      fprintf(self->fp, "[%u] onNewConnection\n", fileManager_getID(fileManager));
    }
 }
 
