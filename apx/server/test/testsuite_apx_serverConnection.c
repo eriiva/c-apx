@@ -100,7 +100,7 @@ static void test_apx_serverConnection_sendAckAfterReceivingHeader(CuTest* tc)
    sock = testsocket_spy_client();
    apx_server_create(&server);
    apx_server_start(&server);
-   apx_server_accept_test_socket(&server, sock);
+   apx_server_acceptTestSocket(&server, sock);
    testsocket_onConnect(sock);
    sendHeader(sock);
    testsocket_run(sock);

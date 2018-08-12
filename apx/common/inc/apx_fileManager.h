@@ -85,7 +85,6 @@ int32_t apx_fileManager_getNumEventListeners(apx_fileManager_t *self);
 void apx_fileManager_attachLocalFile(apx_fileManager_t *self, struct apx_file_tag *localFile);
 int32_t apx_fileManager_getNumLocalFiles(apx_fileManager_t *self);
 bool apx_fileManager_isServerMode(apx_fileManager_t *self);
-void apx_fileManager_triggerNewConnectionEvent(apx_fileManager_t *self);
 void apx_fileManager_start(apx_fileManager_t *self);
 void apx_fileManager_stop(apx_fileManager_t *self);
 void apx_fileManager_onHeaderReceived(apx_fileManager_t *self); //used in server mode

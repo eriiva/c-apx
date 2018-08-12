@@ -203,9 +203,9 @@ static void apx_fileManagerRemote_processFileInfo(apx_fileManagerRemote_t *self,
          MUTEX_LOCK(self->mutex);
          apx_fileMap_insertFile(&self->remoteFileMap, remoteFile);
          MUTEX_UNLOCK(self->mutex);
-         if(strcmp(remoteFile->fileInfo.name, APX_EVENT_CLI_FILE_NAME)==0)
+         if(strcmp(remoteFile->fileInfo.name, APX_EVENT_LOG_FILE_NAME)==0)
          {
-            printf("client event file seen\n");
+            printf("event file seen\n");
          }
          else
          {

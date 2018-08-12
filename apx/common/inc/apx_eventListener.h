@@ -40,11 +40,12 @@ struct apx_fileManager_tag;
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+
+//This is the API the eventListener can implement
 typedef struct apx_eventListener_tag
 {
    void *arg;
-   void (*newConnection)(void *arg, struct apx_fileManager_tag *fileManager);
-   void (*closeConnection)(void *arg, struct apx_fileManager_tag *fileManager);
+   void (*disconnected)(void *arg, struct apx_fileManager_tag *fileManager);
    void (*headerReceived)(void *arg, struct apx_fileManager_tag *fileManager);
    void (*fileCreate)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file_tag *file);
    void (*fileRevoke)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file_tag *file);
@@ -53,6 +54,12 @@ typedef struct apx_eventListener_tag
    void (*fileWrite)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file, uint32_t offset, int32_t length);
    void (*sendFileInfo)(void *arg, struct apx_fileManager_tag *fleManager, const struct rmf_fileInfo_tag *fileInfo);
 } apx_eventListener_t;
+
+//This is a base class for globally registered event listeners
+typedef struct apx_eventListenerBase_tag
+{
+   void (*newConnection)(void *arg, struct apx_fileManager_tag *fileManager);
+} apx_eventListenerBase_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES

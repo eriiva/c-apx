@@ -5,7 +5,7 @@
 #include "apx_server.h"
 #include "apx_logging.h"
 #include "apx_fileManager.h"
-#include "apx_eventRecorderSrvTxt.h"
+#include "apx_eventListener.h"
 #include <assert.h>
 
 
@@ -42,6 +42,7 @@ static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLe
 static void apx_server_disconnected(void *arg);
 static void apx_server_cleanup_connection(apx_serverConnection_t *connection);
 static uint32_t apx_server_generate_connection_id(apx_server_t *self);
+static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_fileManager_t *fileManager);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -69,6 +70,7 @@ void apx_server_create(apx_server_t *self, uint16_t port)
       apx_server_create_socket_servers(self, 0);
 #endif
       adt_list_create(&self->connections,apx_serverConnection_vdelete);
+      adt_list_create(&self->globalEventListeners, (void (*)(void*)) 0);
       self->debugMode = APX_DEBUG_NONE;
       apx_nodeManager_create(&self->nodeManager);
       apx_router_create(&self->router);
@@ -77,7 +79,6 @@ void apx_server_create(apx_server_t *self, uint16_t port)
       adt_u32Set_create(&self->connectionIdSet);
       self->nextConnectionId = 0u;
       self->numConnections = 0u;
-      self->eventRecorderTxt = (apx_eventRecorderSrvTxt_t*) 0;
    }
 }
 
@@ -98,14 +99,11 @@ void apx_server_destroy(apx_server_t *self)
    {
       //close and delete all open server connections
       adt_list_destroy(&self->connections);
+      adt_list_destroy(&self->globalEventListeners);
       adt_u32Set_destroy(&self->connectionIdSet);
       apx_server_destroy_socket_servers(self);
       apx_nodeManager_destroy(&self->nodeManager);
       apx_router_destroy(&self->router);
-      if (self->eventRecorderTxt != 0)
-      {
-         apx_eventRecorderSrvTxt_delete(self->eventRecorderTxt);
-      }
       MUTEX_DESTROY(self->lock);
    }
 }
@@ -120,22 +118,21 @@ void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode)
    }
 }
 
-void apx_server_setLogFile(apx_server_t *self, const char *fileName)
+void apx_server_registerGlobalEventListener(apx_server_t *self, apx_eventListenerBase_t *eventListener)
 {
    if (self != 0)
    {
-      self->eventRecorderTxt = apx_eventRecorderSrvTxt_new(fileName);
+      adt_list_insert_unique(&self->globalEventListeners, eventListener);
    }
 }
 
-
 #ifdef UNIT_TEST
-void apx_server_accept_test_socket(apx_server_t *self, testsocket_t *socket)
+void apx_server_acceptTestSocket(apx_server_t *self, testsocket_t *socket)
 {
    apx_server_accept((void*) self, (struct msocket_server_tag*) 0, socket);
 }
 
-apx_serverConnection_t *apx_server_get_last_connection(apx_server_t *self)
+apx_serverConnection_t *apx_server_getLastConnection(apx_server_t *self)
 {
    if (self != 0)
    {
@@ -207,10 +204,7 @@ static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_
    #endif
             fileManager = apx_serverConnection_getFileManager(newConnection);
             apx_nodeManager_attachFileManager(&self->nodeManager, fileManager);
-            if (self->eventRecorderTxt != 0)
-            {
-               apx_eventRecorderSrvTxt_registerAsListener(self->eventRecorderTxt, fileManager);
-            }
+            apx_server_trigger_connected_event_on_listeners(self, fileManager);
             apx_serverConnection_start(newConnection);
             SOCKET_START_IO(sock);
          }
@@ -315,4 +309,18 @@ static uint32_t apx_server_generate_connection_id(apx_server_t *self)
       self->nextConnectionId++;
    }
    return self->nextConnectionId;
+}
+
+static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_fileManager_t *fileManager)
+{
+   adt_list_elem_t *iter = adt_list_iter_first(&self->globalEventListeners);
+   while(iter != 0)
+   {
+      apx_eventListenerBase_t *listener = (apx_eventListenerBase_t*) iter->pItem;
+      if ( (listener != 0) && (listener->newConnection != 0))
+      {
+         listener->newConnection(listener, fileManager);
+      }
+      iter = adt_list_iter_next(iter);
+   }
 }

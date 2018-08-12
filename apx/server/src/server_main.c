@@ -16,6 +16,8 @@
 #include "apx_server.h"
 #include "apx_types.h"
 #include "apx_logging.h"
+#include "apx_eventListener.h"
+#include "apx_eventRecorderSrvTxt.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,6 +57,7 @@ static const char *SW_VERSION_STR = SW_VERSION_LITERAL;
 //////////////////////////////////////////////////////////////////////////////
 int main(int argc, char **argv)
 {
+   apx_eventRecorderSrvTxt_t *eventRecorderSrvTxt;
 #ifdef _WIN32
    WORD wVersionRequested;
    WSADATA wsaData;
@@ -91,9 +94,14 @@ int main(int argc, char **argv)
    }
 #endif
    signal_handler_setup();
-   apx_server_create(&m_server,m_port);
+   eventRecorderSrvTxt = apx_eventRecorderSrvTxt_new();
+   if (eventRecorderSrvTxt != 0)
+   {
+      apx_eventRecorderSrvTxt_open(eventRecorderSrvTxt, "server.apxlog");
+   }
+   apx_server_create(&m_server, m_port);
+   apx_server_registerGlobalEventListener(&m_server, (apx_eventListenerBase_t*) eventRecorderSrvTxt);
    apx_server_setDebugMode(&m_server, g_debug);
-   apx_server_setLogFile(&m_server, "apx.evt");
    apx_server_start(&m_server);
    while(m_runFlag != 0)
    {
@@ -111,6 +119,7 @@ int main(int argc, char **argv)
    }
    printf("cleaning up\n");
    apx_server_destroy(&m_server);
+   apx_eventRecorderSrvTxt_delete(eventRecorderSrvTxt);
 #ifdef _WIN32
    WSACleanup();
 #endif

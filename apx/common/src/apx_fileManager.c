@@ -44,6 +44,7 @@
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void apx_fileManager_triggerHeaderReceivedEvent(apx_fileManager_t *self);
+static void apx_fileManager_triggerDisconnectedEvent(apx_fileManager_t *self);
 static int8_t apx_fileManager_startWorkerThread(apx_fileManager_t *self);
 static void apx_fileManager_stopWorkerThread(apx_fileManager_t *self);
 static void apx_fileManager_triggerSendAcknowledge(apx_fileManager_t *self);
@@ -201,26 +202,6 @@ int32_t apx_fileManager_parseMessage(apx_fileManager_t *self, const uint8_t *msg
    return -1;
 }
 
-void apx_fileManager_triggerNewConnectionEvent(apx_fileManager_t *self)
-{
-   if (self != 0)
-   {
-      MUTEX_LOCK(self->mutex);
-      adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
-      while (pIter != 0)
-      {
-         apx_eventListener_t *listener = (apx_eventListener_t*) pIter->pItem;
-         assert(listener != 0);
-         if (listener->newConnection != 0)
-         {
-            listener->newConnection(listener->arg, self);
-         }
-         pIter = adt_list_iter_next(pIter);
-      }
-      MUTEX_UNLOCK(self->mutex);
-   }
-}
-
 void apx_fileManager_start(apx_fileManager_t *self)
 {
    if (self != 0)
@@ -234,6 +215,7 @@ void apx_fileManager_stop(apx_fileManager_t *self)
    if (self != 0)
    {
       apx_fileManager_stopWorkerThread(self);
+      apx_fileManager_triggerDisconnectedEvent(self);
    }
 }
 void apx_fileManager_onHeaderReceived(apx_fileManager_t *self)
@@ -303,6 +285,26 @@ static void apx_fileManager_triggerHeaderReceivedEvent(apx_fileManager_t *self)
          if (listener->headerReceived != 0)
          {
             listener->headerReceived(listener->arg, self);
+         }
+         pIter = adt_list_iter_next(pIter);
+      }
+      MUTEX_UNLOCK(self->mutex);
+   }
+}
+
+static void apx_fileManager_triggerDisconnectedEvent(apx_fileManager_t *self)
+{
+   if (self != 0)
+   {
+      MUTEX_LOCK(self->mutex);
+      adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
+      while (pIter != 0)
+      {
+         apx_eventListener_t *listener = (apx_eventListener_t*) pIter->pItem;
+         assert(listener != 0);
+         if (listener->disconnected != 0)
+         {
+            listener->disconnected(listener->arg, self);
          }
          pIter = adt_list_iter_next(pIter);
       }

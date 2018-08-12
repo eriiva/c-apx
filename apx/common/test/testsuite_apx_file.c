@@ -101,17 +101,17 @@ static void test_apx_file_rmf_event_file(CuTest* tc)
 {
    apx_file_t *file1;
    rmf_fileInfo_t info1;
-   info1.address = APX_RMF_EVENT_FILE_ADDRESS;
-   strcpy(info1.name,APX_EVENT_SRV_FILE_NAME);
+   info1.address = APX_EVENT_LOG_FILE_ADDRESS;
+   strcpy(info1.name,APX_EVENT_LOG_FILE_NAME);
    info1.digestType = RMF_DIGEST_TYPE_NONE;
    info1.fileType = RMF_FILE_TYPE_STREAM;
-   info1.length = APX_EVENT_FILE_LEN;
+   info1.length = APX_EVENT_LOG_FILE_LEN;
    file1 = apx_file_new(APX_EVENT_FILE, &info1);
    CuAssertPtrNotNull(tc, file1);
-   CuAssertUIntEquals(tc, APX_RMF_EVENT_FILE_ADDRESS, file1->fileInfo.address);
+   CuAssertUIntEquals(tc, APX_EVENT_LOG_FILE_ADDRESS, file1->fileInfo.address);
    CuAssertUIntEquals(tc, RMF_DIGEST_TYPE_NONE, file1->fileInfo.digestType);
    CuAssertUIntEquals(tc, RMF_FILE_TYPE_STREAM, file1->fileInfo.fileType);
-   CuAssertUIntEquals(tc, APX_EVENT_FILE_LEN, file1->fileInfo.length);
+   CuAssertUIntEquals(tc, APX_EVENT_LOG_FILE_LEN, file1->fileInfo.length);
    apx_file_delete(file1);
 }
 

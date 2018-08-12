@@ -151,7 +151,6 @@ void apx_serverConnection_start(apx_serverConnection_t *self)
 {
    if ( self != 0)
    {
-      apx_fileManager_triggerNewConnectionEvent(&self->fileManager);
       apx_fileManager_start(&self->fileManager);
    }
 }

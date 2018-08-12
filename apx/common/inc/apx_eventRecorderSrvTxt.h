@@ -31,6 +31,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
 #include <stdio.h>
+#include "apx_eventListener.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
@@ -44,6 +45,7 @@ struct apx_fileManager_tag;
 
 typedef struct apx_eventRecorderSrvTxt_t
 {
+   apx_eventListenerBase_t base;
    char *fileName;
    FILE *fp;
 }apx_eventRecorderSrvTxt_t;
@@ -51,11 +53,11 @@ typedef struct apx_eventRecorderSrvTxt_t
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_eventRecorderSrvTxt_create(apx_eventRecorderSrvTxt_t *self, const char *fileName);
+void apx_eventRecorderSrvTxt_create(apx_eventRecorderSrvTxt_t *self);
 void apx_eventRecorderSrvTxt_destroy(apx_eventRecorderSrvTxt_t *self);
-apx_eventRecorderSrvTxt_t *apx_eventRecorderSrvTxt_new(const char *fileName);
+apx_eventRecorderSrvTxt_t *apx_eventRecorderSrvTxt_new(void);
 void apx_eventRecorderSrvTxt_delete(apx_eventRecorderSrvTxt_t *self);
-
-void apx_eventRecorderSrvTxt_registerAsListener(apx_eventRecorderSrvTxt_t *self, struct apx_fileManager_tag *fileManager);
+void apx_eventRecorderSrvTxt_open(apx_eventRecorderSrvTxt_t *self, const char *fileName);
+void apx_eventRecorderSrvTxt_close(apx_eventRecorderSrvTxt_t *self);
 
 #endif //APX_EVENT_RECORDER_SRV_TXT_H
