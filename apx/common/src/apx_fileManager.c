@@ -44,7 +44,7 @@
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void apx_fileManager_triggerHeaderReceivedEvent(apx_fileManager_t *self);
-static void apx_fileManager_triggerDisconnectedEvent(apx_fileManager_t *self);
+static void apx_fileManager_triggerStoppedEvent(apx_fileManager_t *self);
 static int8_t apx_fileManager_startWorkerThread(apx_fileManager_t *self);
 static void apx_fileManager_stopWorkerThread(apx_fileManager_t *self);
 static void apx_fileManager_triggerSendAcknowledge(apx_fileManager_t *self);
@@ -215,7 +215,7 @@ void apx_fileManager_stop(apx_fileManager_t *self)
    if (self != 0)
    {
       apx_fileManager_stopWorkerThread(self);
-      apx_fileManager_triggerDisconnectedEvent(self);
+      apx_fileManager_triggerStoppedEvent(self);
    }
 }
 void apx_fileManager_onHeaderReceived(apx_fileManager_t *self)
@@ -292,7 +292,7 @@ static void apx_fileManager_triggerHeaderReceivedEvent(apx_fileManager_t *self)
    }
 }
 
-static void apx_fileManager_triggerDisconnectedEvent(apx_fileManager_t *self)
+static void apx_fileManager_triggerStoppedEvent(apx_fileManager_t *self)
 {
    if (self != 0)
    {
@@ -302,9 +302,9 @@ static void apx_fileManager_triggerDisconnectedEvent(apx_fileManager_t *self)
       {
          apx_eventListener_t *listener = (apx_eventListener_t*) pIter->pItem;
          assert(listener != 0);
-         if (listener->disconnected != 0)
+         if (listener->fileManagerStop != 0)
          {
-            listener->disconnected(listener->arg, self);
+            listener->fileManagerStop(listener->arg, self);
          }
          pIter = adt_list_iter_next(pIter);
       }

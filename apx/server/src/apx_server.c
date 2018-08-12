@@ -6,8 +6,11 @@
 #include "apx_logging.h"
 #include "apx_fileManager.h"
 #include "apx_eventListener.h"
+#include "apx_eventRecorderSrvRmf.h"
 #include <assert.h>
-
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
@@ -79,6 +82,7 @@ void apx_server_create(apx_server_t *self, uint16_t port)
       adt_u32Set_create(&self->connectionIdSet);
       self->nextConnectionId = 0u;
       self->numConnections = 0u;
+      self->eventRecorderRmf = apx_eventRecorderSrvRmfMgr_new(APX_EVENT_RECORDER_RMF_DEFAULT_UPDATE_TIME);
    }
 }
 
@@ -104,6 +108,7 @@ void apx_server_destroy(apx_server_t *self)
       apx_server_destroy_socket_servers(self);
       apx_nodeManager_destroy(&self->nodeManager);
       apx_router_destroy(&self->router);
+      apx_eventRecorderSrvRmfMgr_delete(self->eventRecorderRmf);
       MUTEX_DESTROY(self->lock);
    }
 }
@@ -322,5 +327,10 @@ static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, 
          listener->newConnection(listener, fileManager);
       }
       iter = adt_list_iter_next(iter);
+   }
+   //other listeners
+   if ( (self->eventRecorderRmf != 0) && (self->eventRecorderRmf->base.newConnection != 0))
+   {
+      self->eventRecorderRmf->base.newConnection(self->eventRecorderRmf, fileManager);
    }
 }

@@ -18,6 +18,7 @@
 #include "apx_serverConnection.h"
 #include "apx_router.h"
 #include "apx_eventListener.h"
+#include "apx_eventRecorderSrvRmfMgr.h"
 #include "adt_list.h"
 #include "adt_set.h"
 
@@ -46,6 +47,7 @@ typedef struct apx_server_tag
    adt_u32Set_t connectionIdSet;
    uint32_t nextConnectionId;
    uint32_t numConnections;
+   apx_eventRecorderSrvRmfMgr_t *eventRecorderRmf;
 }apx_server_t;
 
 #define APX_SERVER_MAX_CONCURRENT_CONNECTIONS 10000

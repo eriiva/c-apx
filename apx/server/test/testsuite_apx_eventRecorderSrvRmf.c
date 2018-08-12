@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_eventListener.h
+* \file      testsuite_apx_eventRecorderRmf.c
 * \author    Conny Gustafsson
-* \date      2018-05-01
-* \brief     Interface for internal event listerner
+* \date      2018-08-12
+* \brief     testsuite for apx_eventRecorderRmf_t
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,54 +23,53 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_EVENT_LISTENER_H
-#define APX_EVENT_LISTENER_H
-
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <stdint.h>
-
-//forward declarations
-struct apx_file_tag;
-struct rmf_fileInfo_tag;
-struct apx_fileManager_tag;
-
+#include "apx_eventRecorderSrvRmf.h"
+#include "apx_fileManager.h"
+#include "CuTest.h"
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-
-//This is the API the eventListener can implement
-typedef struct apx_eventListener_tag
-{
-   void *arg;
-   void (*fileManagerStop)(void *arg, struct apx_fileManager_tag *fileManager);
-   void (*headerReceived)(void *arg, struct apx_fileManager_tag *fileManager);
-   void (*fileCreate)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file_tag *file);
-   void (*fileRevoke)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file_tag *file);
-   void (*fileOpen)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file);
-   void (*fileClose)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file);
-   void (*fileWrite)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file, uint32_t offset, int32_t length);
-   void (*sendFileInfo)(void *arg, struct apx_fileManager_tag *fleManager, const struct rmf_fileInfo_tag *fileInfo);
-} apx_eventListener_t;
-
-//This is a base class for globally registered event listeners
-typedef struct apx_eventListenerBase_tag
-{
-   void (*newConnection)(void *arg, struct apx_fileManager_tag *fileManager);
-   void (*disconnected)(void *arg, struct apx_fileManager_tag *fileManager);
-} apx_eventListenerBase_t;
+#define CONNECTION_ID_DEFAULT 0
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+static void test_apx_eventRecorderSrvRmf_create(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
+// PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
-apx_eventListener_t *apx_eventListener_clone(apx_eventListener_t *other);
-void apx_eventListener_delete(apx_eventListener_t *self);
-void apx_eventListener_vdelete(void *arg);
 
-#endif //APX_EVENT_LISTENER_H
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+CuSuite* testSuite_apx_eventRecorderSrvRmf(void)
+{
+   CuSuite* suite = CuSuiteNew();
+   SUITE_ADD_TEST(suite, test_apx_eventRecorderSrvRmf_create);
+   return suite;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+static void test_apx_eventRecorderSrvRmf_create(CuTest* tc)
+{
+   apx_fileManager_t manager;
+   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT);
+   apx_eventRecorderSrvRmf_t *recorder = apx_eventRecorderSrvRmf_new(&manager, APX_EVENT_RECORDER_RMF_DEFAULT_UPDATE_TIME);
+   CuAssertPtrNotNull(tc, recorder);
+   apx_eventRecorderSrvRmf_delete(recorder);
+   apx_fileManager_destroy(&manager);
+}
+

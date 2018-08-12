@@ -139,7 +139,7 @@ static void apx_eventRecorderSrvTxt_registerAsListener(apx_eventRecorderSrvTxt_t
    apx_eventListener_t listener;
    memset(&listener, 0, sizeof(listener));
    listener.arg = self;
-   listener.disconnected = apx_eventRecorderSrvTxt_onDisconnected;
+   listener.fileManagerStop = apx_eventRecorderSrvTxt_onDisconnected;
    apx_fileManager_registerEventListener(fileManager, &listener);
 }
 

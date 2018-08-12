@@ -65,6 +65,7 @@ int8_t apx_clientConnection_connect(apx_clientConnection_t *self, SOCKET_TYPE *s
 #else
 int8_t apx_clientConnection_connectTcp(apx_clientConnection_t *self, const char *address, uint16_t port);
 #endif
+void apx_clientConnection_disconnect(apx_clientConnection_t *self);
 
 #undef SOCKET_TYPE
 

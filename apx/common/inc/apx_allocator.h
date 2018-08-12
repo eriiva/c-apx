@@ -18,9 +18,6 @@
 #include <semaphore.h>
 #endif
 #include "osmacro.h"
-#ifndef ADT_RBFS_ENABLE
-#define ADT_RBFS_ENABLE 1
-#endif
 #include "adt_ringbuf.h"
 #include "soa.h"
 

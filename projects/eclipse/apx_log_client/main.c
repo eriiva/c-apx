@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file:    apx_serverEventPlayer.c
-* \author:  Conny Gustafsson
-* \date:    2018-05-01
-* \brief:   Receives APX events from client and transforms them into internal events sent to apx_nodeManager/apx_router
+* \file      main.c
+* \author    Conny Gustafsson
+* \date      2018-08-12
+* \brief     APX log client
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -26,9 +26,16 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <string.h>
-#include <stdlib.h>
-#include "apx_serverEventPlayer.h"
+#ifdef _MSC_VER
+#include <Windows.h>
+#else
+#include <unistd.h>
+#include <signal.h>
+#endif
+#include <stdio.h>
+#include <assert.h>
+#include "apx_client.h"
+#include "osmacro.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -41,7 +48,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
-
+int8_t g_debug = 0;
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -49,40 +56,37 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_serverEventPlayer_create(apx_serverEventPlayer_t *self)
+int main(int argc, char **argv)
 {
-   if (self != 0)
-   {
+   apx_client_t *client;
+   int8_t result;
+   int i;
+#ifdef _WIN32
+   WORD wVersionRequested;
+   WSADATA wsaData;
+   int err;
+   wVersionRequested = MAKEWORD(2, 2);
+   err = WSAStartup(wVersionRequested, &wsaData);
+   if (err != 0) {
+      /* Tell the user that we could not find a usable Winsock DLL*/
+      printf("WSAStartup failed with error: %d\n", err);
+      return 1;
    }
-}
-
-void apx_serverEventPlayer_destroy(apx_serverEventPlayer_t *self)
-{
-   if (self != 0)
+#endif
+   client  = apx_client_new();
+   assert(client != 0);
+   result = apx_client_connect_tcp(client, "127.0.0.1", 5000u);
+   for(i=0;i<10;i++)
    {
-
+      SLEEP(1000);
    }
+   apx_client_disconnect(client);
+   apx_client_delete(client);
+#ifdef _WIN32
+   WSACleanup();
+#endif
+   return 0;
 }
-
-apx_serverEventPlayer_t *apx_serverEventPlayer_new(void)
-{
-   apx_serverEventPlayer_t *self = (apx_serverEventPlayer_t*) malloc(sizeof(apx_serverEventPlayer_t));
-   if(self != 0)
-   {
-      apx_serverEventPlayer_create(self);
-   }
-   return self;
-}
-
-void apx_serverEventPlayer_delete(apx_serverEventPlayer_t *self)
-{
-   if(self != 0)
-   {
-      apx_serverEventPlayer_destroy(self);
-      free(self);
-   }
-}
-
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS

@@ -29,7 +29,6 @@ static void test_apx_fileManager_createInClientMode(CuTest* tc);
 static void test_apx_fileManager_attachLocalFiles(CuTest* tc);
 static void test_apx_fileManager_registerListener(CuTest* tc);
 static void test_apx_fileManager_createRemoteFile(CuTest* tc);
-static void test_apx_fileManager_eventListener_sendLocalFiles(CuTest* tc);
 
 static void eventListenerSpy_init(void);
 static void eventListenerSpy_fileCreate(void *arg, apx_fileManager_t *fileManager, apx_file_t *file);
@@ -60,7 +59,6 @@ CuSuite* testSuite_apx_fileManager(void)
    SUITE_ADD_TEST(suite, test_apx_fileManager_attachLocalFiles);
    SUITE_ADD_TEST(suite, test_apx_fileManager_registerListener);
    SUITE_ADD_TEST(suite, test_apx_fileManager_createRemoteFile);
-   SUITE_ADD_TEST(suite, test_apx_fileManager_eventListener_sendLocalFiles);
 
    return suite;
 }
@@ -163,9 +161,4 @@ static void eventListenerSpy_fileCreate(void *arg, apx_fileManager_t *fileManage
    m_numfileCreateCalls++;
    m_lastFileManager = fileManager;
    m_lastFile = file;
-}
-
-static void test_apx_fileManager_eventListener_sendLocalFiles(CuTest* tc)
-{
-
 }

@@ -31,11 +31,13 @@
 
 #ifdef UNIT_TEST
 #define SOCKET_TYPE struct testsocket_tag
+#define APX_SOCKET_CLOSE(X)
 #define SOCKET_DELETE testsocket_delete
 #define SOCKET_SEND testsocket_clientSend
 #define SOCKET_SET_HANDLER testsocket_setClientHandler
 #else
 #define SOCKET_TYPE struct msocket_t
+#define APX_SOCKET_CLOSE msocket_close
 #define SOCKET_DELETE msocket_delete
 #define SOCKET_SEND msocket_send
 #define SOCKET_SET_HANDLER msocket_sethandler
@@ -45,7 +47,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void apx_clientConnection_registerSocketHandler(apx_clientConnection_t *self);
+static void apx_clientConnection_registerSocketHandler(apx_clientConnection_t *self, SOCKET_TYPE *socketObject);
 static int8_t apx_clientConnection_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 static void apx_clientConnection_disconnected(void *arg);
 static void apx_clientConnection_connected(void *arg, const char *addr, uint16_t port);
@@ -149,54 +151,70 @@ int8_t apx_clientConnection_connect(apx_clientConnection_t *self, SOCKET_TYPE *s
 {
    if ( (self != 0) && (socketObject != 0) )
    {
+      apx_clientConnection_registerSocketHandler(self, socketObject);
       self->socketObject = socketObject;
-      apx_clientConnection_registerSocketHandler(self);
       return 0;
    }
    return -1;
 }
 
 #else
-int8_t apx_clientConnection_connectTcp(apx_client_t *self, const char *address, uint16_t port)
+int8_t apx_clientConnection_connectTcp(apx_clientConnection_t *self, const char *address, uint16_t port)
 {
-   msocket_t *socketObject = msocket_new(AF_INET);
-   if (msocket != 0)
+   if (self != 0)
    {
-      int8_t retval = 0;
-      self->socketObject = socketObject;
-      apx_clientConnection_registerSocketHandler(self);
-      retval = msocket_connect(socketObject, address, port);
-      if (retval != 0)
+      msocket_t *socketObject = msocket_new(AF_INET);
+      if (socketObject != 0)
       {
-         fprintf(stderr, "[apx_client] msocket_connect failed with %d\n",retval);
+         int8_t retval = 0;
+         apx_clientConnection_registerSocketHandler(self, socketObject);
+         retval = msocket_connect(socketObject, address, port);
+         if (retval != 0)
+         {
+            fprintf(stderr, "[apx_client] msocket_connect failed with %d\n",retval);
+            msocket_delete(socketObject);
+         }
+         self->socketObject = socketObject;
+         return retval;
       }
       else
       {
          fprintf(stderr, "[apx_client] msocket_new returned NULL\n");
       }
-      return retval;
    }
    return -1;
 }
 #endif
 
 
-
+void apx_clientConnection_disconnect(apx_clientConnection_t *self)
+{
+   if ( (self != 0) && (self->isConnected == true) )
+   {
+      apx_clientConnection_stop(self);
+      APX_SOCKET_CLOSE(self->socketObject);
+      SOCKET_DELETE(self->socketObject);
+      self->socketObject = 0;
+      self->isConnected = false;
+   }
+}
 
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
-static void apx_clientConnection_registerSocketHandler(apx_clientConnection_t *self)
+static void apx_clientConnection_registerSocketHandler(apx_clientConnection_t *self, SOCKET_TYPE *socketObject)
 {
-   msocket_handler_t handlerTable;
-   assert(self->socketObject != 0);
-   memset(&handlerTable,0,sizeof(handlerTable));
-   handlerTable.tcp_connected=apx_clientConnection_connected;
-   handlerTable.tcp_data=apx_clientConnection_data;
-   handlerTable.tcp_disconnected = apx_clientConnection_disconnected;
-   SOCKET_SET_HANDLER(self->socketObject,&handlerTable, self);
+   if (socketObject != 0)
+   {
+      msocket_handler_t handlerTable;
+      memset(&handlerTable,0,sizeof(handlerTable));
+      handlerTable.tcp_connected=apx_clientConnection_connected;
+      handlerTable.tcp_data=apx_clientConnection_data;
+      handlerTable.tcp_disconnected = apx_clientConnection_disconnected;
+      SOCKET_SET_HANDLER(socketObject,&handlerTable, self);
+   }
 }
 
 static int8_t apx_clientConnection_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)

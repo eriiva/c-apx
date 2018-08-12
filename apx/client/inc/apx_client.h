@@ -41,14 +41,15 @@ void apx_client_vdelete(void *arg);
 #ifdef UNIT_TEST
 int8_t apx_client_connect(apx_client_t *self, struct testsocket_tag *socketObject);
 #else
-int8_t apx_client_connectTcp(apx_client_t *self, const char *address, uint16_t port);
+int8_t apx_client_connect_tcp(apx_client_t *self, const char *address, uint16_t port);
 # ifndef _WIN32
-int8_t apx_client_connectUnix(apx_client_t *self, const char *path);
+int8_t apx_client_connect_unix(apx_client_t *self, const char *path);
 # endif
 #endif
-void apx_client_attachLocalNode(apx_client_t *self, struct apx_nodeData_tag *nodeData);
+void apx_client_disconnect(apx_client_t *self);
+void apx_client_attach_local_node(apx_client_t *self, struct apx_nodeData_tag *nodeData);
 
 //backwards compatible API
-#define apx_client_connect_tcp apx_client_connectTcp
+#define apx_client_attachLocalNode apx_client_attach_local_node
 
 #endif //APX_CLIENT_H

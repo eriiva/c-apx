@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file:    apx_serverEventPlayer.h
-* \author:  Conny Gustafsson
-* \date:    2018-05-01
-* \brief:   Receives APX events from client and transforms them into internal events sent to apx_nodeManager/apx_router
+* \file      apx_eventFile.c
+* \author    Conny Gustafsson
+* \date      2018-08-12
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,34 +23,42 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-
-#ifndef APX_SERVER_EVENT_PLAYER_H
-#define APX_SERVER_EVENT_PLAYER_H
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <stdint.h>
+#include "rmf.h"
 #include "apx_file.h"
 #include "apx_eventFile.h"
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_serverEventPlayer_tag
-{
-   apx_file_t *file; //weak pointer to apx file object
-}apx_serverEventPlayer_t;
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
+// PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
-void apx_serverEventPlayer_create(apx_serverEventPlayer_t *self);
-void apx_serverEventPlayer_destroy(apx_serverEventPlayer_t *self);
-apx_serverEventPlayer_t *apx_serverEventPlayer_new(void);
-void apx_serverEventPlayer_delete(apx_serverEventPlayer_t *self);
 
-#endif //APX_SERVER_EVENT_PLAYER_H
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+apx_file_t *apx_eventFile_new(void)
+{
+   apx_file_t *file;
+   rmf_fileInfo_t info;
+   rmf_fileInfo_create(&info, APX_EVENT_LOG_FILE_NAME, APX_EVENT_LOG_FILE_ADDRESS, APX_EVENT_LOG_FILE_LEN, RMF_FILE_TYPE_STREAM);
+   return apx_file_new(APX_EVENT_FILE, &info);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+
+
