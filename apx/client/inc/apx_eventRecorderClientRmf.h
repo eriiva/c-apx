@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      main.c
+* \file      apx_eventRecorderClientRmf.h
 * \author    Conny Gustafsson
-* \date      2018-08-12
-* \brief     APX log client
+* \date      2018-08-13
+* \brief     APX event recorder for clients running on the RemoteFile protocol
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,81 +23,37 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
+#ifndef APX_EVENT_RECORDER_CLIENT_RMF_H
+#define APX_EVENT_RECORDER_CLIENT_RMF_H
+
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#ifdef _MSC_VER
-#include <Windows.h>
-#else
-#include <unistd.h>
-#include <signal.h>
-#endif
-#include <stdio.h>
-#include <assert.h>
-#include "apx_client.h"
-#include "apx_eventRecorderClientRmf.h"
-#include "osmacro.h"
+#include "apx_eventListener.h"
 
 //////////////////////////////////////////////////////////////////////////////
-// PRIVATE CONSTANTS AND DATA TYPES
+// PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+//forward declarations
+struct apx_fileManager_tag;
 
-//////////////////////////////////////////////////////////////////////////////
-// PRIVATE FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
+typedef struct apx_eventRecorderClientRmf_tag
+{
+   apx_eventListenerBase_t base;
+   struct apx_fileManager_tag *fileManager;
+} apx_eventRecorderClientRmf_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
-int8_t g_debug = 0;
-//////////////////////////////////////////////////////////////////////////////
-// PRIVATE VARIABLES
-//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTIONS
+// PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-int main(int argc, char **argv)
-{
-   apx_client_t *client;
-   apx_eventRecorderClientRmf_t *eventRecorder;
-   int8_t result;
-   int i;
-#ifdef _WIN32
-   WORD wVersionRequested;
-   WSADATA wsaData;
-   int err;
-   wVersionRequested = MAKEWORD(2, 2);
-   err = WSAStartup(wVersionRequested, &wsaData);
-   if (err != 0) {
-      /* Tell the user that we could not find a usable Winsock DLL*/
-      printf("WSAStartup failed with error: %d\n", err);
-      return 1;
-   }
-#endif
-   eventRecorder = apx_eventRecorderClientRmf_new();
-   client  = apx_client_new();
-   assert(client != 0);
-   apx_client_register_event_listener(client, (apx_eventListenerBase_t*) eventRecorder);
-   result = apx_client_connect_tcp(client, "127.0.0.1", 5000u);
-   if (result == 0)
-   {
-      for(i=0;i<10;i++)
-      {
-         SLEEP(1000);
-      }
-   }
-   apx_client_disconnect(client);
-   apx_client_delete(client);
-   apx_eventRecorderClientRmf_delete(eventRecorder);
-#ifdef _WIN32
-   WSACleanup();
-#endif
-   return 0;
-}
+void apx_eventRecorderClientRmf_create(apx_eventRecorderClientRmf_t *self);
+void apx_eventRecorderClientRmf_destroy(apx_eventRecorderClientRmf_t *self);
+apx_eventRecorderClientRmf_t *apx_eventRecorderClientRmf_new(void);
+void apx_eventRecorderClientRmf_delete(apx_eventRecorderClientRmf_t *self);
+void apx_eventRecorderClientRmf_vdelete(void *arg);
 
-//////////////////////////////////////////////////////////////////////////////
-// PRIVATE FUNCTIONS
-//////////////////////////////////////////////////////////////////////////////
-
-
+#endif //APX_EVENT_RECORDER_CLIENT_RMF_H

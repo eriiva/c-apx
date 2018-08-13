@@ -322,15 +322,15 @@ static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, 
    while(iter != 0)
    {
       apx_eventListenerBase_t *listener = (apx_eventListenerBase_t*) iter->pItem;
-      if ( (listener != 0) && (listener->newConnection != 0))
+      if ( (listener != 0) && (listener->connected != 0))
       {
-         listener->newConnection(listener, fileManager);
+         listener->connected(listener, fileManager);
       }
       iter = adt_list_iter_next(iter);
    }
    //other listeners
-   if ( (self->eventRecorderRmf != 0) && (self->eventRecorderRmf->base.newConnection != 0))
+   if ( (self->eventRecorderRmf != 0) && (self->eventRecorderRmf->base.connected != 0))
    {
-      self->eventRecorderRmf->base.newConnection(self->eventRecorderRmf, fileManager);
+      self->eventRecorderRmf->base.connected(self->eventRecorderRmf, fileManager);
    }
 }

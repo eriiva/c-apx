@@ -64,7 +64,7 @@ void apx_eventRecorderSrvTxt_create(apx_eventRecorderSrvTxt_t *self)
 {
    if (self != 0)
    {
-      self->base.newConnection = apx_eventRecorderSrvTxt_onConnected;
+      self->base.connected = apx_eventRecorderSrvTxt_onConnected;
       self->fileName = 0;
       self->fp = 0;
    }

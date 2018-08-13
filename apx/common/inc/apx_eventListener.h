@@ -58,7 +58,7 @@ typedef struct apx_eventListener_tag
 //This is a base class for globally registered event listeners
 typedef struct apx_eventListenerBase_tag
 {
-   void (*newConnection)(void *arg, struct apx_fileManager_tag *fileManager);
+   void (*connected)(void *arg, struct apx_fileManager_tag *fileManager);
    void (*disconnected)(void *arg, struct apx_fileManager_tag *fileManager);
 } apx_eventListenerBase_t;
 

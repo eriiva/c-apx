@@ -66,7 +66,7 @@ void apx_eventRecorderSrvRmfMgr_create(apx_eventRecorderSrvRmfMgr_t *self, int32
    if (self != 0)
    {
       self->minimumUpdateTime = minimumUpdateTime;
-      self->base.newConnection = apx_eventRecordrSrvRmfMgr_newConnection;
+      self->base.connected = apx_eventRecordrSrvRmfMgr_newConnection;
       self->base.disconnected =  apx_eventRecordrSrvRmfMgr_disconnected;
       adt_list_create(&self->instanceList, apx_eventRecorderSrvRmf_vdelete);
    }

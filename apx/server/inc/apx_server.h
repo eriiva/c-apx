@@ -40,7 +40,7 @@ typedef struct apx_server_tag
 #endif
    MUTEX_T lock;
    adt_list_t connections; //linked list of strong references to apx_serverConnection_t
-   adt_list_t globalEventListeners; //weak references to apx_globalEventListenerBase_t
+   adt_list_t globalEventListeners; //weak references to apx_eventListenerBase_t
    apx_nodeManager_t nodeManager; //the server has a single instance of the node manager, all connections interface with this object
    apx_router_t router; //this component handles all routing tables within the server
    int8_t debugMode;

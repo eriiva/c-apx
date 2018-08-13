@@ -232,6 +232,7 @@ static void apx_clientConnection_disconnected(void *arg)
       self->isConnected = false;
       SPINLOCK_LEAVE(self->lock);
       apx_clientConnection_stop(self);
+      _apx_client_on_disconnect(self->client, &self->fileManager);
    }
 }
 
@@ -243,6 +244,7 @@ static void apx_clientConnection_connected(void *arg,const char *addr,uint16_t p
       SPINLOCK_ENTER(self->lock);
       self->isConnected = true;
       SPINLOCK_LEAVE(self->lock);
+      _apx_client_on_connect(self->client, &self->fileManager);
       apx_clientConnection_start(self);
    }
 }

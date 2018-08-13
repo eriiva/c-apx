@@ -9,7 +9,9 @@
 #include "apx_client.h"
 #include "apx_clientConnection.h"
 #include "apx_nodeManager.h"
+#include "apx_fileManager.h"
 #include "msocket.h"
+#include "adt_list.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -23,7 +25,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-
+static void apx_client_trigger_connected_event_on_listeners(apx_client_t *self, apx_fileManager_t *fileManager);
+static void apx_client_trigger_disconnected_event_on_listeners(apx_client_t *self, apx_fileManager_t *fileManager);
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -51,6 +54,13 @@ int8_t apx_client_create(apx_client_t *self)
          apx_nodeManager_delete(self->nodeManager);
          return -1;
       }
+      self->eventListeners = adt_list_new((void (*)(void*)) 0);
+      if (self->eventListeners == 0)
+      {
+         apx_nodeManager_delete(self->nodeManager);
+         apx_clientConnection_delete(self->connection);
+         return -1;
+      }
       return 0;
    }
    errno=EINVAL;
@@ -63,6 +73,7 @@ void apx_client_destroy(apx_client_t *self)
    {
       apx_clientConnection_delete(self->connection);
       apx_nodeManager_delete(self->nodeManager);
+      adt_list_delete(self->eventListeners);
    }
 }
 
@@ -138,9 +149,58 @@ void apx_client_attach_local_node(apx_client_t *self, apx_nodeData_t *nodeData)
    }
 }
 
+void apx_client_register_event_listener(apx_client_t *self, struct apx_eventListenerBase_tag *eventListener)
+{
+   if (self != 0)
+   {
+      adt_list_insert_unique(self->eventListeners, eventListener);
+   }
+}
+
+void _apx_client_on_connect(apx_client_t *self, struct apx_fileManager_tag *fileManager)
+{
+   if ( (self != 0) && (fileManager != 0) )
+   {
+      apx_client_trigger_connected_event_on_listeners(self, fileManager);
+   }
+}
+
+void _apx_client_on_disconnect(apx_client_t *self, struct apx_fileManager_tag *fileManager)
+{
+   if ( (self != 0) && (fileManager != 0) )
+   {
+      apx_client_trigger_disconnected_event_on_listeners(self, fileManager);
+   }
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+static void apx_client_trigger_connected_event_on_listeners(apx_client_t *self, apx_fileManager_t *fileManager)
+{
+   adt_list_elem_t *iter = adt_list_iter_first(self->eventListeners);
+   while(iter != 0)
+   {
+      apx_eventListenerBase_t *listener = (apx_eventListenerBase_t*) iter->pItem;
+      if ( (listener != 0) && (listener->connected != 0))
+      {
+         listener->connected(listener, fileManager);
+      }
+      iter = adt_list_iter_next(iter);
+   }
+}
 
-
+static void apx_client_trigger_disconnected_event_on_listeners(apx_client_t *self, apx_fileManager_t *fileManager)
+{
+   adt_list_elem_t *iter = adt_list_iter_first(self->eventListeners);
+   while(iter != 0)
+   {
+      apx_eventListenerBase_t *listener = (apx_eventListenerBase_t*) iter->pItem;
+      if ( (listener != 0) && (listener->disconnected != 0))
+      {
+         listener->disconnected(listener, fileManager);
+      }
+      iter = adt_list_iter_next(iter);
+   }
+}
