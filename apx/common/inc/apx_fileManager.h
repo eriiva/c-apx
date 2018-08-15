@@ -45,12 +45,15 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+//forward declaration
+struct apx_fileManagerEventListener_tag;
+
 typedef struct apx_fileManager_tag
 {
    apx_fileManagerShared_t shared;
    apx_fileManagerRemote_t remote;
    apx_fileManagerLocal_t local;
-   adt_list_t eventListeners; //contains strong references to apx_eventListener_t
+   adt_list_t eventListeners; //contains strong references to apx_fileManagerEventListener_t
    apx_transmitHandler_t transmitHandler;
    uint8_t mode;
    MUTEX_T mutex;
@@ -79,7 +82,7 @@ typedef struct apx_fileManager_tag
 int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t connectionId);
 void apx_fileManager_destroy(apx_fileManager_t *self);
 
-void* apx_fileManager_registerEventListener(apx_fileManager_t *self, struct apx_eventListener_tag* listener);
+void* apx_fileManager_registerEventListener(apx_fileManager_t *self, struct apx_fileManagerEventListener_tag* listener);
 void apx_fileManager_unregisterEventListener(apx_fileManager_t *self, void *handle);
 int32_t apx_fileManager_getNumEventListeners(apx_fileManager_t *self);
 void apx_fileManager_attachLocalFile(apx_fileManager_t *self, struct apx_file_tag *localFile);
@@ -92,6 +95,6 @@ void apx_fileManager_onHeaderAccepted(apx_fileManager_t *self); //used in client
 int32_t apx_fileManager_parseMessage(apx_fileManager_t *self, const uint8_t *msgBuf, int32_t msgLen);
 uint32_t fileManager_getID(apx_fileManager_t *self);
 void apx_fileManager_setTransmitHandler(apx_fileManager_t *self, apx_transmitHandler_t *handler);
-
+void apx_fileManager_openRemoteFile(apx_fileManager_t *self, uint32_t address);
 
 #endif //APX_FILE_MANAGER_H

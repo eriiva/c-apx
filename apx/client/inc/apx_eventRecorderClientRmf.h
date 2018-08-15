@@ -39,7 +39,7 @@ struct apx_fileManager_tag;
 
 typedef struct apx_eventRecorderClientRmf_tag
 {
-   apx_eventListenerBase_t base;
+   apx_connectionEventListener_t base;
    struct apx_fileManager_tag *fileManager;
 } apx_eventRecorderClientRmf_t;
 

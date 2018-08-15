@@ -136,7 +136,7 @@ void apx_eventRecorderSrvTxt_close(apx_eventRecorderSrvTxt_t *self)
 //////////////////////////////////////////////////////////////////////////////
 static void apx_eventRecorderSrvTxt_registerAsListener(apx_eventRecorderSrvTxt_t *self, struct apx_fileManager_tag *fileManager)
 {
-   apx_eventListener_t listener;
+   apx_fileManagerEventListener_t listener;
    memset(&listener, 0, sizeof(listener));
    listener.arg = self;
    listener.fileManagerStop = apx_eventRecorderSrvTxt_onDisconnected;

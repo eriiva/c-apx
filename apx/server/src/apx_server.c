@@ -73,7 +73,7 @@ void apx_server_create(apx_server_t *self, uint16_t port)
       apx_server_create_socket_servers(self, 0);
 #endif
       adt_list_create(&self->connections,apx_serverConnection_vdelete);
-      adt_list_create(&self->globalEventListeners, (void (*)(void*)) 0);
+      adt_list_create(&self->connectionEventListeners, (void (*)(void*)) 0);
       self->debugMode = APX_DEBUG_NONE;
       apx_nodeManager_create(&self->nodeManager);
       apx_router_create(&self->router);
@@ -82,7 +82,6 @@ void apx_server_create(apx_server_t *self, uint16_t port)
       adt_u32Set_create(&self->connectionIdSet);
       self->nextConnectionId = 0u;
       self->numConnections = 0u;
-      self->eventRecorderRmf = apx_eventRecorderSrvRmfMgr_new(APX_EVENT_RECORDER_RMF_DEFAULT_UPDATE_TIME);
    }
 }
 
@@ -103,12 +102,11 @@ void apx_server_destroy(apx_server_t *self)
    {
       //close and delete all open server connections
       adt_list_destroy(&self->connections);
-      adt_list_destroy(&self->globalEventListeners);
+      adt_list_destroy(&self->connectionEventListeners);
       adt_u32Set_destroy(&self->connectionIdSet);
       apx_server_destroy_socket_servers(self);
       apx_nodeManager_destroy(&self->nodeManager);
       apx_router_destroy(&self->router);
-      apx_eventRecorderSrvRmfMgr_delete(self->eventRecorderRmf);
       MUTEX_DESTROY(self->lock);
    }
 }
@@ -123,11 +121,11 @@ void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode)
    }
 }
 
-void apx_server_registerGlobalEventListener(apx_server_t *self, apx_eventListenerBase_t *eventListener)
+void apx_server_registerConnectionEventListener(apx_server_t *self, apx_connectionEventListener_t *eventListener)
 {
    if (self != 0)
    {
-      adt_list_insert_unique(&self->globalEventListeners, eventListener);
+      adt_list_insert_unique(&self->connectionEventListeners, eventListener);
    }
 }
 
@@ -318,19 +316,14 @@ static uint32_t apx_server_generate_connection_id(apx_server_t *self)
 
 static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_fileManager_t *fileManager)
 {
-   adt_list_elem_t *iter = adt_list_iter_first(&self->globalEventListeners);
+   adt_list_elem_t *iter = adt_list_iter_first(&self->connectionEventListeners);
    while(iter != 0)
    {
-      apx_eventListenerBase_t *listener = (apx_eventListenerBase_t*) iter->pItem;
+      apx_connectionEventListener_t *listener = (apx_connectionEventListener_t*) iter->pItem;
       if ( (listener != 0) && (listener->connected != 0))
       {
          listener->connected(listener, fileManager);
       }
       iter = adt_list_iter_next(iter);
-   }
-   //other listeners
-   if ( (self->eventRecorderRmf != 0) && (self->eventRecorderRmf->base.connected != 0))
-   {
-      self->eventRecorderRmf->base.connected(self->eventRecorderRmf, fileManager);
    }
 }

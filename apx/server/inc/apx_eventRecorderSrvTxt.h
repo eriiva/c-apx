@@ -45,7 +45,7 @@ struct apx_fileManager_tag;
 
 typedef struct apx_eventRecorderSrvTxt_t
 {
-   apx_eventListenerBase_t base;
+   apx_connectionEventListener_t base;
    char *fileName;
    FILE *fp;
 }apx_eventRecorderSrvTxt_t;

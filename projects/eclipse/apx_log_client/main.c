@@ -78,7 +78,7 @@ int main(int argc, char **argv)
    eventRecorder = apx_eventRecorderClientRmf_new();
    client  = apx_client_new();
    assert(client != 0);
-   apx_client_register_event_listener(client, (apx_eventListenerBase_t*) eventRecorder);
+   apx_client_registerEventListener(client, (apx_connectionEventListener_t*) eventRecorder);
    result = apx_client_connect_tcp(client, "127.0.0.1", 5000u);
    if (result == 0)
    {

@@ -48,21 +48,21 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-apx_eventListener_t *apx_eventListener_clone(apx_eventListener_t *other)
+apx_fileManagerEventListener_t *apx_fileManagerEventListener_clone(apx_fileManagerEventListener_t *other)
 {
    if (other != 0)
    {
-      apx_eventListener_t *self = (apx_eventListener_t*) malloc(sizeof(apx_eventListener_t));
+      apx_fileManagerEventListener_t *self = (apx_fileManagerEventListener_t*) malloc(sizeof(apx_fileManagerEventListener_t));
       if (self != 0)
       {
          *self = *other;
       }
       return self;
    }
-   return (apx_eventListener_t*) 0;
+   return (apx_fileManagerEventListener_t*) 0;
 }
 
-void apx_eventListener_delete(apx_eventListener_t *self)
+void apx_fileManagerEventListener_delete(apx_fileManagerEventListener_t *self)
 {
    if (self != 0)
    {
@@ -70,9 +70,9 @@ void apx_eventListener_delete(apx_eventListener_t *self)
    }
 }
 
-void apx_eventListener_vdelete(void *arg)
+void apx_fileManagerEventListener_vdelete(void *arg)
 {
-   apx_eventListener_delete((apx_eventListener_t *) 0);
+   apx_fileManagerEventListener_delete((apx_fileManagerEventListener_t *) 0);
 }
 
 

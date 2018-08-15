@@ -28,7 +28,10 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_eventRecorderClientRmf.h"
 #include "apx_fileManager.h"
+#include "apx_eventListener.h"
+#include "apx_eventFile.h"
 #include <stdio.h>
+#include <string.h>
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -39,6 +42,7 @@
 //////////////////////////////////////////////////////////////////////////////
 static void apx_eventRecorderClientRmf_connected(void *arg, apx_fileManager_t *fileManager);
 static void apx_eventRecorderClientRmf_disconnected(void *arg, apx_fileManager_t *fileManager);
+static void apx_eventRecorderClientRmf_onCreateFile(void *arg, apx_fileManager_t *fileManager, struct apx_file_tag *file);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -92,7 +96,10 @@ void apx_eventRecorderClientRmf_vdelete(void *arg)
 
 static void apx_eventRecorderClientRmf_connected(void *arg, apx_fileManager_t *fileManager)
 {
-   printf("apx_eventRecorderClientRmf_connected\n");
+   apx_fileManagerEventListener_t listener;
+   memset(&listener, 0, sizeof(listener));
+   listener.fileCreate = apx_eventRecorderClientRmf_onCreateFile;
+   apx_fileManager_registerEventListener(fileManager, &listener);
 }
 
 static void apx_eventRecorderClientRmf_disconnected(void *arg, apx_fileManager_t *fileManager)
@@ -100,4 +107,13 @@ static void apx_eventRecorderClientRmf_disconnected(void *arg, apx_fileManager_t
    printf("apx_eventRecorderClientRmf_disconnected\n");
 }
 
-
+static void apx_eventRecorderClientRmf_onCreateFile(void *arg, apx_fileManager_t *fileManager, struct apx_file_tag *file)
+{
+   if (file != 0)
+   {
+      if ( (file->isRemoteFile == true) && (strcmp(file->fileInfo.name, APX_EVENT_LOG_FILE_NAME)==0))
+      {
+         apx_fileManager_openRemoteFile(fileManager, file->fileInfo.address);
+      }
+   }
+}

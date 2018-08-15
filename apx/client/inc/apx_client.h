@@ -16,7 +16,7 @@ struct apx_clientConnection_tag;
 struct apx_nodeManager_tag;
 struct apx_nodeData_tag;
 struct adt_list_tag;
-struct apx_eventListenerBase_tag;
+struct apx_connectionEventListener_tag;
 struct apx_fileManager_tag;
 #ifdef UNIT_TEST
 struct testsocket_tag;
@@ -53,7 +53,7 @@ int8_t apx_client_connect_unix(apx_client_t *self, const char *path);
 #endif
 void apx_client_disconnect(apx_client_t *self);
 void apx_client_attach_local_node(apx_client_t *self, struct apx_nodeData_tag *nodeData);
-void apx_client_register_event_listener(apx_client_t *self, struct apx_eventListenerBase_tag *eventListener);
+void apx_client_registerEventListener(apx_client_t *self, struct apx_connectionEventListener_tag *eventListener);
 
 //APX internal API
 void _apx_client_on_connect(apx_client_t *self, struct apx_fileManager_tag *fileManager);

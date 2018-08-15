@@ -84,7 +84,7 @@ static void test_apx_fileManager_createInClientMode(CuTest* tc)
 
 static void test_apx_fileManager_attachLocalFiles(CuTest* tc)
 {
-   apx_eventListener_t listener;
+   apx_fileManagerEventListener_t listener;
    apx_nodeData_t *nodeData;
    apx_file_t *definitionFile;
    apx_file_t *outDataFile;
@@ -114,7 +114,7 @@ static void test_apx_fileManager_attachLocalFiles(CuTest* tc)
 static void test_apx_fileManager_registerListener(CuTest* tc)
 {
    apx_fileManager_t manager;
-   apx_eventListener_t eventListener;
+   apx_fileManagerEventListener_t eventListener;
    void *handle;
    memset(&eventListener, 0, sizeof(eventListener));
    apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT);
@@ -128,7 +128,7 @@ static void test_apx_fileManager_registerListener(CuTest* tc)
 
 static void test_apx_fileManager_createRemoteFile(CuTest* tc)
 {
-   apx_eventListener_t listener;
+   apx_fileManagerEventListener_t listener;
    uint8_t buffer[100];
    rmf_fileInfo_t info;
    int32_t msgLen;

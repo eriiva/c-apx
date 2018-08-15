@@ -41,8 +41,7 @@ struct apx_fileManager_tag;
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 
-//This is the API the eventListener can implement
-typedef struct apx_eventListener_tag
+typedef struct apx_fileManagerEventListener_tag
 {
    void *arg;
    void (*fileManagerStop)(void *arg, struct apx_fileManager_tag *fileManager);
@@ -53,14 +52,14 @@ typedef struct apx_eventListener_tag
    void (*fileClose)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file);
    void (*fileWrite)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file, uint32_t offset, int32_t length);
    void (*sendFileInfo)(void *arg, struct apx_fileManager_tag *fleManager, const struct rmf_fileInfo_tag *fileInfo);
-} apx_eventListener_t;
+} apx_fileManagerEventListener_t;
 
-//This is a base class for globally registered event listeners
-typedef struct apx_eventListenerBase_tag
+//This is a base class and must be placed as the first element in a struct definition
+typedef struct apx_connectionEventListener_tag
 {
    void (*connected)(void *arg, struct apx_fileManager_tag *fileManager);
    void (*disconnected)(void *arg, struct apx_fileManager_tag *fileManager);
-} apx_eventListenerBase_t;
+} apx_connectionEventListener_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -69,8 +68,8 @@ typedef struct apx_eventListenerBase_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-apx_eventListener_t *apx_eventListener_clone(apx_eventListener_t *other);
-void apx_eventListener_delete(apx_eventListener_t *self);
-void apx_eventListener_vdelete(void *arg);
+apx_fileManagerEventListener_t *apx_fileManagerEventListener_clone(apx_fileManagerEventListener_t *other);
+void apx_fileManagerEventListener_delete(apx_fileManagerEventListener_t *self);
+void apx_fileManagerEventListener_vdelete(void *arg);
 
 #endif //APX_EVENT_LISTENER_H

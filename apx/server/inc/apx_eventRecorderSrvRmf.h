@@ -63,7 +63,9 @@ typedef struct apx_eventRecorderSrvRmf_tag
    int32_t minimumUpdateTime; //resolution: 100ms/bit
 }apx_eventRecorderSrvRmf_t;
 
-#define APX_EVENT_RECORDER_RMF_DEFAULT_UPDATE_TIME 10 //resolution: 100 milliseconds per bit, this is used to force write even when buffered isn't yet full
+#ifndef APX_EVENT_RECORDER_RMF_DEFAULT_UPDATE_TIME
+#define APX_EVENT_RECORDER_RMF_DEFAULT_UPDATE_TIME 10
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES

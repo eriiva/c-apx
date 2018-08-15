@@ -83,7 +83,7 @@ int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t co
       {
          apx_fileManagerRemote_create(&self->remote, &self->shared);
          apx_fileManagerLocal_create(&self->local, &self->shared);
-         adt_list_create(&self->eventListeners, apx_eventListener_vdelete);
+         adt_list_create(&self->eventListeners, apx_fileManagerEventListener_vdelete);
          self->mode = mode;
          self->shared.arg = self;
          self->shared.fileCreated = apx_fileManager_fileCreatedCbk;
@@ -130,11 +130,11 @@ void apx_fileManager_destroy(apx_fileManager_t *self)
    }
 }
 
-void* apx_fileManager_registerEventListener(apx_fileManager_t *self, struct apx_eventListener_tag* listener)
+void* apx_fileManager_registerEventListener(apx_fileManager_t *self, struct apx_fileManagerEventListener_tag* listener)
 {
    if ( (self != 0) && (listener != 0))
    {
-      void *handle = (void*) apx_eventListener_clone(listener);
+      void *handle = (void*) apx_fileManagerEventListener_clone(listener);
       if (handle != 0)
       {
          adt_list_insert(&self->eventListeners, handle);
@@ -151,7 +151,7 @@ void apx_fileManager_unregisterEventListener(apx_fileManager_t *self, void *hand
       bool isFound = adt_list_remove(&self->eventListeners, handle);
       if (isFound == true)
       {
-         apx_eventListener_vdelete(handle);
+         apx_fileManagerEventListener_vdelete(handle);
       }
    }
 }
@@ -267,6 +267,11 @@ void apx_fileManager_setTransmitHandler(apx_fileManager_t *self, apx_transmitHan
    }
 }
 
+void apx_fileManager_openRemoteFile(apx_fileManager_t *self, uint32_t address)
+{
+   printf("apx_fileManager_openRemoteFile %08X\n", address);
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
@@ -280,7 +285,7 @@ static void apx_fileManager_triggerHeaderReceivedEvent(apx_fileManager_t *self)
       adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
       while (pIter != 0)
       {
-         apx_eventListener_t *listener = (apx_eventListener_t*) pIter->pItem;
+         apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
          assert(listener != 0);
          if (listener->headerReceived != 0)
          {
@@ -300,7 +305,7 @@ static void apx_fileManager_triggerStoppedEvent(apx_fileManager_t *self)
       adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
       while (pIter != 0)
       {
-         apx_eventListener_t *listener = (apx_eventListener_t*) pIter->pItem;
+         apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
          assert(listener != 0);
          if (listener->fileManagerStop != 0)
          {
@@ -397,7 +402,7 @@ static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file_tag 
       adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
       while (pIter != 0)
       {
-         apx_eventListener_t *listener = (apx_eventListener_t*) pIter->pItem;
+         apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
          assert(listener != 0);
          if (listener->fileCreate != 0)
          {

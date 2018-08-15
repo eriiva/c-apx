@@ -35,15 +35,21 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+#ifndef APX_EVENT_RECORDER_RMF_DEFAULT_UPDATE_TIME
+#define APX_EVENT_RECORDER_RMF_DEFAULT_UPDATE_TIME 10  //resolution: 100 milliseconds per bit
+#endif
+
+
 //forward declarations
 
 
 typedef struct apx_eventRecorderSrvRmfMgr_tag
 {
-   apx_eventListenerBase_t base;
+   apx_connectionEventListener_t base;
    adt_list_t instanceList; //strong references to apx_eventRecorderSrvRmf_t
    int32_t minimumUpdateTime;
 } apx_eventRecorderSrvRmfMgr_t;
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES

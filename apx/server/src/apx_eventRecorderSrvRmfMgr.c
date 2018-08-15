@@ -120,13 +120,12 @@ static void apx_eventRecorderSrvRmfMgr_registerEventFile(apx_eventRecorderSrvRmf
    if (eventFile != 0)
    {
       apx_fileManager_attachLocalFile(fileManager, eventFile);
-      printf("event file created in new fileManager\n");
    }
 }
 
 static void apx_eventRecorderSrvRmfMgr_registerEventListener(apx_eventRecorderSrvRmfMgr_t *self, apx_fileManager_t *fileManager)
 {
-   apx_eventListener_t listener;
+   apx_fileManagerEventListener_t listener;
    memset(&listener, 0, sizeof(listener));
    listener.fileOpen = apx_eventRecorderSrvRmfMgr_onFileOpen;
 }

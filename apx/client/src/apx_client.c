@@ -25,8 +25,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void apx_client_trigger_connected_event_on_listeners(apx_client_t *self, apx_fileManager_t *fileManager);
-static void apx_client_trigger_disconnected_event_on_listeners(apx_client_t *self, apx_fileManager_t *fileManager);
+static void apx_client_triggerConnectedEventOnListeners(apx_client_t *self, apx_fileManager_t *fileManager);
+static void apx_client_triggerDisconnectedEventOnListeners(apx_client_t *self, apx_fileManager_t *fileManager);
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -149,7 +149,7 @@ void apx_client_attach_local_node(apx_client_t *self, apx_nodeData_t *nodeData)
    }
 }
 
-void apx_client_register_event_listener(apx_client_t *self, struct apx_eventListenerBase_tag *eventListener)
+void apx_client_registerEventListener(apx_client_t *self, struct apx_connectionEventListener_tag *eventListener)
 {
    if (self != 0)
    {
@@ -161,7 +161,7 @@ void _apx_client_on_connect(apx_client_t *self, struct apx_fileManager_tag *file
 {
    if ( (self != 0) && (fileManager != 0) )
    {
-      apx_client_trigger_connected_event_on_listeners(self, fileManager);
+      apx_client_triggerConnectedEventOnListeners(self, fileManager);
    }
 }
 
@@ -169,7 +169,7 @@ void _apx_client_on_disconnect(apx_client_t *self, struct apx_fileManager_tag *f
 {
    if ( (self != 0) && (fileManager != 0) )
    {
-      apx_client_trigger_disconnected_event_on_listeners(self, fileManager);
+      apx_client_triggerDisconnectedEventOnListeners(self, fileManager);
    }
 }
 
@@ -177,12 +177,12 @@ void _apx_client_on_disconnect(apx_client_t *self, struct apx_fileManager_tag *f
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static void apx_client_trigger_connected_event_on_listeners(apx_client_t *self, apx_fileManager_t *fileManager)
+static void apx_client_triggerConnectedEventOnListeners(apx_client_t *self, apx_fileManager_t *fileManager)
 {
    adt_list_elem_t *iter = adt_list_iter_first(self->eventListeners);
    while(iter != 0)
    {
-      apx_eventListenerBase_t *listener = (apx_eventListenerBase_t*) iter->pItem;
+      apx_connectionEventListener_t *listener = (apx_connectionEventListener_t*) iter->pItem;
       if ( (listener != 0) && (listener->connected != 0))
       {
          listener->connected(listener, fileManager);
@@ -191,12 +191,12 @@ static void apx_client_trigger_connected_event_on_listeners(apx_client_t *self, 
    }
 }
 
-static void apx_client_trigger_disconnected_event_on_listeners(apx_client_t *self, apx_fileManager_t *fileManager)
+static void apx_client_triggerDisconnectedEventOnListeners(apx_client_t *self, apx_fileManager_t *fileManager)
 {
    adt_list_elem_t *iter = adt_list_iter_first(self->eventListeners);
    while(iter != 0)
    {
-      apx_eventListenerBase_t *listener = (apx_eventListenerBase_t*) iter->pItem;
+      apx_connectionEventListener_t *listener = (apx_connectionEventListener_t*) iter->pItem;
       if ( (listener != 0) && (listener->disconnected != 0))
       {
          listener->disconnected(listener, fileManager);

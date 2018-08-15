@@ -233,7 +233,6 @@ void apx_file_close(apx_file_t *self)
    }
 }
 
-
 int8_t apx_file_read(apx_file_t *self, uint8_t *pDest, uint32_t offset, uint32_t length)
 {
    if ( (self != 0) && (pDest != 0) && (length > 0) )

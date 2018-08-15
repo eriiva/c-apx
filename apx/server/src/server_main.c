@@ -18,6 +18,7 @@
 #include "apx_logging.h"
 #include "apx_eventListener.h"
 #include "apx_eventRecorderSrvTxt.h"
+#include "apx_eventRecorderSrvRmfMgr.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -58,6 +59,7 @@ static const char *SW_VERSION_STR = SW_VERSION_LITERAL;
 int main(int argc, char **argv)
 {
    apx_eventRecorderSrvTxt_t *eventRecorderSrvTxt;
+   apx_eventRecorderSrvRmfMgr_t *apx_eventRecorderSrvRmfMgr;
 #ifdef _WIN32
    WORD wVersionRequested;
    WSADATA wsaData;
@@ -94,13 +96,18 @@ int main(int argc, char **argv)
    }
 #endif
    signal_handler_setup();
+   apx_server_create(&m_server, m_port);
+   apx_eventRecorderSrvRmfMgr = apx_eventRecorderSrvRmfMgr_new(APX_EVENT_RECORDER_RMF_DEFAULT_UPDATE_TIME);
+   if (apx_eventRecorderSrvRmfMgr != 0)
+   {
+      apx_server_registerConnectionEventListener(&m_server, (apx_connectionEventListener_t*) apx_eventRecorderSrvRmfMgr);
+   }
    eventRecorderSrvTxt = apx_eventRecorderSrvTxt_new();
    if (eventRecorderSrvTxt != 0)
    {
       apx_eventRecorderSrvTxt_open(eventRecorderSrvTxt, "server.apxlog");
+      apx_server_registerConnectionEventListener(&m_server, (apx_connectionEventListener_t*) eventRecorderSrvTxt);
    }
-   apx_server_create(&m_server, m_port);
-   apx_server_registerGlobalEventListener(&m_server, (apx_eventListenerBase_t*) eventRecorderSrvTxt);
    apx_server_setDebugMode(&m_server, g_debug);
    apx_server_start(&m_server);
    while(m_runFlag != 0)
