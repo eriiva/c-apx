@@ -51,12 +51,14 @@ static void apx_fileManager_triggerSendAcknowledge(apx_fileManager_t *self);
 
 static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file_tag *pFile);
 static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file_tag *pFile);
+static void apx_fileManager_sendFileOpen(void *arg, const apx_file_t *file, void *caller);
 
 
 static THREAD_PROTO(workerThread,arg);
 static bool workerThread_processMessage(apx_fileManager_t *self, apx_msg_t *msg);
-static void workerThread_sendFileInfo(apx_fileManager_t *self, apx_msg_t *msg);
 static void workerThread_sendAcknowledge(apx_fileManager_t *self);
+static void workerThread_sendFileInfo(apx_fileManager_t *self, apx_msg_t *msg);
+static void workerThread_sendFileOpen(apx_fileManager_t *self, apx_msg_t *msg);
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -88,6 +90,7 @@ int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t co
          self->shared.arg = self;
          self->shared.fileCreated = apx_fileManager_fileCreatedCbk;
          self->shared.sendFileInfo = apx_fileManager_sendFileInfoCbk;
+         self->shared.sendFileOpen = apx_fileManager_sendFileOpen;
          MUTEX_INIT(self->mutex);
          SPINLOCK_INIT(self->lock);
          SEMAPHORE_CREATE(self->semaphore);
@@ -267,10 +270,45 @@ void apx_fileManager_setTransmitHandler(apx_fileManager_t *self, apx_transmitHan
    }
 }
 
-void apx_fileManager_openRemoteFile(apx_fileManager_t *self, uint32_t address)
+/**
+ * opens a remote file if it has been previously published by remote side.
+ * The caller argument is used to prevent event listener callback to be triggered by this event
+ */
+int8_t apx_fileManager_openRemoteFile(apx_fileManager_t *self, uint32_t address, void *caller)
 {
-   printf("apx_fileManager_openRemoteFile %08X\n", address);
+   if (self != 0)
+   {
+      return apx_fileManageRemote_openFile(&self->remote, address, caller);
+   }
+   errno = EINVAL;
+   return -1;
 }
+
+
+#ifdef UNIT_TEST
+bool apx_fileManager_run(apx_fileManager_t *self)
+{
+   if (self != 0)
+   {
+      if (adt_rbfs_size(&self->messages) > 0)
+      {
+         apx_msg_t msg;
+         adt_rbfs_remove(&self->messages,(uint8_t*) &msg);
+         return workerThread_processMessage(self, &msg);
+      }
+   }
+   return false;
+}
+
+int32_t apx_fileManager_numPendingMessages(apx_fileManager_t *self)
+{
+   if (self != 0)
+   {
+      return (int32_t) adt_rbfs_size(&self->messages);
+   }
+   return -1;
+}
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -428,6 +466,34 @@ static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file_tag
    }
 }
 
+static void apx_fileManager_sendFileOpen(void *arg, const apx_file_t *file, void *caller)
+{
+   apx_fileManager_t *self = (apx_fileManager_t *) arg;
+   if ( (self != 0) && (file != 0))
+   {
+      adt_list_elem_t *pIter;
+      apx_msg_t msg = {APX_MSG_SEND_FILE_OPEN, 0, 0, 0, 0};
+      msg.msgData1 = file->fileInfo.address;
+      SPINLOCK_ENTER(self->lock);
+      adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+      SPINLOCK_LEAVE(self->lock);
+      SEMAPHORE_POST(self->semaphore);
+      MUTEX_LOCK(self->mutex);
+      pIter = adt_list_iter_first(&self->eventListeners);
+      while (pIter != 0)
+      {
+         apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
+         assert(listener != 0);
+         if ( (listener->arg != caller) && (listener->fileOpen != 0) )
+         {
+            listener->fileOpen(listener->arg, self, file);
+         }
+         pIter = adt_list_iter_next(pIter);
+      }
+      MUTEX_UNLOCK(self->mutex);
+   }
+}
+
 /*** workerThread functions ***/
 
 static THREAD_PROTO(workerThread,arg)
@@ -477,11 +543,36 @@ static bool workerThread_processMessage(apx_fileManager_t *self, apx_msg_t *msg)
    case APX_MSG_SEND_ACKNOWLEDGE:
       workerThread_sendAcknowledge(self);
       break;
+   case APX_MSG_SEND_FILE_OPEN:
+      workerThread_sendFileOpen(self, msg);
+      break;
    default:
       APX_LOG_ERROR("[APX_FILE_MANAGER]: Unknown message type: %u", msg->msgType);
       assert(0);
    }
    return true;
+}
+
+static void workerThread_sendAcknowledge(apx_fileManager_t *self)
+{
+   int32_t msgSize = RMF_CMD_TYPE_LEN+RMF_CMD_ACK_LEN;
+   uint8_t *msgBuf;
+   assert(self->transmitHandler.getSendBuffer != 0);
+   assert(self->transmitHandler.send != 0);
+   msgBuf = self->transmitHandler.getSendBuffer(self->transmitHandler.arg, msgSize);
+   if (msgBuf != 0)
+   {
+      int32_t result = rmf_packHeader(msgBuf, msgSize, RMF_CMD_START_ADDR, false);
+      if (result > 0)
+      {
+         msgBuf+=result;
+         result = rmf_serialize_acknowledge(msgBuf, msgSize-result);
+         if (result > 0)
+         {
+            self->transmitHandler.send(self->transmitHandler.arg, 0, msgSize);
+         }
+      }
+   }
 }
 
 static void workerThread_sendFileInfo(apx_fileManager_t *self, apx_msg_t *msg)
@@ -504,9 +595,9 @@ static void workerThread_sendFileInfo(apx_fileManager_t *self, apx_msg_t *msg)
    }
 }
 
-static void workerThread_sendAcknowledge(apx_fileManager_t *self)
+static void workerThread_sendFileOpen(apx_fileManager_t *self, apx_msg_t *msg)
 {
-   int32_t msgSize = RMF_CMD_TYPE_LEN+RMF_ACK_CMD_LEN;
+   int32_t msgSize = RMF_CMD_TYPE_LEN+RMF_CMD_FILE_OPEN_LEN;
    uint8_t *msgBuf;
    assert(self->transmitHandler.getSendBuffer != 0);
    assert(self->transmitHandler.send != 0);
@@ -516,8 +607,10 @@ static void workerThread_sendAcknowledge(apx_fileManager_t *self)
       int32_t result = rmf_packHeader(msgBuf, msgSize, RMF_CMD_START_ADDR, false);
       if (result > 0)
       {
+         rmf_cmdOpenFile_t cmd;
+         cmd.address = msg->msgData1;
          msgBuf+=result;
-         result = rmf_serialize_acknowledge(msgBuf, msgSize-result);
+         result = rmf_serialize_cmdOpenFile(msgBuf, msgSize-result, &cmd);
          if (result > 0)
          {
             self->transmitHandler.send(self->transmitHandler.arg, 0, msgSize);

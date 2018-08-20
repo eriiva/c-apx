@@ -107,7 +107,7 @@ static void test_apx_serverConnection_sendAckAfterReceivingHeader(CuTest* tc)
    SLEEP(50);
    testsocket_run(sock);
    data = testsocket_spy_getReceivedData(&len);
-   CuAssertUIntEquals(tc, RMF_CMD_TYPE_LEN+RMF_ACK_CMD_LEN+1, len);
+   CuAssertUIntEquals(tc, RMF_CMD_TYPE_LEN+RMF_CMD_ACK_LEN+1, len);
    for(i=0;i<(int32_t) sizeof(expected);i++)
    {
       char msg[14];

@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_eventRecorderCltRmf.c
+* \file      apx_transmitHandlerSpy.c
 * \author    Conny Gustafsson
-* \date      2018-08-13
-* \brief     APX event recorder for clients running on the RemoteFile protocol
+* \date      2018-08-19
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -26,12 +26,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_eventRecorderClientRmf.h"
-#include "apx_fileManager.h"
-#include "apx_eventListener.h"
-#include "apx_eventFile.h"
-#include <stdio.h>
-#include <string.h>
+#include "apx_transmitHandlerSpy.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -40,9 +35,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void apx_eventRecorderClientRmf_connected(void *arg, apx_fileManager_t *fileManager);
-static void apx_eventRecorderClientRmf_disconnected(void *arg, apx_fileManager_t *fileManager);
-static void apx_eventRecorderClientRmf_onCreateFile(void *arg, apx_fileManager_t *fileManager, struct apx_file_tag *file);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -51,70 +43,73 @@ static void apx_eventRecorderClientRmf_onCreateFile(void *arg, apx_fileManager_t
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_eventRecorderClientRmf_create(apx_eventRecorderClientRmf_t *self)
+void apx_transmitHandlerSpy_create(apx_transmitHandlerSpy_t *self)
 {
    if (self != 0)
    {
-      self->base.connected = apx_eventRecorderClientRmf_connected;
-      self->base.disconnected = apx_eventRecorderClientRmf_disconnected;
-      self->fileManager = 0;
+      self->buf = 0;
+      self->transmitted = adt_ary_new(adt_bytearray_vdelete);
    }
 }
 
-void apx_eventRecorderClientRmf_destroy(apx_eventRecorderClientRmf_t *self)
+void apx_transmitHandlerSpy_destroy(apx_transmitHandlerSpy_t *self)
 {
-
-}
-
-apx_eventRecorderClientRmf_t *apx_eventRecorderClientRmf_new(void)
-{
-   apx_eventRecorderClientRmf_t *self = (apx_eventRecorderClientRmf_t*) malloc(sizeof(apx_eventRecorderClientRmf_t));
-   if(self != 0)
+   if (self != 0)
    {
-      apx_eventRecorderClientRmf_create(self);
+      if (self->buf != 0)
+      {
+         adt_bytearray_delete(self->buf);
+      }
+      adt_ary_delete(self->transmitted);
    }
-   return self;
 }
 
-void apx_eventRecorderClientRmf_delete(apx_eventRecorderClientRmf_t *self)
+int32_t apx_transmitHandlerSpy_length(apx_transmitHandlerSpy_t *self)
 {
-   if(self != 0)
+   if (self != 0)
    {
-      apx_eventRecorderClientRmf_destroy(self);
-      free(self);
+      return adt_ary_length(self->transmitted);
    }
+   return -1;
 }
 
-void apx_eventRecorderClientRmf_vdelete(void *arg)
+adt_bytearray_t *apx_transmitHandlerSpy_next(apx_transmitHandlerSpy_t *self)
 {
-   apx_eventRecorderClientRmf_delete((apx_eventRecorderClientRmf_t*) arg);
+   if (self != 0)
+   {
+      return (adt_bytearray_t*) adt_ary_shift(self->transmitted);
+   }
+   return (adt_bytearray_t*) 0;
 }
+
+uint8_t* apx_transmitHandlerSpy_getSendBuffer(void *arg, int32_t msgLen)
+{
+   apx_transmitHandlerSpy_t* self = (apx_transmitHandlerSpy_t*) arg;
+   if (self != 0)
+   {
+      self->buf = adt_bytearray_new(ADT_BYTE_ARRAY_DEFAULT_GROW_SIZE);
+      adt_bytearray_resize(self->buf, msgLen);
+      return (adt_bytearray_data(self->buf));
+   }
+   return 0;
+}
+
+int32_t apx_transmitHandlerSpy_send(void *arg, int32_t offset, int32_t msgLen)
+{
+   apx_transmitHandlerSpy_t* self = (apx_transmitHandlerSpy_t*) arg;
+   if ( (self != 0) && (adt_bytearray_length(self->buf) >= msgLen) )
+   {
+      adt_ary_push(self->transmitted, self->buf);
+      self->buf = 0;
+      return msgLen;
+   }
+   return -1;
+}
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
-static void apx_eventRecorderClientRmf_connected(void *arg, apx_fileManager_t *fileManager)
-{
-   apx_fileManagerEventListener_t listener;
-   memset(&listener, 0, sizeof(listener));
-   listener.fileCreate = apx_eventRecorderClientRmf_onCreateFile;
-   apx_fileManager_registerEventListener(fileManager, &listener);
-}
 
-static void apx_eventRecorderClientRmf_disconnected(void *arg, apx_fileManager_t *fileManager)
-{
-   printf("apx_eventRecorderClientRmf_disconnected\n");
-}
-
-static void apx_eventRecorderClientRmf_onCreateFile(void *arg, apx_fileManager_t *fileManager, struct apx_file_tag *file)
-{
-   apx_eventRecorderClientRmf_t *self = (apx_eventRecorderClientRmf_t*) arg;
-   if ( (self != 0) && (fileManager != 0) && (file != 0) )
-   {
-      if ( (file->isRemoteFile == true) && (strcmp(file->fileInfo.name, APX_EVENT_LOG_FILE_NAME)==0))
-      {
-         apx_fileManager_openRemoteFile(fileManager, file->fileInfo.address, (void*) self);
-      }
-   }
-}

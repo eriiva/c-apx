@@ -26,6 +26,7 @@ typedef struct apx_fileManagerShared_tag
    void (*fileOpenRequestedByRemote)(void *arg, const rmf_cmdOpenFile_t *cmdOpenFile);
    void (*fileCreated)(void *arg, const struct apx_file_tag *pFile);
    void (*sendFileInfo)(void *arg, const struct apx_file_tag *pFile);
+   void (*sendFileOpen)(void *arg, const apx_file_t *file, void *caller);
 }apx_fileManagerShared_t;
 
 

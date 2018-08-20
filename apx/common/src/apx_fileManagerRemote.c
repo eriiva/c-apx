@@ -27,6 +27,7 @@
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include <assert.h>
+#include <errno.h>
 #include "apx_fileManagerRemote.h"
 #include "apx_logging.h"
 #include "apx_eventFile.h"
@@ -115,6 +116,21 @@ int32_t apx_fileManagerRemote_parseMessage(apx_fileManagerRemote_t *self, const 
       //MISRA
    }
    return result;
+}
+
+int8_t apx_fileManageRemote_openFile(apx_fileManagerRemote_t *self, uint32_t address, void *caller)
+{
+   if (self != 0)
+   {
+      apx_file_t *remoteFile = apx_fileMap_findByAddress(&self->remoteFileMap, address);
+      if (remoteFile != 0)
+      {
+         self->shared->sendFileOpen(self->shared->arg, remoteFile, caller);
+         return 0;
+      }
+   }
+   errno = EINVAL;
+   return -1;
 }
 
 //////////////////////////////////////////////////////////////////////////////
