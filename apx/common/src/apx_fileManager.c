@@ -478,7 +478,6 @@ static void apx_fileManager_sendFileOpen(void *arg, const apx_file_t *file, void
       adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
       SPINLOCK_LEAVE(self->lock);
       SEMAPHORE_POST(self->semaphore);
-      MUTEX_LOCK(self->mutex);
       pIter = adt_list_iter_first(&self->eventListeners);
       while (pIter != 0)
       {
@@ -490,7 +489,6 @@ static void apx_fileManager_sendFileOpen(void *arg, const apx_file_t *file, void
          }
          pIter = adt_list_iter_next(pIter);
       }
-      MUTEX_UNLOCK(self->mutex);
    }
 }
 
