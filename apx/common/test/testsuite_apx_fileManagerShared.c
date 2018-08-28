@@ -65,8 +65,10 @@ static void test_apx_fileManagerShared_create(CuTest* tc)
    CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&data, CONNECTION_ID_DEFAULT));
    CuAssertUIntEquals(tc, 0, data.fmid);
 
-   CuAssertPtrEquals(tc, 0, data.fileOpenRequestedByRemote);
    CuAssertPtrEquals(tc, 0, data.fileCreated);
+   CuAssertPtrEquals(tc, 0, data.sendFileInfo);
+   CuAssertPtrEquals(tc, 0, data.sendFileOpen);
+   CuAssertPtrEquals(tc, 0, data.openFileRequest);
    CuAssertTrue(tc, apx_allocator_isRunning(&data.allocator));
    apx_fileManagerShared_destroy(&data);
 }

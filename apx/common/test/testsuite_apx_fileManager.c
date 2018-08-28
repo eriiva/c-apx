@@ -32,7 +32,7 @@ static void test_apx_fileManager_attachLocalFiles(CuTest* tc);
 static void test_apx_fileManager_registerListener(CuTest* tc);
 static void test_apx_fileManager_createRemoteFile(CuTest* tc);
 static void test_apx_fileManager_openRemoteFile_sendMessage(CuTest* tc);
-static void test_apx_fileManager_openRemoteFile_setIsOpenFlag(CuTest* tc);
+static void test_apx_fileManager_openRemoteFile_setOpenFlag(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -58,7 +58,7 @@ CuSuite* testSuite_apx_fileManager(void)
    SUITE_ADD_TEST(suite, test_apx_fileManager_registerListener);
    SUITE_ADD_TEST(suite, test_apx_fileManager_createRemoteFile);
    SUITE_ADD_TEST(suite, test_apx_fileManager_openRemoteFile_sendMessage);
-   SUITE_ADD_TEST(suite, test_apx_fileManager_openRemoteFile_setIsOpenFlag);
+   SUITE_ADD_TEST(suite, test_apx_fileManager_openRemoteFile_setOpenFlag);
 
    return suite;
 }
@@ -205,7 +205,7 @@ static void test_apx_fileManager_openRemoteFile_sendMessage(CuTest* tc)
    apx_transmitHandlerSpy_destroy(&spy);
 }
 
-static void test_apx_fileManager_openRemoteFile_setIsOpenFlag(CuTest* tc)
+static void test_apx_fileManager_openRemoteFile_setOpenFlag(CuTest* tc)
 {
    apx_fileManager_t manager;
    uint8_t buffer[100];

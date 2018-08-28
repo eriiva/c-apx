@@ -55,8 +55,10 @@ int8_t apx_fileManagerShared_create(apx_fileManagerShared_t *self, uint32_t fmid
       {
          self->fmid = fmid;
          self->arg = (void*) 0;
-         self->fileOpenRequestedByRemote = (void (*)(void *, const rmf_cmdOpenFile_t *)) 0;
          self->fileCreated = (void (*)(void *, const struct apx_file_tag*)) 0;
+         self->sendFileInfo = (void (*)(void *arg, const struct apx_file_tag *pFile)) 0;
+         self->sendFileOpen = (void (*)(void *arg, const apx_file_t *file, void *caller)) 0;
+         self->openFileRequest = (void (*)(void *arg, uint32_t address)) 0;
          apx_allocator_start(&self->allocator);
       }
       return result;

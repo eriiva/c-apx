@@ -1,7 +1,7 @@
 /*****************************************************************************
-* \file      apx_transmitHandlerSpy.c
+* \file      apx_fileManagerSharedSpy.c
 * \author    Conny Gustafsson
-* \date      2018-08-19
+* \date      2018-08-28
 * \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
@@ -26,7 +26,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_transmitHandlerSpy.h"
+#include "apx_fileManagerSharedSpy.h"
+#include <malloc.h>
+#include <errno.h>
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -41,75 +43,90 @@
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
+// PUBLIC VARIABLES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_transmitHandlerSpy_create(apx_transmitHandlerSpy_t *self)
+void apx_fileManagerSharedSpy_create(apx_fileManagerSharedSpy_t *self)
 {
    if (self != 0)
    {
-      self->buf = 0;
-      self->transmitted = adt_ary_new(adt_bytearray_vdelete);
+      self->numFileCreatedCalls = 0;
+      self->numSendFileInfoCalls = 0;
+      self->numSendFileOpenCalls = 0;
+      self->numOpenFileRequestCalls = 0;
    }
 }
 
-void apx_transmitHandlerSpy_destroy(apx_transmitHandlerSpy_t *self)
+void apx_fileManagerSharedSpy_destroy(apx_fileManagerSharedSpy_t *self)
+{
+
+}
+
+apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void)
+{
+   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) malloc(sizeof(apx_fileManagerSharedSpy_t));
+   if (self != 0)
+   {
+      apx_fileManagerSharedSpy_create(self);
+   }
+   else
+   {
+      errno = ENOMEM;
+   }
+   return self;
+}
+
+void apx_fileManagerSharedSpy_delete(apx_fileManagerSharedSpy_t *self)
 {
    if (self != 0)
    {
-      if (self->buf != 0)
-      {
-         adt_bytearray_delete(self->buf);
-      }
-      adt_ary_delete(self->transmitted);
+      apx_fileManagerSharedSpy_destroy(self);
+      free(self);
    }
 }
 
-int32_t apx_transmitHandlerSpy_length(apx_transmitHandlerSpy_t *self)
+void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file_tag *pFile)
 {
+   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
    if (self != 0)
    {
-      return adt_ary_length(self->transmitted);
+      self->numFileCreatedCalls++;
    }
-   return -1;
 }
 
-adt_bytearray_t *apx_transmitHandlerSpy_next(apx_transmitHandlerSpy_t *self)
+void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file_tag *pFile)
 {
+   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
    if (self != 0)
    {
-      return (adt_bytearray_t*) adt_ary_shift(self->transmitted);
+      self->numSendFileInfoCalls++;
    }
-   return (adt_bytearray_t*) 0;
 }
 
-uint8_t* apx_transmitHandlerSpy_getSendBuffer(void *arg, int32_t msgLen)
+void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file_t *file, void *caller)
 {
-   apx_transmitHandlerSpy_t* self = (apx_transmitHandlerSpy_t*) arg;
+   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
    if (self != 0)
    {
-      self->buf = adt_bytearray_new(ADT_BYTE_ARRAY_DEFAULT_GROW_SIZE);
-      adt_bytearray_resize(self->buf, msgLen);
-      return (adt_bytearray_data(self->buf));
+      self->numSendFileOpenCalls++;
    }
-   return 0;
 }
 
-int32_t apx_transmitHandlerSpy_send(void *arg, int32_t offset, int32_t msgLen)
+void apx_fileManagerSharedSpy_openFileRequest(void *arg, uint32_t address)
 {
-   apx_transmitHandlerSpy_t* self = (apx_transmitHandlerSpy_t*) arg;
-   if ( (self != 0) && (adt_bytearray_length(self->buf) >= msgLen) )
+   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
+   if (self != 0)
    {
-      adt_ary_push(self->transmitted, self->buf);
-      self->buf = 0;
-      return msgLen;
+      self->numOpenFileRequestCalls++;
    }
-   return -1;
 }
-
 
 
 //////////////////////////////////////////////////////////////////////////////

@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_fileManagerEventListenerSpy.c
+* \file      apx_fileManagerSharedSpy.h
 * \author    Conny Gustafsson
-* \date      2018-08-21
-* \brief     Test spy for apx_fileManagerEventListener
+* \date      2018-08-28
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,53 +23,40 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
+#ifndef APX_FILE_MANAGER_SHARED_SPY_H
+#define APX_FILE_MANAGER_SHARED_SPY_H
+
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_fileManagerEventListenerSpy.h"
-#ifdef MEM_LEAK_CHECK
-#include "CMemLeak.h"
-#endif
-
+#include "rmf.h"
+#include "apx_file.h"
 
 //////////////////////////////////////////////////////////////////////////////
-// PRIVATE CONSTANTS AND DATA TYPES
+// PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// PRIVATE FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// PRIVATE VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTIONS
-//////////////////////////////////////////////////////////////////////////////
-void apx_fileManagerEventListenerSpy_create(apx_fileManagerEventListenerSpy_t *self)
+typedef struct apx_fileManagerSharedSpy_tag
 {
-   if (self != 0)
-   {
-      self->lastFile = 0;
-      self->lastFileManager = 0;
-      self->numfileCreateCalls = 0;
-   }
-}
-
-void apx_fileManagerEventListenerSpy_fileCreate(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file_tag *file)
-{
-   apx_fileManagerEventListenerSpy_t *self = (apx_fileManagerEventListenerSpy_t*) arg;
-   if (self != 0)
-   {
-      self->numfileCreateCalls++;
-      self->lastFile = file;
-      self->lastFileManager = fileManager;
-   }
-}
+   int32_t numFileCreatedCalls;
+   int32_t numSendFileInfoCalls;
+   int32_t numSendFileOpenCalls;
+   int32_t numOpenFileRequestCalls;
+} apx_fileManagerSharedSpy_t;
 
 //////////////////////////////////////////////////////////////////////////////
-// PRIVATE FUNCTIONS
+// PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+void apx_fileManagerSharedSpy_create(apx_fileManagerSharedSpy_t *self);
+void apx_fileManagerSharedSpy_destroy(apx_fileManagerSharedSpy_t *self);
+apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void);
+void apx_fileManagerSharedSpy_delete(apx_fileManagerSharedSpy_t *self);
+void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file_tag *pFile);
+void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file_tag *pFile);
+void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file_t *file, void *caller);
+void apx_fileManagerSharedSpy_openFileRequest(void *arg, uint32_t address);
 
+#endif //APX_FILE_MANAGER_SHARED_SPY_H

@@ -192,8 +192,8 @@ DYN_STATIC void apx_fileManagerRemote_processCmdMsg(apx_fileManagerRemote_t *sel
                   result = rmf_deserialize_cmdOpenFile(msgBuf, msgLen, &cmdOpenFile);
                   if (result > 0)
                   {
-                     assert(self->shared->fileOpenRequestedByRemote!=0);
-                     self->shared->fileOpenRequestedByRemote(self->shared->arg, &cmdOpenFile);
+                     assert(self->shared->openFileRequest!=0);
+                     self->shared->openFileRequest(self->shared->arg, cmdOpenFile.address);
                   }
                   else if (result < 0)
                   {

@@ -8,3 +8,4 @@
 *.exe.stackdump
 language.settings.xml
 CMemLeak.txt
+c-apx-cppcheck-build-dir/
