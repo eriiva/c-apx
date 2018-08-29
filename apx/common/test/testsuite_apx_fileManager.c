@@ -148,7 +148,7 @@ static void test_apx_fileManager_createRemoteFile(CuTest* tc)
    rmf_fileInfo_create(&info, "test.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
    msgLen = rmf_packHeader(&buffer[0], sizeof(buffer), RMF_CMD_START_ADDR, false);
    msgLen += rmf_serialize_cmdFileInfo(&buffer[msgLen], sizeof(buffer)-msgLen, &info);
-   CuAssertIntEquals(tc, msgLen, apx_fileManager_parseMessage(&manager, &buffer[0], msgLen));
+   CuAssertIntEquals(tc, msgLen, apx_fileManager_processMessage(&manager, &buffer[0], msgLen));
    CuAssertIntEquals(tc, 1, spy.numfileCreateCalls);
    CuAssertTrue(tc, spy.lastFile->isRemoteFile);
    CuAssertTrue(tc, !spy.lastFile->isOpen);
@@ -182,7 +182,7 @@ static void test_apx_fileManager_openRemoteFile_sendMessage(CuTest* tc)
    rmf_fileInfo_create(&info, "test.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
    msgLen = rmf_packHeader(&buffer[0], sizeof(buffer), RMF_CMD_START_ADDR, false);
    msgLen += rmf_serialize_cmdFileInfo(&buffer[msgLen], sizeof(buffer)-msgLen, &info);
-   CuAssertIntEquals(tc, msgLen, apx_fileManager_parseMessage(&manager, &buffer[0], msgLen));
+   CuAssertIntEquals(tc, msgLen, apx_fileManager_processMessage(&manager, &buffer[0], msgLen));
 
    file = apx_fileMap_findByName(&manager.remote.remoteFileMap, "test.apx");
    CuAssertPtrNotNull(tc, file);
@@ -217,7 +217,7 @@ static void test_apx_fileManager_openRemoteFile_setOpenFlag(CuTest* tc)
    rmf_fileInfo_create(&info, "test.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
    msgLen = rmf_packHeader(&buffer[0], sizeof(buffer), RMF_CMD_START_ADDR, false);
    msgLen += rmf_serialize_cmdFileInfo(&buffer[msgLen], sizeof(buffer)-msgLen, &info);
-   CuAssertIntEquals(tc, msgLen, apx_fileManager_parseMessage(&manager, &buffer[0], msgLen));
+   CuAssertIntEquals(tc, msgLen, apx_fileManager_processMessage(&manager, &buffer[0], msgLen));
 
    file = apx_fileMap_findByName(&manager.remote.remoteFileMap, "test.apx");
    CuAssertTrue(tc, file->isOpen == false);

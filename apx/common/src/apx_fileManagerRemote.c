@@ -84,7 +84,7 @@ void apx_fileManagerRemote_destroy(apx_fileManagerRemote_t *self)
    }
 }
 
-int32_t apx_fileManagerRemote_parseMessage(apx_fileManagerRemote_t *self, const uint8_t *msgBuf, int32_t msgLen)
+int32_t apx_fileManagerRemote_processMessage(apx_fileManagerRemote_t *self, const uint8_t *msgBuf, int32_t msgLen)
 {
    rmf_msg_t msg;
    int32_t result = rmf_unpackMsg(msgBuf, msgLen, &msg);
@@ -119,6 +119,9 @@ int32_t apx_fileManagerRemote_parseMessage(apx_fileManagerRemote_t *self, const 
    return result;
 }
 
+/**
+ * Attempts to open remote file if it exists
+ */
 int8_t apx_fileManageRemote_openFile(apx_fileManagerRemote_t *self, uint32_t address, void *caller)
 {
    int8_t retval = -1;

@@ -91,16 +91,6 @@ void apx_fileManagerLocal_destroy(apx_fileManagerLocal_t *self)
    }
 }
 
-void apx_fileManagerLocal_start(apx_fileManagerLocal_t *self)
-{
-
-}
-
-void apx_fileManagerLocal_stop(apx_fileManagerLocal_t *self)
-{
-
-}
-
 void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file_tag *localFile)
 {
    if ((self != 0) && (localFile != 0))
@@ -129,6 +119,7 @@ void apx_fileManagerLocal_sendFileInfo(apx_fileManagerLocal_t *self)
    {
       MUTEX_LOCK(self->mutex);
       adt_list_t *files = apx_fileMap_getList(&self->localFileMap);
+      MUTEX_UNLOCK(self->mutex);
       if (files != 0)
       {
          adt_list_elem_t *iter = adt_list_iter_first(files);
@@ -139,8 +130,23 @@ void apx_fileManagerLocal_sendFileInfo(apx_fileManagerLocal_t *self)
             iter = adt_list_iter_next(iter);
          }
       }
-      MUTEX_UNLOCK(self->mutex);
    }
+}
+
+struct apx_file_tag *apx_fileManagerLocal_openFile(apx_fileManagerLocal_t *self, uint32_t address)
+{
+   apx_file_t *localFile = (apx_file_t *) 0;
+   if (self != 0)
+   {
+      MUTEX_LOCK(self->mutex);
+      localFile = apx_fileMap_findByAddress(&self->localFileMap, address);
+      MUTEX_UNLOCK(self->mutex);
+      if (localFile != 0)
+      {
+         apx_file_open(localFile);
+      }
+   }
+   return localFile;
 }
 
 

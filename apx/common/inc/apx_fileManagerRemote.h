@@ -56,7 +56,7 @@ typedef struct apx_fileManagerRemote_tag
 //////////////////////////////////////////////////////////////////////////////
 void apx_fileManagerRemote_create(apx_fileManagerRemote_t *self, apx_fileManagerShared_t *shared);
 void apx_fileManagerRemote_destroy(apx_fileManagerRemote_t *self);
-int32_t apx_fileManagerRemote_parseMessage(apx_fileManagerRemote_t *self, const uint8_t *msgBuf, int32_t msgLen);
+int32_t apx_fileManagerRemote_processMessage(apx_fileManagerRemote_t *self, const uint8_t *msgBuf, int32_t msgLen);
 int8_t apx_fileManageRemote_openFile(apx_fileManagerRemote_t *self, uint32_t address, void *caller);
 
 #ifdef UNIT_TEST

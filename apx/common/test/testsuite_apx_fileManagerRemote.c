@@ -92,7 +92,7 @@ static void test_apx_fileManagerRemote_processFileInfo(CuTest* tc)
 
    CuAssertIntEquals(tc, 0, spy->numFileCreatedCalls);
    CuAssertIntEquals(tc, 0, apx_fileMap_length(&remote.remoteFileMap));
-   CuAssertIntEquals(tc, msgLen, apx_fileManagerRemote_parseMessage(&remote, &buffer[0], msgLen));
+   CuAssertIntEquals(tc, msgLen, apx_fileManagerRemote_processMessage(&remote, &buffer[0], msgLen));
    CuAssertIntEquals(tc, 1, spy->numFileCreatedCalls);
    CuAssertIntEquals(tc, 1, apx_fileMap_length(&remote.remoteFileMap));
 
@@ -121,9 +121,8 @@ static void test_apx_fileManagerRemote_processFileOpenRequest(CuTest* tc)
 
    CuAssertIntEquals(tc, 0, spy->numOpenFileRequestCalls);
 
-   CuAssertIntEquals(tc, msgLen, apx_fileManagerRemote_parseMessage(&remote, &buffer[0], msgLen));
+   CuAssertIntEquals(tc, msgLen, apx_fileManagerRemote_processMessage(&remote, &buffer[0], msgLen));
    CuAssertIntEquals(tc, 1, spy->numOpenFileRequestCalls);
-
 
    apx_fileManagerRemote_destroy(&remote);
    apx_fileManagerShared_destroy(&shared);

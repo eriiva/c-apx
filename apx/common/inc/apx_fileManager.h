@@ -92,7 +92,7 @@ void apx_fileManager_start(apx_fileManager_t *self);
 void apx_fileManager_stop(apx_fileManager_t *self);
 void apx_fileManager_onHeaderReceived(apx_fileManager_t *self); //used in server mode
 void apx_fileManager_onHeaderAccepted(apx_fileManager_t *self); //used in client mode
-int32_t apx_fileManager_parseMessage(apx_fileManager_t *self, const uint8_t *msgBuf, int32_t msgLen);
+int32_t apx_fileManager_processMessage(apx_fileManager_t *self, const uint8_t *msgBuf, int32_t msgLen);
 uint32_t fileManager_getID(apx_fileManager_t *self);
 void apx_fileManager_setTransmitHandler(apx_fileManager_t *self, apx_transmitHandler_t *handler);
 int8_t apx_fileManager_openRemoteFile(apx_fileManager_t *self, uint32_t address, void *caller);

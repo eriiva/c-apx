@@ -343,7 +343,7 @@ static int8_t apx_clientConnection_parseMessage(apx_clientConnection_t *self, co
          }
          else
          {
-            apx_fileManager_parseMessage(&self->fileManager, pNext, msgLen);
+            apx_fileManager_processMessage(&self->fileManager, pNext, msgLen);
          }
       }
       else

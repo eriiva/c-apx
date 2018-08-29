@@ -52,7 +52,9 @@ static void apx_fileManager_triggerSendAcknowledge(apx_fileManager_t *self);
 static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file_tag *pFile);
 static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file_tag *pFile);
 static void apx_fileManager_sendFileOpen(void *arg, const apx_file_t *file, void *caller);
-
+static void apx_fileManager_openFileRequest(void *arg, uint32_t address);
+static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const apx_file_t *file, void *caller);
+static void apx_fileManager_sendFixedFile(apx_fileManager_t *self, const apx_file_t *file);
 
 static THREAD_PROTO(workerThread,arg);
 static bool workerThread_processMessage(apx_fileManager_t *self, apx_msg_t *msg);
@@ -91,6 +93,7 @@ int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t co
          self->shared.fileCreated = apx_fileManager_fileCreatedCbk;
          self->shared.sendFileInfo = apx_fileManager_sendFileInfoCbk;
          self->shared.sendFileOpen = apx_fileManager_sendFileOpen;
+         self->shared.openFileRequest = apx_fileManager_openFileRequest;
          MUTEX_INIT(self->mutex);
          SPINLOCK_INIT(self->lock);
          SEMAPHORE_CREATE(self->semaphore);
@@ -196,11 +199,11 @@ bool apx_fileManager_isServerMode(apx_fileManager_t *self)
    return false;
 }
 
-int32_t apx_fileManager_parseMessage(apx_fileManager_t *self, const uint8_t *msgBuf, int32_t msgLen)
+int32_t apx_fileManager_processMessage(apx_fileManager_t *self, const uint8_t *msgBuf, int32_t msgLen)
 {
    if (self != 0)
    {
-      return apx_fileManagerRemote_parseMessage(&self->remote, msgBuf, msgLen);
+      return apx_fileManagerRemote_processMessage(&self->remote, msgBuf, msgLen);
    }
    return -1;
 }
@@ -466,30 +469,72 @@ static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file_tag
    }
 }
 
+/**
+ * Attempts to open someone elses remote file by sending a SEND_FILE_OPEN message
+ */
 static void apx_fileManager_sendFileOpen(void *arg, const apx_file_t *file, void *caller)
 {
    apx_fileManager_t *self = (apx_fileManager_t *) arg;
-   if ( (self != 0) && (file != 0))
+   if ( (self != 0) && (file != 0) )
    {
-      adt_list_elem_t *pIter;
       apx_msg_t msg = {APX_MSG_SEND_FILE_OPEN, 0, 0, 0, 0};
       msg.msgData1 = file->fileInfo.address;
       SPINLOCK_ENTER(self->lock);
       adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
       SPINLOCK_LEAVE(self->lock);
       SEMAPHORE_POST(self->semaphore);
-      pIter = adt_list_iter_first(&self->eventListeners);
-      while (pIter != 0)
+      apx_fileManager_triggerFileOpenEvent(self, file, caller);
+   }
+}
+
+/**
+ * Attempts to open a local file (by request of remote)
+ */
+static void apx_fileManager_openFileRequest(void *arg, uint32_t address)
+{
+   apx_fileManager_t *self = (apx_fileManager_t *) arg;
+   if (self != 0)
+   {
+      apx_file_t *localFile = apx_fileManagerLocal_openFile(&self->local, address);
+      if (localFile != 0)
       {
-         apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
-         assert(listener != 0);
-         if ( (listener->arg != caller) && (listener->fileOpen != 0) )
+         apx_fileManager_triggerFileOpenEvent(self, localFile, NULL);
+         if (localFile->fileInfo.fileType == RMF_FILE_TYPE_FIXED)
          {
-            listener->fileOpen(listener->arg, self, file);
+            apx_fileManager_sendFixedFile(self, localFile);
          }
-         pIter = adt_list_iter_next(pIter);
       }
    }
+}
+
+static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const apx_file_t *file, void *caller)
+{
+   adt_list_elem_t *pIter;
+   MUTEX_LOCK(self->mutex);
+   pIter = adt_list_iter_first(&self->eventListeners);
+   MUTEX_UNLOCK(self->mutex);
+   while (pIter != 0)
+   {
+      apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
+      assert(listener != 0);
+      if ( (caller != listener) && (listener->fileOpen != 0) )
+      {
+         listener->fileOpen(listener->arg, self, file);
+      }
+      MUTEX_LOCK(self->mutex);
+      pIter = adt_list_iter_next(pIter);
+      MUTEX_UNLOCK(self->mutex);
+   }
+}
+
+static void apx_fileManager_sendFixedFile(apx_fileManager_t *self, const apx_file_t *file)
+{
+   apx_msg_t msg = {APX_MSG_SEND_FILE_CONTENT, 0, 0, 0, 0};
+   msg.msgData3 = (void*) file;
+   SPINLOCK_ENTER(self->lock);
+   adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+   SPINLOCK_LEAVE(self->lock);
+   SEMAPHORE_POST(self->semaphore);
 }
 
 /*** workerThread functions ***/
