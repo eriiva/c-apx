@@ -24,6 +24,7 @@
 static void test_rmf_cmdFileInfo_serialize(CuTest* tc);
 static void test_rmf_cmdOpenFile_serialize(CuTest* tc);
 static void test_rmf_cmdCloseFile_serialize(CuTest* tc);
+static void test_rmf_errorInvalidReadHandler_serialize(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -46,6 +47,7 @@ CuSuite* testSuite_remotefile(void)
    SUITE_ADD_TEST(suite, test_rmf_cmdFileInfo_serialize);
    SUITE_ADD_TEST(suite, test_rmf_cmdOpenFile_serialize);
    SUITE_ADD_TEST(suite, test_rmf_cmdCloseFile_serialize);
+   SUITE_ADD_TEST(suite, test_rmf_errorInvalidReadHandler_serialize);
 
    return suite;
 }
@@ -126,4 +128,25 @@ static void test_rmf_cmdCloseFile_serialize(CuTest* tc)
    CuAssertUIntEquals(tc,cmd.address,unpackLE(p,4)); p+=4;
    result = rmf_deserialize_cmdCloseFile(buf,result,&cmd2);
    CuAssertUIntEquals(tc, cmd.address, cmd2.address);
+}
+
+static void test_rmf_errorInvalidReadHandler_serialize(CuTest* tc)
+{
+   uint8_t buf[RMF_MAX_CMD_BUF_SIZE];
+   uint8_t *p;
+   int32_t bufLen = (int32_t) sizeof(buf);
+   const uint32_t address1 = 12345678;
+   uint32_t address2;
+   int32_t result;
+
+   result = rmf_serialize_errorInvalidReadHandler(buf, bufLen, address1);
+   CuAssertIntEquals(tc, RMF_ERROR_INVALID_READ_HANDLER_LEN, result);
+   p=buf;
+   CuAssertUIntEquals(tc, RMF_ERROR_INVALID_READ_HANDLER, unpackLE(p,4)); p+=4;
+   CuAssertUIntEquals(tc, address1, unpackLE(p,4)); p+=4;
+
+   result = rmf_deserialize_errorInvalidReadHandler(buf, result, &address2);
+   CuAssertIntEquals(tc, RMF_ERROR_INVALID_READ_HANDLER_LEN, result);
+   CuAssertUIntEquals(tc, address1, address2);
+
 }

@@ -30,26 +30,31 @@
 #define RMF_LOW_ADDRESS_SIZE 2u
 #define RMF_HIGH_ADDRESS_SIZE 4u
 #define RMF_MAX_HEADER_SIZE RMF_HIGH_ADDRESS_SIZE
+#define RMF_CMD_HEADER_LEN         4u
 #define RMF_CMD_TYPE_LEN           4u
+#define RMF_CMD_ADDRESS_LEN        4u
 
-#define RMF_CMD_ACK                (uint32_t) 0  //reserved for future use
-#define RMF_CMD_NACK               (uint32_t) 1  //negative response
-#define RMF_CMD_EOT                (uint32_t) 2  //end of transmission (used to indicate end of a list)
-#define RMF_CMD_FILE_INFO          (uint32_t) 3  //serialized file info data structure
-#define RMF_CMD_REVOKE_FILE        (uint32_t) 4  //used by server to tell clients that the file is no longer available
-#define RMF_CMD_HEARTBEAT_RQST     (uint32_t) 5   //heartbeat request
-#define RMF_CMD_HEARTBEAT_RSP      (uint32_t) 6   //heartbeat response
-#define RMF_CMD_PING_RQST          (uint32_t) 7   //ping request (similar to hearbeat but also has timestamp)
-#define RMF_CMD_PING_RSP           (uint32_t) 8   //ping response (similar to hearbeat but also has timestamp)
-#define RMF_CMD_FILE_OPEN          (uint32_t) 10  //opens a file
-#define RMF_CMD_FILE_CLOSE         (uint32_t) 11  //closes a file
-#define RMF_CMD_FILE_READ          (uint32_t) 12  //read parts of an open file (TBD)
-#define RMF_CMD_INVALID_WRITE      (uint32_t) 400 //remote attempted to write in an invalid memory area
-#define RMF_CMD_INVALID_MSG        (uint32_t) 0xFFFFFFFF //invalid command (default value)
+#define RMF_CMD_ACK                    (uint32_t) 0  //command successful
+#define RMF_CMD_NACK                   (uint32_t) 1  //negative response
+#define RMF_CMD_EOT                    (uint32_t) 2  //end of transmission (used to indicate end of a list)
+#define RMF_CMD_FILE_INFO              (uint32_t) 3  //serialized file info data structure
+#define RMF_CMD_REVOKE_FILE            (uint32_t) 4  //used by server to tell clients that the file is no longer available
+#define RMF_CMD_HEARTBEAT_RQST         (uint32_t) 5   //heartbeat request
+#define RMF_CMD_HEARTBEAT_RSP          (uint32_t) 6   //heartbeat response
+#define RMF_CMD_PING_RQST              (uint32_t) 7   //ping request (similar to hearbeat but also has timestamp)
+#define RMF_CMD_PING_RSP               (uint32_t) 8   //ping response (similar to hearbeat but also has timestamp)
+#define RMF_CMD_FILE_OPEN              (uint32_t) 10  //opens a file
+#define RMF_CMD_FILE_CLOSE             (uint32_t) 11  //closes a file
+#define RMF_CMD_FILE_READ              (uint32_t) 12  //read parts of an open file (TBD)
+#define RMF_INFO_FILE_OPEN_SUCCESS     (uint32_t) 100 //File was successfully open but it currently has no data or length 0
+#define RMF_ERROR_INVALID_CMD          (uint32_t) 400 //invalid command
+#define RMF_ERROR_INVALID_WRITE        (uint32_t) 401 //remote attempted to write in an invalid memory area
+#define RMF_ERROR_INVALID_READ_HANDLER (uint32_t) 402 //Unable to get a valid read handler for the file
 
 #define RMF_DIGEST_SIZE          32u //32 bytes is suitable for storing a sha256 hash
 #define RMF_DIGEST_TYPE_NONE     0u
-#define RMF_DIGEST_TYPE_SHA256   1u
+#define RMF_DIGEST_TYPE_SHA1     1u
+#define RMF_DIGEST_TYPE_SHA256   2u
 
 //Implemented
 #define RMF_FILE_TYPE_FIXED      0u //memory mapped file with with fixed length (default)
@@ -68,6 +73,14 @@
 #define RMF_NUMHEADER_FORMAT "NumHeader-Format:"
 
 #define RMF_INVALID_ADDRESS (uint32_t) (0xFFFFFFFF)
+
+#define CMD_FILE_INFO_BASE_SIZE (4+4+4+2+2+RMF_DIGEST_SIZE) //44 bytes plus additional 4 bytes to store value of RMF_FILE_INFO
+#define CMD_FILE_INFO_MAX_SIZE (CMD_FILE_INFO_BASE_SIZE + RMF_MAX_FILE_NAME +1)
+#define RMF_CMD_FILE_OPEN_LEN (RMF_CMD_TYPE_LEN+RMF_CMD_ADDRESS_LEN)
+#define RMF_CMD_ACK_LEN RMF_CMD_TYPE_LEN
+#define RMF_ERROR_INVALID_READ_HANDLER_LEN (RMF_CMD_TYPE_LEN+RMF_CMD_ADDRESS_LEN)
+
+
 /**
  * abstract rmf message class
  */
@@ -99,10 +112,6 @@ typedef struct rmf_fileInfo_tag
    char name[RMF_MAX_FILE_NAME+1];
 }rmf_fileInfo_t;
 
-#define CMD_FILE_INFO_BASE_SIZE (4+4+4+2+2+RMF_DIGEST_SIZE) //44 bytes plus additional 4 bytes to store value of RMF_FILE_INFO
-#define CMD_FILE_INFO_MAX_SIZE (CMD_FILE_INFO_BASE_SIZE + RMF_MAX_FILE_NAME +1)
-#define RMF_CMD_FILE_OPEN_LEN 8
-#define RMF_CMD_ACK_LEN 4
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -112,6 +121,8 @@ typedef struct rmf_fileInfo_tag
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+
+/* rmf serialize/deserialize API */
 int32_t rmf_packHeader(uint8_t *dataBuf, int32_t bufLen, uint32_t address, bool more_bit);
 int32_t rmf_packHeaderBeforeData(uint8_t *dataBuf, int32_t bufLen, uint32_t address, bool more_bit);
 int32_t rmf_unpackMsg(const uint8_t *buf, int32_t bufLen, rmf_msg_t *msg);
@@ -123,6 +134,10 @@ int32_t rmf_serialize_cmdCloseFile(uint8_t *buf, int32_t bufLen, rmf_cmdCloseFil
 int32_t rmf_deserialize_cmdCloseFile(const uint8_t *buf, int32_t bufLen, rmf_cmdCloseFile_t *cmdCloseFile);
 int32_t rmf_deserialize_cmdType(const uint8_t *buf, int32_t bufLen, uint32_t *cmdType);
 int32_t rmf_serialize_acknowledge(uint8_t *buf, int32_t bufLen);
+int32_t rmf_serialize_errorInvalidReadHandler(uint8_t *buf, int32_t bufLen, uint32_t address);
+int32_t rmf_deserialize_errorInvalidReadHandler(const uint8_t *buf, int32_t bufLen, uint32_t *address);
+
+/* rmf_fileInfo_t API */
 int8_t rmf_fileInfo_create(rmf_fileInfo_t *self, const char *name, uint32_t startAddress, uint32_t length, uint16_t fileType);
 void rmf_fileInfo_destroy(rmf_fileInfo_t *info);
 #ifndef APX_EMBEDDED

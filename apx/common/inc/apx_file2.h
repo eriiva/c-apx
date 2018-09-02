@@ -83,6 +83,8 @@ void apx_file2_open(apx_file2_t *self);
 void apx_file2_close(apx_file2_t *self);
 int8_t apx_file2_read(apx_file2_t *self, uint8_t *pDest, uint32_t offset, uint32_t length); //returns APX_FILE_RESULT_XXX
 int8_t apx_file2_write(apx_file2_t *self, const uint8_t *pSrc, uint32_t offset, uint32_t length); //returns APX_FILE_RESULT_XXX
+bool apx_file2_hasReadHandler(apx_file2_t *self);
+bool apx_file2_hasWriteHandler(apx_file2_t *self);
 
 #endif //APX_FILE2_H
 

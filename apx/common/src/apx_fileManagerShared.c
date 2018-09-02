@@ -95,7 +95,7 @@ void apx_fileManagerShared_free(apx_fileManagerShared_t *self, uint8_t *ptr, siz
 
 int32_t apx_fileManagerShared_calcFileInfoMsgSize(const struct rmf_fileInfo_tag *fileInfo)
 {
-   int32_t msgLen = 5+CMD_FILE_INFO_BASE_SIZE;
+   int32_t msgLen = RMF_CMD_HEADER_LEN+CMD_FILE_INFO_BASE_SIZE+1; //add 1 to fit string null terminator
    msgLen+=strlen(fileInfo->name);
    return msgLen;
 }

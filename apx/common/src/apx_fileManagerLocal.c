@@ -133,7 +133,7 @@ void apx_fileManagerLocal_sendFileInfo(apx_fileManagerLocal_t *self)
    }
 }
 
-struct apx_file2_tag *apx_fileManagerLocal_openFile(apx_fileManagerLocal_t *self, uint32_t address)
+struct apx_file2_tag *apx_fileManagerLocal_find(apx_fileManagerLocal_t *self, uint32_t address)
 {
    apx_file2_t *localFile = (apx_file2_t *) 0;
    if (self != 0)
@@ -141,10 +141,6 @@ struct apx_file2_tag *apx_fileManagerLocal_openFile(apx_fileManagerLocal_t *self
       MUTEX_LOCK(self->mutex);
       localFile = apx_fileMap_findByAddress(&self->localFileMap, address);
       MUTEX_UNLOCK(self->mutex);
-      if (localFile != 0)
-      {
-         apx_file2_open(localFile);
-      }
    }
    return localFile;
 }

@@ -64,7 +64,7 @@ typedef struct apx_fileManager_tag
    bool workerThreadValid;
    uint8_t *ringbufferData; //strong pointer to raw data used by our ringbuffer
    uint32_t ringbufferLen; //number of items in ringbuffer
-   bool isConnected;
+   //bool isConnected;
    int8_t headerSize;
 
 #ifdef _WIN32

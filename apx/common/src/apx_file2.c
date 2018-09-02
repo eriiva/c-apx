@@ -145,7 +145,7 @@ void apx_file2_close(apx_file2_t *self)
 
 int8_t apx_file2_read(apx_file2_t *self, uint8_t *pDest, uint32_t offset, uint32_t length)
 {
-   if ( (self !=0) && (self->handler.read != 0) )
+   if ( apx_file2_hasReadHandler(self) != false)
    {
       return self->handler.read(self->handler.arg, &self->fileInfo, pDest, offset, length);
    }
@@ -155,12 +155,30 @@ int8_t apx_file2_read(apx_file2_t *self, uint8_t *pDest, uint32_t offset, uint32
 
 int8_t apx_file2_write(apx_file2_t *self, const uint8_t *pSrc, uint32_t offset, uint32_t length)
 {
-   if ( (self !=0) && (self->handler.write != 0) )
+   if ( apx_file2_hasWriteHandler(self) != false )
    {
       return self->handler.write(self->handler.arg, &self->fileInfo, pSrc, offset, length);
    }
    errno = EINVAL;
    return -1;
+}
+
+bool apx_file2_hasReadHandler(apx_file2_t *self)
+{
+   if ( (self !=0) && (self->handler.read != 0) )
+   {
+      return true;
+   }
+   return false;
+}
+
+bool apx_file2_hasWriteHandler(apx_file2_t *self)
+{
+   if ( (self !=0) && (self->handler.write != 0) )
+   {
+      return true;
+   }
+   return false;
 }
 
 //////////////////////////////////////////////////////////////////////////////
