@@ -42,7 +42,7 @@
 //////////////////////////////////////////////////////////////////////////////
 static void apx_eventRecorderClientRmf_connected(void *arg, apx_fileManager_t *fileManager);
 static void apx_eventRecorderClientRmf_disconnected(void *arg, apx_fileManager_t *fileManager);
-static void apx_eventRecorderClientRmf_onCreateFile(void *arg, apx_fileManager_t *fileManager, struct apx_file_tag *file);
+static void apx_eventRecorderClientRmf_onCreateFile(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -107,7 +107,7 @@ static void apx_eventRecorderClientRmf_disconnected(void *arg, apx_fileManager_t
    printf("apx_eventRecorderClientRmf_disconnected\n");
 }
 
-static void apx_eventRecorderClientRmf_onCreateFile(void *arg, apx_fileManager_t *fileManager, struct apx_file_tag *file)
+static void apx_eventRecorderClientRmf_onCreateFile(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file)
 {
    apx_eventRecorderClientRmf_t *self = (apx_eventRecorderClientRmf_t*) arg;
    if ( (self != 0) && (fileManager != 0) && (file != 0) )

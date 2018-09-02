@@ -46,7 +46,7 @@
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_nodeManager_create(CuTest* tc);
 static void test_apx_nodeManager_attachLocalNode(CuTest *tc);
-static void test_apx_nodeManager_attachFileManagerWithOneLocalNodePresent(CuTest *tc);
+//static void test_apx_nodeManager_attachFileManagerWithOneLocalNodePresent(CuTest *tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -61,7 +61,7 @@ CuSuite* testSuite_apx_nodeManager(void)
 
    SUITE_ADD_TEST(suite, test_apx_nodeManager_create);
    SUITE_ADD_TEST(suite, test_apx_nodeManager_attachLocalNode);
-   SUITE_ADD_TEST(suite, test_apx_nodeManager_attachFileManagerWithOneLocalNodePresent);
+   //SUITE_ADD_TEST(suite, test_apx_nodeManager_attachFileManagerWithOneLocalNodePresent);
 
    return suite;
 }
@@ -90,6 +90,7 @@ static void test_apx_nodeManager_attachLocalNode(CuTest *tc)
    apx_nodeManager_destroy(&nodeManager);
 }
 
+/*
 static void test_apx_nodeManager_attachFileManagerWithOneLocalNodePresent(CuTest *tc)
 {
    apx_nodeData_t *nodeData;
@@ -107,3 +108,4 @@ static void test_apx_nodeManager_attachFileManagerWithOneLocalNodePresent(CuTest
    apx_nodeManager_destroy(&nodeManager);
    apx_fileManager_destroy(&fileManager);
 }
+*/

@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_fileManagerEventListenerSpy.c
+* \file      testsuite_apx_file2.c
 * \author    Conny Gustafsson
-* \date      2018-08-21
-* \brief     Test spy for apx_fileManagerEventListener
+* \date      2018-08-31
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -26,11 +26,14 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_fileManagerEventListenerSpy.h"
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+#include "CuTest.h"
+#include "apx_file2.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -39,6 +42,11 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+static void test_apx_file2_create_local(CuTest* tc);
+static void test_apx_file2_create_remote(CuTest* tc);
+static void test_apx_file2_newLocal(CuTest* tc);
+static void test_apx_file2_newRemote(CuTest* tc);
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -47,29 +55,75 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_fileManagerEventListenerSpy_create(apx_fileManagerEventListenerSpy_t *self)
+CuSuite* testSuite_apx_file2(void)
 {
-   if (self != 0)
-   {
-      self->lastFile = 0;
-      self->lastFileManager = 0;
-      self->numfileCreateCalls = 0;
-   }
-}
+   CuSuite* suite = CuSuiteNew();
 
-void apx_fileManagerEventListenerSpy_fileCreate(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file2_tag *file)
-{
-   apx_fileManagerEventListenerSpy_t *self = (apx_fileManagerEventListenerSpy_t*) arg;
-   if (self != 0)
-   {
-      self->numfileCreateCalls++;
-      self->lastFile = file;
-      self->lastFileManager = fileManager;
-   }
+   SUITE_ADD_TEST(suite, test_apx_file2_create_local);
+   SUITE_ADD_TEST(suite, test_apx_file2_create_remote);
+   SUITE_ADD_TEST(suite, test_apx_file2_newLocal);
+   SUITE_ADD_TEST(suite, test_apx_file2_newRemote);
+
+
+   return suite;
 }
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+static void test_apx_file2_create_local(CuTest* tc)
+{
+   apx_file2_t file1;
+   rmf_fileInfo_t info1;
+   rmf_fileInfo_create(&info1, "test.apx", 0, 100, RMF_FILE_TYPE_FIXED);
 
+   apx_file2_create(&file1, APX_DEFINITION_FILE, false, &info1, NULL);
 
+   CuAssertTrue(tc, file1.isOpen==false);
+   CuAssertTrue(tc, file1.isRemoteFile==false);
+   CuAssertStrEquals(tc, "test.apx", file1.fileInfo.name);
+   CuAssertIntEquals(tc, 100, file1.fileInfo.length);
+   CuAssertUIntEquals(tc, RMF_FILE_TYPE_FIXED, file1.fileInfo.fileType);
+   CuAssertPtrEquals(tc, 0, file1.handler.arg);
+   CuAssertPtrEquals(tc, 0, file1.handler.read);
+   CuAssertPtrEquals(tc, 0, file1.handler.write);
+   CuAssertPtrEquals(tc, 0, file1.handler.basename);
+}
+
+static void test_apx_file2_create_remote(CuTest* tc)
+{
+   apx_file2_t file1;
+   rmf_fileInfo_t info1;
+   rmf_fileInfo_create(&info1, "test.apx", 0, 100, RMF_FILE_TYPE_FIXED);
+
+   apx_file2_create(&file1, APX_DEFINITION_FILE, true, &info1, NULL);
+
+   CuAssertTrue(tc, file1.isOpen==false);
+   CuAssertTrue(tc, file1.isRemoteFile==true);
+}
+
+static void test_apx_file2_newLocal(CuTest* tc)
+{
+   apx_file2_t *file1;
+   rmf_fileInfo_t info1;
+   rmf_fileInfo_create(&info1, "test.apx", 0, 100, RMF_FILE_TYPE_FIXED);
+
+   file1 = apx_file2_newLocal(APX_DEFINITION_FILE, &info1, NULL);
+
+   CuAssertTrue(tc, file1->isRemoteFile==false);
+
+   apx_file2_delete(file1);
+}
+
+static void test_apx_file2_newRemote(CuTest* tc)
+{
+   apx_file2_t *file1;
+   rmf_fileInfo_t info1;
+   rmf_fileInfo_create(&info1, "test.apx", 0, 100, RMF_FILE_TYPE_FIXED);
+
+   file1 = apx_file2_newRemote(APX_DEFINITION_FILE, &info1, NULL);
+
+   CuAssertTrue(tc, file1->isRemoteFile==true);
+
+   apx_file2_delete(file1);
+}

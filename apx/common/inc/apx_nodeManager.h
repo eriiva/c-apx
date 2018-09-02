@@ -10,7 +10,7 @@
 //#include "apx_node.h"
 //#include "apx_nodeInfo.h"
 #include "apx_stream.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -25,7 +25,7 @@
 
 //forward declarations
 struct apx_fileManager_tag;
-struct apx_file_tag;
+struct apx_file2_tag;
 struct apx_router_tag;
 struct apx_nodeData_tag;
 

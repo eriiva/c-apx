@@ -54,8 +54,10 @@
 //Implemented
 #define RMF_FILE_TYPE_FIXED      0u //memory mapped file with with fixed length (default)
 //To be implemented later
-#define RMF_FILE_TYPE_DYNAMIC    1u //memory mapped file with dynamic length (max length is set by length attribute in cmdFileInfo_t).
-#define RMF_FILE_TYPE_STREAM     2u //chunk in a file stream.
+#define RMF_FILE_TYPE_DYNAMIC8   1u //memory mapped file with 8-bit dynamic length (max length is set by length attribute in cmdFileInfo_t).
+#define RMF_FILE_TYPE_DYNAMIC16  2u //memory mapped file with 16-bit dynamic length (max length is set by length attribute in cmdFileInfo_t).
+#define RMF_FILE_TYPE_DYNAMIC32  3u //memory mapped file with 32-bit dynamic length (max length is set by length attribute in cmdFileInfo_t).
+#define RMF_FILE_TYPE_STREAM     4u //chunk in a file stream.
 
 #define RMF_MAX_CMD_BUF_SIZE 1024u
 

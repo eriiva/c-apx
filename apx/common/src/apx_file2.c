@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_fileManagerSharedSpy.c
+* \file      apx_file2.c
 * \author    Conny Gustafsson
-* \date      2018-08-28
-* \brief     Description
+* \date      2018-08-30
+* \brief     Improved version of apx_file
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -26,13 +26,13 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_fileManagerSharedSpy.h"
 #include <malloc.h>
+#include <string.h>
 #include <errno.h>
+#include "apx_file2.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -41,7 +41,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-
+void apx_file2_set_handler(apx_file2_t *self, const apx_file_handler_t *handler);
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -53,28 +53,47 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_fileManagerSharedSpy_create(apx_fileManagerSharedSpy_t *self)
+int8_t apx_file2_create(apx_file2_t *self, uint8_t fileType, bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler)
 {
    if (self != 0)
    {
-      self->numFileCreatedCalls = 0;
-      self->numSendFileInfoCalls = 0;
-      self->numSendFileOpenCalls = 0;
-      self->numOpenFileRequestCalls = 0;
+      int8_t result;
+      self->fileType = fileType;
+      self->isRemoteFile = isRemoteFile;
+      self->isOpen = false;
+
+      result = rmf_fileInfo_create(&self->fileInfo, fileInfo->name, fileInfo->address, fileInfo->length, fileInfo->fileType);
+      if (result == 0)
+      {
+         rmf_fileInfo_setDigestData(&self->fileInfo, fileInfo->digestType, fileInfo->digestData, 0);
+         apx_file2_set_handler(self, handler);
+      }
+      return result;
+   }
+   errno = EINVAL;
+   return -1;
+}
+
+#ifndef APX_EMBEDDED
+void apx_file2_destroy(apx_file2_t *self)
+{
+   if (self != 0)
+   {
+      rmf_fileInfo_destroy(&self->fileInfo);
    }
 }
 
-void apx_fileManagerSharedSpy_destroy(apx_fileManagerSharedSpy_t *self)
+apx_file2_t *apx_file2_new(uint8_t fileType, bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler)
 {
-
-}
-
-apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void)
-{
-   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) malloc(sizeof(apx_fileManagerSharedSpy_t));
+   apx_file2_t *self = (apx_file2_t*) malloc(sizeof(apx_file2_t));
    if (self != 0)
    {
-      apx_fileManagerSharedSpy_create(self);
+      int8_t result = apx_file2_create(self, fileType, isRemoteFile, fileInfo, handler);
+      if (result != 0)
+      {
+         free(self);
+         self = 0;
+      }
    }
    else
    {
@@ -83,54 +102,79 @@ apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void)
    return self;
 }
 
-void apx_fileManagerSharedSpy_delete(apx_fileManagerSharedSpy_t *self)
+void apx_file2_delete(apx_file2_t *self)
 {
    if (self != 0)
    {
-      apx_fileManagerSharedSpy_destroy(self);
+      apx_file2_destroy(self);
       free(self);
    }
 }
 
-void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file2_tag *pFile)
+void apx_file2_vdelete(void *arg)
 {
-   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
+   apx_file2_delete((apx_file2_t*) arg);
+}
+
+#endif
+
+const char *apx_file2_basename(const apx_file2_t *self)
+{
+   if ( (self != 0) && (self->handler.basename !=0) )
+   {
+      return self->handler.basename(self->handler.arg);
+   }
+   return (char*) 0;
+}
+
+void apx_file2_open(apx_file2_t *self)
+{
    if (self != 0)
    {
-      self->numFileCreatedCalls++;
+      self->isOpen = true;
    }
 }
 
-void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file2_tag *pFile)
+void apx_file2_close(apx_file2_t *self)
 {
-   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
    if (self != 0)
    {
-      self->numSendFileInfoCalls++;
+      self->isOpen = false;
    }
 }
 
-void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file2_t *file, void *caller)
+int8_t apx_file2_read(apx_file2_t *self, uint8_t *pDest, uint32_t offset, uint32_t length)
 {
-   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
-   if (self != 0)
+   if ( (self !=0) && (self->handler.read != 0) )
    {
-      self->numSendFileOpenCalls++;
+      return self->handler.read(self->handler.arg, &self->fileInfo, pDest, offset, length);
    }
+   errno = EINVAL;
+   return -1;
 }
 
-void apx_fileManagerSharedSpy_openFileRequest(void *arg, uint32_t address)
+int8_t apx_file2_write(apx_file2_t *self, const uint8_t *pSrc, uint32_t offset, uint32_t length)
 {
-   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
-   if (self != 0)
+   if ( (self !=0) && (self->handler.write != 0) )
    {
-      self->numOpenFileRequestCalls++;
+      return self->handler.write(self->handler.arg, &self->fileInfo, pSrc, offset, length);
    }
+   errno = EINVAL;
+   return -1;
 }
-
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-
+void apx_file2_set_handler(apx_file2_t *self, const apx_file_handler_t *handler)
+{
+   if (handler == 0)
+   {
+      memset(&self->handler, 0, sizeof(apx_file_handler_t));
+   }
+   else
+   {
+      memcpy(&self->handler, handler, sizeof(apx_file_handler_t));
+   }
+}
 

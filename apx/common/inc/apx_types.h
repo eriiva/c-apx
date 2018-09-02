@@ -32,4 +32,17 @@ typedef struct apx_dataWriteCmd_tag
 
 #define APX_DEBUG_INFO_MAX_LEN 20
 
+#define APX_UNKNOWN_FILE          0
+#define APX_OUTDATA_FILE          1
+#define APX_INDATA_FILE           2
+#define APX_DEFINITION_FILE       3
+#define APX_USER_DATA_FILE        4
+#define APX_EVENT_FILE            5
+
+#define APX_MAX_FILE_EXT_LEN      4 //'.xxx'
+#define APX_OUTDATA_FILE_EXT      ".out"
+#define APX_INDATA_FILE_EXT       ".in"
+#define APX_DEFINITION_FILE_EXT   ".apx"
+
+
 #endif //APX_TYPES_H

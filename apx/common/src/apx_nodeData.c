@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include "apx_nodeData.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 #include "rmf.h"
 #ifdef APX_EMBEDDED
 #include "apx_es_fileManager.h"
@@ -34,7 +34,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-
+static int8_t apx_nodeData_createFileInfo(apx_nodeData_t *self, rmf_fileInfo_t *fileInfo, uint8_t fileType);
+static const char *apx_nodeData_getFileExtenstionFromType(uint8_t fileType);
+static uint32_t apx_nodeData_getFileLengthFromType(apx_nodeData_t *self, uint8_t fileType);
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -59,8 +61,8 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       self->outPortDataLen = outPortDataLen;
       self->outPortDirtyFlags = outPortDirtyFlags;
       apx_nodeData_setHandlerTable(self, NULL);
-      self->outPortDataFile = (apx_file_t*) 0;
-      self->inPortDataFile = (apx_file_t*) 0;
+      self->outPortDataFile = (apx_file2_t*) 0;
+      self->inPortDataFile = (apx_file2_t*) 0;
 #ifdef APX_EMBEDDED
       self->fileManager = (apx_es_fileManager_t*) 0;
 #else
@@ -373,7 +375,7 @@ int8_t apx_nodeData_writeDefinitionData(apx_nodeData_t *self, const uint8_t *src
    return retval;
 }
 
-void apx_nodeData_setInPortDataFile(apx_nodeData_t *self, struct apx_file_tag *file)
+void apx_nodeData_setInPortDataFile(apx_nodeData_t *self, struct apx_file2_tag *file)
 {
    if (self != 0)
    {
@@ -381,7 +383,7 @@ void apx_nodeData_setInPortDataFile(apx_nodeData_t *self, struct apx_file_tag *f
    }
 }
 
-void apx_nodeData_setOutPortDataFile(apx_nodeData_t *self, struct apx_file_tag *file)
+void apx_nodeData_setOutPortDataFile(apx_nodeData_t *self, struct apx_file2_tag *file)
 {
    if (self != 0)
    {
@@ -398,6 +400,38 @@ void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nod
       self->nodeInfo = nodeInfo;
    }
 }
+apx_file2_t *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      const uint8_t fileType = APX_DEFINITION_FILE;
+      rmf_fileInfo_t fileInfo;
+      int8_t result;
+      result = apx_nodeData_createFileInfo(self, &fileInfo, fileType);
+      if (result == 0)
+      {
+         return apx_file2_newLocal(fileType, &fileInfo, NULL);
+      }
+   }
+   return (apx_file2_t*) 0;
+}
+
+struct apx_file2_tag *apx_nodeData_newLocalOutPortDataFile(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      const uint8_t fileType = APX_OUTDATA_FILE;
+      rmf_fileInfo_t fileInfo;
+      int8_t result;
+      result = apx_nodeData_createFileInfo(self, &fileInfo, fileType);
+      if (result == 0)
+      {
+         return apx_file2_newLocal(fileType, &fileInfo, NULL);
+      }
+   }
+   return (apx_file2_t*) 0;
+}
+
 #endif
 
 #ifdef APX_EMBEDDED
@@ -423,5 +457,71 @@ void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+static int8_t apx_nodeData_createFileInfo(apx_nodeData_t *self, rmf_fileInfo_t *fileInfo, uint8_t fileType)
+{
+   if ( (self != 0) && (fileInfo != 0) && (fileType >= APX_OUTDATA_FILE ) && (fileType <= APX_DEFINITION_FILE))
+   {
+      size_t baseNameLen;
+      const char *fileExtName;
+      uint32_t fileLen;
+      char name[RMF_MAX_FILE_NAME+1];
+      baseNameLen = strlen(self->name);
 
+      errno = 0;
+      fileExtName = apx_nodeData_getFileExtenstionFromType(fileType);
+      fileLen = apx_nodeData_getFileLengthFromType(self, fileType);
+      if ( (baseNameLen+APX_MAX_FILE_EXT_LEN <= RMF_MAX_FILE_NAME) && (errno == 0) )
+      {
+         memcpy(name, self->name, baseNameLen);
+         strcpy(name+baseNameLen, fileExtName);
+         rmf_fileInfo_create(fileInfo, name, RMF_INVALID_ADDRESS, fileLen, RMF_FILE_TYPE_FIXED);
+         return 0;
+      }
+      else
+      {
+         return -1;
+      }
+   }
+   errno = EINVAL;
+   return -1;
+}
 
+static const char *apx_nodeData_getFileExtenstionFromType(uint8_t fileType)
+{
+   const char *retval = (const char*) 0;
+   switch(fileType)
+   {
+   case APX_OUTDATA_FILE:
+      retval = APX_OUTDATA_FILE_EXT;
+      break;
+   case APX_INDATA_FILE:
+      retval = APX_INDATA_FILE_EXT;
+      break;
+   case APX_DEFINITION_FILE:
+      retval = APX_DEFINITION_FILE_EXT;
+      break;
+   default:
+      errno = EINVAL;
+   }
+   return retval;
+}
+
+static uint32_t apx_nodeData_getFileLengthFromType(apx_nodeData_t *self, uint8_t fileType)
+{
+   uint32_t retval = 0;
+   switch(fileType)
+   {
+   case APX_OUTDATA_FILE:
+      retval = self->outPortDataLen;
+      break;
+   case APX_INDATA_FILE:
+      retval = self->inPortDataLen;
+      break;
+   case APX_DEFINITION_FILE:
+      retval = self->definitionDataLen;
+      break;
+   default:
+      errno = EINVAL;
+   }
+   return retval;
+}

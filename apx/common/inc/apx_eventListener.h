@@ -32,7 +32,7 @@
 #include <stdint.h>
 
 //forward declarations
-struct apx_file_tag;
+struct apx_file2_tag;
 struct rmf_fileInfo_tag;
 struct apx_fileManager_tag;
 
@@ -46,11 +46,11 @@ typedef struct apx_fileManagerEventListener_tag
    void *arg;
    void (*fileManagerStop)(void *arg, struct apx_fileManager_tag *fileManager);
    void (*headerReceived)(void *arg, struct apx_fileManager_tag *fileManager);
-   void (*fileCreate)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file_tag *file);
-   void (*fileRevoke)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file_tag *file);
-   void (*fileOpen)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file);
-   void (*fileClose)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file);
-   void (*fileWrite)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file_tag *file, uint32_t offset, int32_t length);
+   void (*fileCreate)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file2_tag *file);
+   void (*fileRevoke)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file2_tag *file);
+   void (*fileOpen)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file2_tag *file);
+   void (*fileClose)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file2_tag *file);
+   void (*fileWrite)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file2_tag *file, uint32_t offset, int32_t length);
    void (*sendFileInfo)(void *arg, struct apx_fileManager_tag *fleManager, const struct rmf_fileInfo_tag *fileInfo);
 } apx_fileManagerEventListener_t;
 

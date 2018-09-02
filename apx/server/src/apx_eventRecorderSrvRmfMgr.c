@@ -31,7 +31,7 @@
 #include "apx_eventRecorderSrvRmfMgr.h"
 #include "apx_eventRecorderSrvRmf.h"
 #include "apx_eventFile.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 #include "apx_fileManager.h"
 
 //temporary include
@@ -52,7 +52,7 @@ static void apx_eventRecordrSrvRmfMgr_newConnection(void *arg, apx_fileManager_t
 static void apx_eventRecordrSrvRmfMgr_disconnected(void *arg, apx_fileManager_t *fileManager);
 static void apx_eventRecorderSrvRmfMgr_registerEventFile(apx_eventRecorderSrvRmfMgr_t *self, apx_fileManager_t *fileManager);
 static void apx_eventRecorderSrvRmfMgr_registerEventListener(apx_eventRecorderSrvRmfMgr_t *self, apx_fileManager_t *fileManager);
-static void apx_eventRecorderSrvRmfMgr_onFileOpen(void *arg, apx_fileManager_t *fileManager, const apx_file_t *file);
+static void apx_eventRecorderSrvRmfMgr_onFileOpen(void *arg, apx_fileManager_t *fileManager, const apx_file2_t *file);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -116,7 +116,7 @@ static void apx_eventRecordrSrvRmfMgr_disconnected(void *arg, apx_fileManager_t 
 
 static void apx_eventRecorderSrvRmfMgr_registerEventFile(apx_eventRecorderSrvRmfMgr_t *self, apx_fileManager_t *fileManager)
 {
-   apx_file_t *eventFile = apx_eventFile_new();
+   apx_file2_t *eventFile = apx_eventFile_new();
    if (eventFile != 0)
    {
       apx_fileManager_attachLocalFile(fileManager, eventFile);
@@ -130,7 +130,7 @@ static void apx_eventRecorderSrvRmfMgr_registerEventListener(apx_eventRecorderSr
    listener.fileOpen = apx_eventRecorderSrvRmfMgr_onFileOpen;
 }
 
-static void apx_eventRecorderSrvRmfMgr_onFileOpen(void *arg, apx_fileManager_t *fileManager, const apx_file_t *file)
+static void apx_eventRecorderSrvRmfMgr_onFileOpen(void *arg, apx_fileManager_t *fileManager, const apx_file2_t *file)
 {
    apx_eventRecorderSrvRmfMgr_t *self = (apx_eventRecorderSrvRmfMgr_t*) arg;
    if ( (self != 0) && (fileManager != 0) && (file != 0))

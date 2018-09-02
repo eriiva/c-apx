@@ -110,8 +110,8 @@ static void test_apx_fileManagerShared_alloc(CuTest* tc)
 static void test_apx_fileManagerShared_serializeFileInfo(CuTest *tc)
 {
    apx_nodeData_t *nodeData;
-   apx_file_t *definitionFile;
-   apx_file_t *outDataFile;
+   apx_file2_t *definitionFile;
+   apx_file2_t *outDataFile;
    adt_bytearray_t bytearray;
    int32_t bufLen;
    uint8_t *bufData;
@@ -254,8 +254,8 @@ static void test_apx_fileManagerShared_serializeFileInfo(CuTest *tc)
    };
    ApxNode_Init_TestNode1();
    nodeData = ApxNode_GetNodeData_TestNode1();
-   definitionFile = apx_file_newLocalDefinitionFile(nodeData);
-   outDataFile = apx_file_newLocalOutPortDataFile(nodeData);
+   definitionFile = apx_nodeData_newLocalDefinitionFile(nodeData);
+   outDataFile = apx_nodeData_newLocalOutPortDataFile(nodeData);
    outDataFile->fileInfo.address = 0;
    definitionFile->fileInfo.address = 0x4000000;
    adt_bytearray_create(&bytearray, ADT_BYTE_ARRAY_DEFAULT_GROW_SIZE);
@@ -277,6 +277,6 @@ static void test_apx_fileManagerShared_serializeFileInfo(CuTest *tc)
       CuAssertIntEquals_Msg(tc, msg, expected2[i], bufData[i]);
    }
    adt_bytearray_destroy(&bytearray);
-   apx_file_delete(definitionFile);
-   apx_file_delete(outDataFile);
+   apx_file2_delete(definitionFile);
+   apx_file2_delete(outDataFile);
 }

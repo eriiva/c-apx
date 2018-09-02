@@ -33,6 +33,7 @@ CuSuite* testSuite_apx_client(void);
 CuSuite* testSuite_apx_clientConnection(void);
 CuSuite* testSuite_apx_nodeManager(void);
 CuSuite* testSuite_apx_eventRecorderSrvRmf(void);
+CuSuite* testSuite_apx_file2(void);
 
 //util
 CuSuite* testsuite_headerutil(void);
@@ -55,7 +56,8 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testSuite_apx_routerPortMapEntry());
    CuSuiteAddSuite(suite, testSuite_apx_router());
    CuSuiteAddSuite(suite, testSuite_apx_dataTrigger());
-   CuSuiteAddSuite(suite, testSuite_apx_file());
+   //CuSuiteAddSuite(suite, testSuite_apx_file());
+   CuSuiteAddSuite(suite, testSuite_apx_file2());
    CuSuiteAddSuite(suite, testSuite_apx_fileMap());
    CuSuiteAddSuite(suite, testSuite_apx_nodeData());
    CuSuiteAddSuite(suite, testSuite_apx_allocator());

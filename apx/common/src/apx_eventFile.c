@@ -27,8 +27,9 @@
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include "rmf.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 #include "apx_eventFile.h"
+#include <stddef.h>
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -49,12 +50,11 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-apx_file_t *apx_eventFile_new(void)
+apx_file2_t *apx_eventFile_new(void)
 {
-   apx_file_t *file;
    rmf_fileInfo_t info;
    rmf_fileInfo_create(&info, APX_EVENT_LOG_FILE_NAME, APX_EVENT_LOG_FILE_ADDRESS, APX_EVENT_LOG_FILE_LEN, RMF_FILE_TYPE_STREAM);
-   return apx_file_new(APX_EVENT_FILE, &info);
+   return apx_file2_newLocal(APX_EVENT_FILE, &info, NULL);
 }
 
 //////////////////////////////////////////////////////////////////////////////

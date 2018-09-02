@@ -12,7 +12,7 @@
 #include "apx_fileManagerSharedSpy.h"
 #include "apx_fileMap.h"
 #include "rmf.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -25,7 +25,7 @@ typedef struct fileManagerRemoteSpy_tag
 {
    int32_t fileCreatedByRemoteCalls;
    void *arg;
-   apx_file_t file;
+   apx_file2_t file;
 }fileManagerRemoteSpy_t;
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES

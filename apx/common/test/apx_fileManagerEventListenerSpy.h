@@ -31,7 +31,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_eventListener.h"
 #include "apx_fileManager.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
@@ -40,7 +40,7 @@ typedef struct apx_fileManagerEventListenerSpy_tag
 {
    int32_t numfileCreateCalls;
    apx_fileManager_t *lastFileManager;
-   const apx_file_t *lastFile;
+   const apx_file2_t *lastFile;
 }apx_fileManagerEventListenerSpy_t;
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -51,7 +51,7 @@ typedef struct apx_fileManagerEventListenerSpy_tag
 //////////////////////////////////////////////////////////////////////////////
 void apx_fileManagerEventListenerSpy_create(apx_fileManagerEventListenerSpy_t *self);
 
-void apx_fileManagerEventListenerSpy_fileCreate(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file_tag *file);
+void apx_fileManagerEventListenerSpy_fileCreate(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file2_tag *file);
 
 
 #endif //APX_FILEMANAGER_EVENT_LISTENER_SPY_H

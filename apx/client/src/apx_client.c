@@ -12,6 +12,8 @@
 #include "apx_fileManager.h"
 #include "msocket.h"
 #include "adt_list.h"
+#include "apx_nodeData.h"
+#include "apx_eventListener.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif

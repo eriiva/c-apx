@@ -73,7 +73,7 @@ CuSuite* testSuite_apx_clientConnection(void)
 
    SUITE_ADD_TEST(suite, test_apx_clientConnection_transmitHandlerSetup);
    SUITE_ADD_TEST(suite, test_apx_clientConnection_sendGreetingOnConnectEvent);
-   SUITE_ADD_TEST(suite, test_apx_clientConnection_sendLocalFileInfoWhenReceivingAck);
+   //SUITE_ADD_TEST(suite, test_apx_clientConnection_sendLocalFileInfoWhenReceivingAck);
 
    return suite;
 }

@@ -49,12 +49,12 @@ static int8_t apx_fileManager_startWorkerThread(apx_fileManager_t *self);
 static void apx_fileManager_stopWorkerThread(apx_fileManager_t *self);
 static void apx_fileManager_triggerSendAcknowledge(apx_fileManager_t *self);
 
-static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file_tag *pFile);
-static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file_tag *pFile);
-static void apx_fileManager_sendFileOpen(void *arg, const apx_file_t *file, void *caller);
+static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file2_tag *pFile);
+static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file2_tag *pFile);
+static void apx_fileManager_sendFileOpen(void *arg, const apx_file2_t *file, void *caller);
 static void apx_fileManager_openFileRequest(void *arg, uint32_t address);
-static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const apx_file_t *file, void *caller);
-static void apx_fileManager_sendFixedFile(apx_fileManager_t *self, const apx_file_t *file);
+static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const apx_file2_t *file, void *caller);
+static void apx_fileManager_sendFixedFile(apx_fileManager_t *self, const apx_file2_t *file);
 
 static THREAD_PROTO(workerThread,arg);
 static bool workerThread_processMessage(apx_fileManager_t *self, apx_msg_t *msg);
@@ -172,7 +172,7 @@ int32_t apx_fileManager_getNumEventListeners(apx_fileManager_t *self)
    return -1;
 }
 
-void apx_fileManager_attachLocalFile(apx_fileManager_t *self, struct apx_file_tag *localFile)
+void apx_fileManager_attachLocalFile(apx_fileManager_t *self, struct apx_file2_tag *localFile)
 {
    if (self != 0)
    {
@@ -434,7 +434,7 @@ static void apx_fileManager_triggerSendAcknowledge(apx_fileManager_t *self)
    SEMAPHORE_POST(self->semaphore);
 }
 
-static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file_tag *pFile)
+static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file2_tag *pFile)
 {
    apx_fileManager_t *self = (apx_fileManager_t *) arg;
    if (self != 0)
@@ -447,7 +447,7 @@ static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file_tag 
          assert(listener != 0);
          if (listener->fileCreate != 0)
          {
-            listener->fileCreate(listener->arg, self, (struct apx_file_tag*) pFile);
+            listener->fileCreate(listener->arg, self, (struct apx_file2_tag*) pFile);
          }
          pIter = adt_list_iter_next(pIter);
       }
@@ -455,7 +455,7 @@ static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file_tag 
    }
 }
 
-static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file_tag *pFile)
+static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file2_tag *pFile)
 {
    apx_fileManager_t *self = (apx_fileManager_t *) arg;
    if (self != 0)
@@ -472,7 +472,7 @@ static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file_tag
 /**
  * Attempts to open someone elses remote file by sending a SEND_FILE_OPEN message
  */
-static void apx_fileManager_sendFileOpen(void *arg, const apx_file_t *file, void *caller)
+static void apx_fileManager_sendFileOpen(void *arg, const apx_file2_t *file, void *caller)
 {
    apx_fileManager_t *self = (apx_fileManager_t *) arg;
    if ( (self != 0) && (file != 0) )
@@ -495,7 +495,7 @@ static void apx_fileManager_openFileRequest(void *arg, uint32_t address)
    apx_fileManager_t *self = (apx_fileManager_t *) arg;
    if (self != 0)
    {
-      apx_file_t *localFile = apx_fileManagerLocal_openFile(&self->local, address);
+      apx_file2_t *localFile = apx_fileManagerLocal_openFile(&self->local, address);
       if (localFile != 0)
       {
          apx_fileManager_triggerFileOpenEvent(self, localFile, NULL);
@@ -507,7 +507,7 @@ static void apx_fileManager_openFileRequest(void *arg, uint32_t address)
    }
 }
 
-static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const apx_file_t *file, void *caller)
+static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const apx_file2_t *file, void *caller)
 {
    adt_list_elem_t *pIter;
    MUTEX_LOCK(self->mutex);
@@ -527,7 +527,7 @@ static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const 
    }
 }
 
-static void apx_fileManager_sendFixedFile(apx_fileManager_t *self, const apx_file_t *file)
+static void apx_fileManager_sendFixedFile(apx_fileManager_t *self, const apx_file2_t *file)
 {
    apx_msg_t msg = {APX_MSG_SEND_FILE_CONTENT, 0, 0, 0, 0};
    msg.msgData3 = (void*) file;

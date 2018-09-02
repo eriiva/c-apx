@@ -85,7 +85,7 @@ void apx_fileManager_destroy(apx_fileManager_t *self);
 void* apx_fileManager_registerEventListener(apx_fileManager_t *self, struct apx_fileManagerEventListener_tag* listener);
 void apx_fileManager_unregisterEventListener(apx_fileManager_t *self, void *handle);
 int32_t apx_fileManager_getNumEventListeners(apx_fileManager_t *self);
-void apx_fileManager_attachLocalFile(apx_fileManager_t *self, struct apx_file_tag *localFile);
+void apx_fileManager_attachLocalFile(apx_fileManager_t *self, struct apx_file2_tag *localFile);
 int32_t apx_fileManager_getNumLocalFiles(apx_fileManager_t *self);
 bool apx_fileManager_isServerMode(apx_fileManager_t *self);
 void apx_fileManager_start(apx_fileManager_t *self);

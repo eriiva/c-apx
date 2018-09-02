@@ -7,7 +7,7 @@
 #include <stddef.h>
 #include <string.h>
 #include "CuTest.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 #include "apx_fileManagerLocal.h"
 #include "ApxNode_TestNode1.h"
 #include "adt_bytearray.h"
@@ -73,15 +73,15 @@ static void test_apx_fileManagerLocal_attachFile(CuTest* tc)
    apx_nodeData_t *nodeData;
    apx_fileManagerShared_t shared;
    apx_fileManagerLocal_t local;
-   apx_file_t *definitionFile;
-   apx_file_t *outDataFile;
+   apx_file2_t *definitionFile;
+   apx_file2_t *outDataFile;
    ApxNode_Init_TestNode1();
    nodeData = ApxNode_GetNodeData_TestNode1();
    apx_fileManagerShared_create(&shared, CONNECTION_ID_DEFAULT);
    apx_fileManagerLocal_create(&local, &shared);
    CuAssertIntEquals(tc, 0, apx_fileManagerLocal_getNumFiles(&local));
-   definitionFile = apx_file_newLocalDefinitionFile(nodeData);
-   outDataFile = apx_file_newLocalOutPortDataFile(nodeData);
+   definitionFile = apx_nodeData_newLocalDefinitionFile(nodeData);
+   outDataFile = apx_nodeData_newLocalOutPortDataFile(nodeData);
    CuAssertPtrNotNull(tc, definitionFile);
    CuAssertPtrNotNull(tc, outDataFile);
    CuAssertUIntEquals(tc, RMF_INVALID_ADDRESS, definitionFile->fileInfo.address);

@@ -46,7 +46,7 @@
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 //forward declarations
-struct apx_file_tag;
+struct apx_file2_tag;
 
 typedef struct apx_fileManagerLocal_tag
 {
@@ -62,10 +62,10 @@ void apx_fileManagerLocal_create(apx_fileManagerLocal_t *self, apx_fileManagerSh
 void apx_fileManagerLocal_destroy(apx_fileManagerLocal_t *self);
 //void apx_fileManagerLocal_start(apx_fileManagerLocal_t *self);
 //void apx_fileManagerLocal_stop(apx_fileManagerLocal_t *self);
-void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file_tag *localFile);
+void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file2_tag *localFile);
 int32_t apx_fileManagerLocal_getNumFiles(apx_fileManagerLocal_t *self);
 int32_t apx_fileManagerLocal_serializeFileInfo(apx_fileManagerLocal_t *self, uint8_t *bufData, int32_t bufLen, uint8_t headerSize);
 void apx_fileManagerLocal_sendFileInfo(apx_fileManagerLocal_t *self);
-struct apx_file_tag *apx_fileManagerLocal_openFile(apx_fileManagerLocal_t *self, uint32_t address);
+struct apx_file2_tag *apx_fileManagerLocal_openFile(apx_fileManagerLocal_t *self, uint32_t address);
 
 #endif //APX_FILE_MANAGER_LOCAL_H

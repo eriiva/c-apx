@@ -30,7 +30,7 @@
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include "rmf.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
@@ -54,9 +54,9 @@ void apx_fileManagerSharedSpy_create(apx_fileManagerSharedSpy_t *self);
 void apx_fileManagerSharedSpy_destroy(apx_fileManagerSharedSpy_t *self);
 apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void);
 void apx_fileManagerSharedSpy_delete(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file_tag *pFile);
-void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file_tag *pFile);
-void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file_t *file, void *caller);
+void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file2_tag *pFile);
+void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file2_tag *pFile);
+void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file2_t *file, void *caller);
 void apx_fileManagerSharedSpy_openFileRequest(void *arg, uint32_t address);
 
 #endif //APX_FILE_MANAGER_SHARED_SPY_H

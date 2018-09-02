@@ -47,7 +47,7 @@ struct apx_serverEventRecorder_tag;
 struct apx_serverEventPlayer_tag;
 struct apx_clientEventRecorder_tag;
 struct apx_clientEventPlayer_tag;
-struct apx_file_tag;
+struct apx_file2_tag;
 
 #define APX_FILEMANAGER_CLIENT_MODE 0
 #define APX_FILEMANAGER_SERVER_MODE 1

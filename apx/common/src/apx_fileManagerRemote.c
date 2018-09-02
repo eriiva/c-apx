@@ -31,7 +31,7 @@
 #include "apx_fileManagerRemote.h"
 #include "apx_logging.h"
 #include "apx_eventFile.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 #include "rmf.h"
 
 //temporary includes
@@ -128,14 +128,14 @@ int8_t apx_fileManageRemote_openFile(apx_fileManagerRemote_t *self, uint32_t add
    if (self != 0)
    {
       bool sendFileOpen = false;
-      apx_file_t *remoteFile;
+      apx_file2_t *remoteFile;
       MUTEX_LOCK(self->mutex);
       remoteFile = apx_fileMap_findByAddress(&self->remoteFileMap, address);
       if (remoteFile != 0)
       {
          if (remoteFile->isOpen == false)
          {
-            apx_file_open(remoteFile);
+            apx_file2_open(remoteFile);
             sendFileOpen = true;
          }
          retval = 0;
@@ -237,7 +237,7 @@ static void apx_fileManagerRemote_processFileInfo(apx_fileManagerRemote_t *self,
 {
    if ( (self != 0) && (cmdFileInfo != 0) )
    {
-      apx_file_t *remoteFile = apx_file_new(APX_UNKNOWN_FILE, cmdFileInfo);
+      apx_file2_t *remoteFile = apx_file2_newRemote(APX_UNKNOWN_FILE, cmdFileInfo, NULL);
       if (remoteFile != 0)
       {
          MUTEX_LOCK(self->mutex);

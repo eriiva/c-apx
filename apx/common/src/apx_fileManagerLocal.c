@@ -31,7 +31,7 @@
 #include <assert.h>
 #include "apx_fileManagerLocal.h"
 #include "rmf.h"
-#include "apx_file.h"
+#include "apx_file2.h"
 #include "numheader.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
@@ -52,8 +52,8 @@ static int8_t apx_fileManagerWorker_startThread(apx_fileManager_t *self);
 static THREAD_PROTO(threadTask, arg);
 
 static void apx_fileManagerWorker_connectHandler(apx_fileManager_t *self);
-static void apx_fileManagerWorker_fileWriteNotifyHandler(apx_fileManager_t *self, apx_file_t *file, apx_offset_t offset, apx_size_t len);
-static void apx_fileManagerWorker_fileWriteCmdHandler(apx_fileManager_t *self, apx_file_t *file, const uint8_t *data, apx_offset_t offset, apx_size_t len);
+static void apx_fileManagerWorker_fileWriteNotifyHandler(apx_fileManager_t *self, apx_file2_t *file, apx_offset_t offset, apx_size_t len);
+static void apx_fileManagerWorker_fileWriteCmdHandler(apx_fileManager_t *self, apx_file2_t *file, const uint8_t *data, apx_offset_t offset, apx_size_t len);
 
 static void apx_fileManagerWorker_sendFileInfo(apx_fileManager_t *self, rmf_fileInfo_t *fileInfo);
 static void apx_fileManagerWorker_sendAck(apx_fileManager_t *self);
@@ -91,7 +91,7 @@ void apx_fileManagerLocal_destroy(apx_fileManagerLocal_t *self)
    }
 }
 
-void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file_tag *localFile)
+void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file2_tag *localFile)
 {
    if ((self != 0) && (localFile != 0))
    {
@@ -125,7 +125,7 @@ void apx_fileManagerLocal_sendFileInfo(apx_fileManagerLocal_t *self)
          adt_list_elem_t *iter = adt_list_iter_first(files);
          while (iter != 0)
          {
-            apx_file_t *file = (apx_file_t*)iter->pItem;
+            apx_file2_t *file = (apx_file2_t*)iter->pItem;
             self->shared->sendFileInfo(self->shared->arg, file);
             iter = adt_list_iter_next(iter);
          }
@@ -133,9 +133,9 @@ void apx_fileManagerLocal_sendFileInfo(apx_fileManagerLocal_t *self)
    }
 }
 
-struct apx_file_tag *apx_fileManagerLocal_openFile(apx_fileManagerLocal_t *self, uint32_t address)
+struct apx_file2_tag *apx_fileManagerLocal_openFile(apx_fileManagerLocal_t *self, uint32_t address)
 {
-   apx_file_t *localFile = (apx_file_t *) 0;
+   apx_file2_t *localFile = (apx_file2_t *) 0;
    if (self != 0)
    {
       MUTEX_LOCK(self->mutex);
@@ -143,7 +143,7 @@ struct apx_file_tag *apx_fileManagerLocal_openFile(apx_fileManagerLocal_t *self,
       MUTEX_UNLOCK(self->mutex);
       if (localFile != 0)
       {
-         apx_file_open(localFile);
+         apx_file2_open(localFile);
       }
    }
    return localFile;
@@ -155,7 +155,7 @@ static void apx_fileManager_processOpenFile(apx_fileManager_t *self, const rmf_c
 {
    if ( (self != 0) && (cmdOpenFile != 0) )
    {
-      apx_file_t *localFile;
+      apx_file2_t *localFile;
       SPINLOCK_ENTER(self->lock);
       localFile = apx_fileMap_findByAddress(&self->localFileMap, cmdOpenFile->address);
       SPINLOCK_LEAVE(self->lock);
@@ -248,10 +248,10 @@ static THREAD_PROTO(threadTask,arg)
                apx_fileManager_connectHandler(self);
                break;
             case RMF_MSG_WRITE_NOTIFY:
-               apx_fileManager_fileWriteNotifyHandler(self, (apx_file_t*) msg.msgData3, (apx_offset_t) msg.msgData1, (apx_size_t) msg.msgData2);
+               apx_fileManager_fileWriteNotifyHandler(self, (apx_file2_t*) msg.msgData3, (apx_offset_t) msg.msgData1, (apx_size_t) msg.msgData2);
                break;
             case RMF_MSG_FILE_WRITE:
-               apx_fileManager_fileWriteCmdHandler(self, (apx_file_t*) msg.msgData3, (const uint8_t*) msg.msgData4, (apx_offset_t) msg.msgData1, (apx_size_t) msg.msgData2);
+               apx_fileManager_fileWriteCmdHandler(self, (apx_file2_t*) msg.msgData3, (const uint8_t*) msg.msgData4, (apx_offset_t) msg.msgData1, (apx_size_t) msg.msgData2);
                apx_allocator_free(&self->allocator, (uint8_t*) msg.msgData4, (uint32_t) msg.msgData2);
                break;
             default:
@@ -298,7 +298,7 @@ static void apx_fileManager_connectHandler(apx_fileManager_t *self)
             SPINLOCK_LEAVE(self->lock);
             if (iter != 0)
             {
-               apx_file_t *file = (apx_file_t*)iter->pItem;
+               apx_file2_t *file = (apx_file2_t*)iter->pItem;
                assert(file != 0);
                apx_fileManager_sendFileInfo(self, &file->fileInfo);
             }
@@ -310,7 +310,7 @@ static void apx_fileManager_connectHandler(apx_fileManager_t *self)
 /**
  * called by worker thread when it needs to send data from local files to remote connections
  */
-static void apx_fileManager_fileWriteNotifyHandler(apx_fileManager_t *self, apx_file_t *file, apx_offset_t offset, apx_size_t len)
+static void apx_fileManager_fileWriteNotifyHandler(apx_fileManager_t *self, apx_file2_t *file, apx_offset_t offset, apx_size_t len)
 {
    if ( (self != 0) && (file != 0) && (len > 0) )
    {
@@ -369,7 +369,7 @@ static void apx_fileManager_fileWriteNotifyHandler(apx_fileManager_t *self, apx_
 /**
  * called by worker thread when data in a remote file needs to be updated
  */
-static void apx_fileManager_fileWriteCmdHandler(apx_fileManager_t *self, apx_file_t *file, const uint8_t *data, apx_offset_t offset, apx_size_t len)
+static void apx_fileManager_fileWriteCmdHandler(apx_fileManager_t *self, apx_file2_t *file, const uint8_t *data, apx_offset_t offset, apx_size_t len)
 {
    if ( (self != 0) && (file != 0) && (data != 0) )
    {

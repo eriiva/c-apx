@@ -31,7 +31,7 @@
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 //forward declarations
-struct apx_file_tag;
+struct apx_file2_tag;
 #ifdef APX_EMBEDDED
 struct apx_es_fileManager_tag;
 #else
@@ -77,8 +77,8 @@ typedef struct apx_nodeData_tag
    SPINLOCK_T definitionDataLock;
    SPINLOCK_T internalLock;
 #endif
-   struct apx_file_tag *outPortDataFile;
-   struct apx_file_tag *inPortDataFile;
+   struct apx_file2_tag *outPortDataFile;
+   struct apx_file2_tag *inPortDataFile;
    struct apx_nodeInfo_tag *nodeInfo;
 } apx_nodeData_t;
 
@@ -111,12 +111,14 @@ int8_t apx_nodeData_writeInPortData(apx_nodeData_t *self, const uint8_t *src, ui
 int8_t apx_nodeData_writeOutPortData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len);
 int8_t apx_nodeData_writeDefinitionData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len);
 void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len);
-void apx_nodeData_setInPortDataFile(apx_nodeData_t *self, struct apx_file_tag *file);
-void apx_nodeData_setOutPortDataFile(apx_nodeData_t *self, struct apx_file_tag *file);
+void apx_nodeData_setInPortDataFile(apx_nodeData_t *self, struct apx_file2_tag *file);
+void apx_nodeData_setOutPortDataFile(apx_nodeData_t *self, struct apx_file2_tag *file);
 #ifdef APX_EMBEDDED
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_es_fileManager_tag *fileManager);
 #else
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_fileManager_tag *fileManager);
 void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nodeInfo);
+struct apx_file2_tag *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self);
+struct apx_file2_tag *apx_nodeData_newLocalOutPortDataFile(apx_nodeData_t *self);
 #endif
 #endif //APX_NODE_DATA_H

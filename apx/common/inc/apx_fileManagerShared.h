@@ -14,7 +14,7 @@
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 //forward declarations
-struct apx_file_tag;
+struct apx_file2_tag;
 struct rmf_fileInfo_tag;
 
 typedef struct apx_fileManagerShared_tag
@@ -23,9 +23,9 @@ typedef struct apx_fileManagerShared_tag
    apx_allocator_t allocator;
    apx_fileMap_t localFileMap;
    uint32_t fmid; //a.k.a channel ID
-   void (*fileCreated)(void *arg, const struct apx_file_tag *pFile);
-   void (*sendFileInfo)(void *arg, const struct apx_file_tag *pFile);
-   void (*sendFileOpen)(void *arg, const apx_file_t *file, void *caller);
+   void (*fileCreated)(void *arg, const struct apx_file2_tag *pFile);
+   void (*sendFileInfo)(void *arg, const struct apx_file2_tag *pFile);
+   void (*sendFileOpen)(void *arg, const struct apx_file2_tag *pFile, void *caller);
    void (*openFileRequest)(void *arg, uint32_t address);
 }apx_fileManagerShared_t;
 
@@ -39,7 +39,7 @@ uint8_t *apx_fileManagerShared_alloc(apx_fileManagerShared_t *self, size_t size)
 void apx_fileManagerShared_free(apx_fileManagerShared_t *self, uint8_t *ptr, size_t size);
 void apx_fileManagerShared_start(apx_fileManagerShared_t *self);
 void apx_fileManagerShared_stop(apx_fileManagerShared_t *self);
-void apx_fileManagerShared_attachFile(apx_fileManagerShared_t *self, struct apx_file_tag *localFile);
+void apx_fileManagerShared_attachFile(apx_fileManagerShared_t *self, struct apx_file2_tag *localFile);
 int32_t apx_fileManagerShared_getNumFiles(apx_fileManagerShared_t *self);
 
 int32_t apx_fileManagerShared_calcFileInfoMsgSize(const struct rmf_fileInfo_tag *fileInfo);
