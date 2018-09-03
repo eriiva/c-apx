@@ -97,6 +97,7 @@ static void test_apx_nodeInfo_create(CuTest* tc)
    apx_nodeInfo_create(&nodeInfo3,node3);
    apx_nodeInfo_create(&nodeInfo4,node4);
    apx_nodeInfo_create(&nodeInfo5,node5);
+
    CuAssertIntEquals(tc,1,apx_portDataMap_getDataLen(&nodeInfo1.inDataMap));
    CuAssertIntEquals(tc,4,apx_portDataMap_getDataLen(&nodeInfo1.outDataMap));
    CuAssertIntEquals(tc,1,apx_portDataMap_getDataLen(&nodeInfo2.inDataMap));

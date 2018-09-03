@@ -56,13 +56,13 @@ static void test_apx_nodeData_newEmpty(CuTest* tc)
    apx_nodeData_t *nodeData;
    const char *name="TestNode1";
    //create nodeData with no name, weakref=false
-   nodeData = apx_nodeData_newRemote(0,false);
+   nodeData = apx_nodeData_new(0,false);
    CuAssertPtrNotNull(tc, nodeData);
    CuAssertPtrEquals(tc, 0, (void*) nodeData->name);
    apx_nodeData_delete(nodeData);
 
    //create nodeData with name, weakref=false
-   nodeData = apx_nodeData_newRemote(name,false);
+   nodeData = apx_nodeData_new(name,false);
    CuAssertPtrNotNull(tc, nodeData);
    CuAssertPtrNotNull(tc, nodeData->name);
    CuAssert(tc, "expected copy of string",nodeData->name != name);
@@ -70,7 +70,7 @@ static void test_apx_nodeData_newEmpty(CuTest* tc)
    apx_nodeData_delete(nodeData);
 
    //create nodeData with name, weakref=true
-   nodeData = apx_nodeData_newRemote(name, true);
+   nodeData = apx_nodeData_new(name, true);
    CuAssertPtrNotNull(tc, nodeData);
    CuAssertPtrNotNull(tc, nodeData->name);
    CuAssert(tc, "did not expected copy of string",nodeData->name == name);

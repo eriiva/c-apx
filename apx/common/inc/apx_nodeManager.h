@@ -6,10 +6,6 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "adt_hash.h"
 #include "adt_list.h"
-#include "apx_parser.h"
-//#include "apx_node.h"
-//#include "apx_nodeInfo.h"
-#include "apx_stream.h"
 #include "apx_file2.h"
 #ifdef _WIN32
 #include <Windows.h>
@@ -31,9 +27,7 @@ struct apx_nodeData_tag;
 
 typedef struct apx_nodeManager_tag
 {
-   apx_parser_t parser;
    adt_hash_t nodeInfoMap; //hash of strong references to apx_nodeInfo_t
-   apx_istream_t apx_istream; //helper structure for parser
    struct apx_router_tag *router;
    adt_hash_t remoteNodeDataMap; //hash containing strong references to apx_nodeData_t remotely connected nodes, only used in server mode
    adt_hash_t localNodeDataMap; //hash containing weak references to apx_nodeData_t for locally connected nodes. only used in client mode

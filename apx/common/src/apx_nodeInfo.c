@@ -66,12 +66,10 @@ void apx_nodeInfo_create(apx_nodeInfo_t *self, apx_node_t *node)
       adt_ary_resize(&self->requireConnectors,numRequirePorts);
       adt_ary_resize(&self->provideConnectors,numProvidePorts);
       apx_node_finalize(node);
-      apx_portDataMap_build(&self->inDataMap,node,APX_REQUIRE_PORT);
-      apx_portDataMap_build(&self->outDataMap,node,APX_PROVIDE_PORT);
+      apx_portDataMap_build(&self->inDataMap, node, APX_REQUIRE_PORT);
+      apx_portDataMap_build(&self->outDataMap, node, APX_PROVIDE_PORT);
       requireDataLen = apx_portDataMap_getDataLen(&self->inDataMap);
       provideDataLen = apx_portDataMap_getDataLen(&self->outDataMap);
-      //GFX_LOG_INFO("%s/require: %d\n",node->name,requireDataLen);
-      //GFX_LOG_INFO("%s/provide: %d\n",node->name,provideDataLen);
       if(requireDataLen < 0)
       {
          APX_LOG_ERROR("[APX_NODE_INFO] %s", "apx_portDataMap_getDataLen for requirePortDataMap return negative result");

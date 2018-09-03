@@ -121,41 +121,30 @@ void apx_nodeData_destroy(apx_nodeData_t *self)
 /**
  * creates a new apx_nodeData_t with all pointers (except name) set to NULL
  */
-apx_nodeData_t *apx_nodeData_newRemote(const char *name, bool isWeakRef)
+apx_nodeData_t *apx_nodeData_new(const char *name, bool isWeakref)
 {
    apx_nodeData_t *self = 0;
-   if ( (isWeakRef == false) && (name != 0) )
+   if ( (name != 0) && (isWeakref == false))
    {
       char *nameCopy = STRDUP(name);
       if (nameCopy == 0)
       {
          return self;
       }
-      self = (apx_nodeData_t*) malloc(sizeof(apx_nodeData_t));
-      if (self != 0)
-      {
-         apx_nodeData_create(self, nameCopy, 0, 0, 0, 0, 0, 0, 0, 0);
-         self->isWeakref=false;
-         self->isRemote = true;
-      }
       else
       {
-         free(nameCopy);
-         errno = ENOMEM;
+         name = nameCopy;
       }
+   }
+   self = (apx_nodeData_t*) malloc(sizeof(apx_nodeData_t));
+   if (self != 0)
+   {
+      apx_nodeData_create(self, name, 0, 0, 0, 0, 0, 0, 0, 0);
+      self->isWeakref = isWeakref;
    }
    else
    {
-      self = (apx_nodeData_t*) malloc(sizeof(apx_nodeData_t));
-      if (self != 0)
-      {
-         apx_nodeData_create(self, name, 0, 0, 0, 0, 0, 0, 0, 0);
-         self->isWeakref=isWeakRef;
-      }
-      else
-      {
-         errno = ENOMEM;
-      }
+      errno = ENOMEM;
    }
    return self;
 }

@@ -93,10 +93,11 @@ typedef struct apx_nodeData_tag
 //////////////////////////////////////////////////////////////////////////////
 void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *definitionBuf, uint32_t definitionDataLen,  uint8_t *inPortDataBuf, uint8_t *inPortDirtyFlags, uint32_t inPortDataLen, uint8_t *outPortDataBuf, uint8_t *outPortDirtyFlags, uint32_t outPortDataLen);
 void apx_nodeData_destroy(apx_nodeData_t *self);
-apx_nodeData_t *apx_nodeData_newRemote(const char *name, bool isWeakRef);
+#ifndef APX_EMBEDDED
+apx_nodeData_t *apx_nodeData_new(const char *name, bool isWeakref);
 void apx_nodeData_delete(apx_nodeData_t *self);
 void apx_nodeData_vdelete(void *arg);
-
+#endif
 bool apx_nodeData_isOutPortDataOpen(apx_nodeData_t *self);
 void apx_nodeData_setHandlerTable(apx_nodeData_t *self, apx_nodeDataHandlerTable_t *handlerTable);
 int8_t apx_nodeData_readDefinitionData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len);
