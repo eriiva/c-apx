@@ -13,16 +13,20 @@
 typedef struct apx_istream_handler_t{
    //user-defined argument
    void *arg;
+
    //events
    void (*open)(void *arg);
    void (*close)(void *arg);
 
    //text-based messages
    void (*node)(void *arg, const char *name); //N"<name>"
-   void (*datatype)(void *arg, const char *name, const char *dsg, const char *attr); //T"<name>"<dsg>:<attr>
-   void (*require)(void *arg, const char *name, const char *dsg, const char *attr); //R"<name>"<dsg>:<attr>
-   void (*provide)(void *arg, const char *name, const char *dsg, const char *attr); //P"<name>"<dsg>:<attr>
+   int32_t (*datatype)(void *arg, const char *name, const char *dsg, const char *attr); //T"<name>"<dsg>:<attr>
+   int32_t (*require)(void *arg, const char *name, const char *dsg, const char *attr); //R"<name>"<dsg>:<attr>
+   int32_t (*provide)(void *arg, const char *name, const char *dsg, const char *attr); //P"<name>"<dsg>:<attr>
    void (*node_end)(void *arg);
+
+   //errors
+   void (*parse_error)(void *arg, int32_t errorCode, int32_t line);
 }apx_istream_handler_t;
 
 
@@ -41,6 +45,7 @@ typedef struct apx_istream_t{
    adt_bytearray_t buf;
    uint8_t parseState;
    apx_declarationLine_t declarationLine;
+   int32_t currentLine;
 }apx_istream_t;
 
 

@@ -1,3 +1,31 @@
+/*****************************************************************************
+* \file      apx_parser.c
+* \author    Conny Gustafsson
+* \date      2017-02-20
+* \brief     Description
+*
+* Copyright (c) 2017-2018 Conny Gustafsson
+* Permission is hereby granted, free of charge, to any person obtaining a copy of
+* this software and associated documentation files (the "Software"), to deal in
+* the Software without restriction, including without limitation the rights to
+* use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+* the Software, and to permit persons to whom the Software is furnished to do so,
+* subject to the following conditions:
+
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+* FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+* IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+* CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*
+******************************************************************************/
+//////////////////////////////////////////////////////////////////////////////
+// INCLUDES
+//////////////////////////////////////////////////////////////////////////////
 #include <malloc.h>
 #include <stdio.h>
 #include <string.h>
@@ -6,17 +34,34 @@
 #include "apx_stream.h"
 #include "apx_logging.h"
 #include "apx_node.h"
+#include "apx_error.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
 
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE CONSTANTS AND DATA TYPES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+static void apx_parser_clearError(apx_parser_t *self);
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE VARIABLES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
 void apx_parser_create(apx_parser_t *self)
 {
    if (self !=0)
    {
       adt_ary_create(&self->nodeList,apx_node_vdelete);
       self->currentNode=0;
-
+      apx_parser_clearError(self);
    }
 }
 
@@ -53,6 +98,25 @@ apx_node_t *apx_parser_getNode(apx_parser_t *self, int32_t index)
       }
    }
    return 0;
+}
+
+int32_t apx_parser_getLastError(apx_parser_t *self)
+{
+   if (self != 0)
+   {
+      return self->lastErrorType;
+   }
+   return -1;
+}
+
+
+int32_t apx_parser_getErrorLine(apx_parser_t *self)
+{
+   if (self != 0)
+   {
+      return self->lastErrorLine;
+   }
+   return -1;
 }
 
 /**
@@ -95,7 +159,7 @@ apx_node_t *apx_parser_parseFile(apx_parser_t *self, const char *filename)
    apx_istream_handler.provide = apx_parser_vprovide;
    apx_istream_handler.require = apx_parser_vrequire;
    apx_istream_handler.node_end = apx_parser_vnode_end;
-
+   apx_istream_handler.parse_error = apx_parser_vparse_error;
 
    apx_istream_create(&apx_istream,&apx_istream_handler);
    ifstream_create(&ifstream,&ifstream_handler);
@@ -111,7 +175,10 @@ apx_node_t *apx_parser_parseFile(apx_parser_t *self, const char *filename)
 //event handlers
 void apx_parser_open(apx_parser_t *self)
 {
-   (void) self;
+   if (self != 0)
+   {
+      apx_parser_clearError(self);
+   }
 }
 
 void apx_parser_close(apx_parser_t *self)
@@ -138,28 +205,38 @@ void apx_parser_node(apx_parser_t *self, const char *name) //N"<name>"
    }
 }
 
-void apx_parser_datatype(apx_parser_t *self, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_datatype(apx_parser_t *self, const char *name, const char *dsg, const char *attr)
 {
    if ( (self != 0) && (self->currentNode != 0) )
    {
       apx_node_createDataType(self->currentNode,name,dsg,attr);
+      return 0;
    }
+   return -1;
 }
 
-void apx_parser_require(apx_parser_t *self, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_require(apx_parser_t *self, const char *name, const char *dsg, const char *attr)
 {
    if ( (self != 0) && (self->currentNode != 0) )
    {
       (void) apx_node_createRequirePort(self->currentNode,name,dsg,attr);
+      return 0;
    }
+   return -1;
 }
 
-void apx_parser_provide(apx_parser_t *self, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_provide(apx_parser_t *self, const char *name, const char *dsg, const char *attr)
 {
    if ( (self != 0) && (self->currentNode != 0) )
    {
-      (void) apx_node_createProvidePort(self->currentNode,name,dsg,attr);
+      apx_port_t *port = apx_node_createProvidePort(self->currentNode,name,dsg,attr);
+      if (port == 0)
+      {
+         return APX_PARSE_ERROR;
+      }
+      return 0;
    }
+   return -1;
 }
 
 void apx_parser_node_end(apx_parser_t *self)
@@ -169,6 +246,15 @@ void apx_parser_node_end(apx_parser_t *self)
       apx_node_finalize(self->currentNode);
       adt_ary_push(&self->nodeList,self->currentNode);
       self->currentNode=0;
+   }
+}
+
+void apx_parser_parse_error(apx_parser_t *self, int32_t errorType, int32_t errorLine)
+{
+   if (self != 0)
+   {
+      self->lastErrorType = errorType;
+      self->lastErrorLine = errorLine;
    }
 }
 
@@ -188,19 +274,19 @@ void apx_parser_vnode(void *arg, const char *name)
    apx_parser_node((apx_parser_t*) arg,name);
 }
 
-void apx_parser_vdatatype(void *arg, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_vdatatype(void *arg, const char *name, const char *dsg, const char *attr)
 {
-   apx_parser_datatype((apx_parser_t*) arg,name,dsg,attr);
+   return apx_parser_datatype((apx_parser_t*) arg,name,dsg,attr);
 }
 
-void apx_parser_vrequire(void *arg, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_vrequire(void *arg, const char *name, const char *dsg, const char *attr)
 {
-   apx_parser_require((apx_parser_t*) arg,name,dsg,attr);
+   return apx_parser_require((apx_parser_t*) arg,name,dsg,attr);
 }
 
-void apx_parser_vprovide(void *arg, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_vprovide(void *arg, const char *name, const char *dsg, const char *attr)
 {
-   apx_parser_provide((apx_parser_t*) arg,name,dsg,attr);
+   return apx_parser_provide((apx_parser_t*) arg,name,dsg,attr);
 }
 
 void apx_parser_vnode_end(void *arg)
@@ -208,4 +294,17 @@ void apx_parser_vnode_end(void *arg)
    apx_parser_node_end((apx_parser_t*) arg);
 }
 
+void apx_parser_vparse_error(void *arg, int32_t errorType, int32_t errorLine)
+{
+   apx_parser_parse_error((apx_parser_t*) arg, errorType, errorLine);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+static void apx_parser_clearError(apx_parser_t *self)
+{
+   self->lastErrorType = 0;
+   self->lastErrorLine = 0;
+}
 

@@ -43,7 +43,8 @@
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_nodeDataFactory_create(CuTest *tc);
-static void test_apx_nodeDataFactory_fromString(CuTest *tc);
+static void test_apx_nodeDataFactory_fromValidString(CuTest *tc);
+static void test_apx_nodeDataFactory_fromInvalidString1(CuTest *tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -57,7 +58,8 @@ CuSuite* testSuite_apx_nodeDataFactory(void)
    CuSuite* suite = CuSuiteNew();
 
    SUITE_ADD_TEST(suite, test_apx_nodeDataFactory_create);
-   SUITE_ADD_TEST(suite, test_apx_nodeDataFactory_fromString);
+   SUITE_ADD_TEST(suite, test_apx_nodeDataFactory_fromValidString);
+   SUITE_ADD_TEST(suite, test_apx_nodeDataFactory_fromInvalidString1);
 
 
    return suite;
@@ -76,7 +78,7 @@ static void test_apx_nodeDataFactory_create(CuTest* tc)
    apx_nodeDataFactory_destroy(&factory);
 }
 
-static void test_apx_nodeDataFactory_fromString(CuTest *tc)
+static void test_apx_nodeDataFactory_fromValidString(CuTest *tc)
 {
    apx_nodeDataFactory_t factory;
    apx_nodeData_t *nodeData;
@@ -91,4 +93,21 @@ static void test_apx_nodeDataFactory_fromString(CuTest *tc)
    CuAssertPtrNotNull(tc, nodeData);
    apx_nodeData_delete(nodeData);
    apx_nodeDataFactory_destroy(&factory);
+}
+
+static void test_apx_nodeDataFactory_fromInvalidString1(CuTest *tc)
+{
+   apx_nodeDataFactory_t factory;
+   apx_nodeData_t *nodeData;
+   const char *test_definition=
+         "APX/1.2\n"
+         "N\"TestNode\"" //missing the new-line character here
+         "P\"OutPort1\"C(0,1):=0\n";
+   apx_nodeDataFactory_create(&factory);
+
+   nodeData = apx_nodeDataFactory_fromString(&factory, (uint8_t*) test_definition, (uint32_t) strlen(test_definition));
+   CuAssertPtrNotNull(tc, nodeData);
+   apx_nodeData_delete(nodeData);
+   apx_nodeDataFactory_destroy(&factory);
+
 }

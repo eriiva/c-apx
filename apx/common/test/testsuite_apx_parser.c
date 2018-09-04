@@ -8,6 +8,7 @@
 #include <string.h>
 #include "CuTest.h"
 #include "apx_parser.h"
+#include "apx_error.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -26,7 +27,7 @@
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_parser_file(CuTest* tc);
-static void test_apx_parser_fileWithErrorErrors(CuTest* tc);
+static void test_apx_parser_fileWithErrors(CuTest* tc);
 static void test_apx_parser_fileWithInitValues(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
@@ -48,7 +49,7 @@ CuSuite* testSuite_apx_parser(void)
    CuSuite* suite = CuSuiteNew();
 
    SUITE_ADD_TEST(suite, test_apx_parser_file);
-   SUITE_ADD_TEST(suite, test_apx_parser_fileWithErrorErrors);
+   SUITE_ADD_TEST(suite, test_apx_parser_fileWithErrors);
    SUITE_ADD_TEST(suite, test_apx_parser_fileWithInitValues);
 
    return suite;
@@ -67,13 +68,15 @@ static void test_apx_parser_file(CuTest* tc)
    apx_parser_destroy(&parser);
 }
 
-static void test_apx_parser_fileWithErrorErrors(CuTest* tc)
+static void test_apx_parser_fileWithErrors(CuTest* tc)
 {
    apx_parser_t parser;
    apx_node_t *node;
    apx_parser_create(&parser);
    node=apx_parser_parseFile(&parser, APX_TEST_DATA_PATH "test6.apx");
    CuAssertPtrNotNull(tc,node);
+   CuAssertIntEquals(tc, APX_PARSE_ERROR, apx_parser_getLastError(&parser));
+   CuAssertIntEquals(tc, 3, apx_parser_getErrorLine(&parser));
    apx_parser_destroy(&parser);
 }
 
@@ -107,7 +110,6 @@ static void test_apx_parser_fileWithInitValues(CuTest* tc)
    CuAssertIntEquals(tc, DTL_DV_SCALAR, dtl_dv_type(attr->initValue));
    sv = (dtl_sv_t*) attr->initValue;
    CuAssertUIntEquals(tc, 15, dtl_sv_get_u32(sv));
-
 
    apx_parser_destroy(&parser);
 }
