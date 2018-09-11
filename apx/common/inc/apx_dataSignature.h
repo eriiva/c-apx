@@ -66,7 +66,6 @@ apx_error_t apx_dataSignature_create(apx_dataSignature_t *self, const char *dsg)
 void apx_dataSignature_destroy(apx_dataSignature_t *self);
 int32_t apx_dataSignature_getPackLen(apx_dataSignature_t *self);
 int32_t apx_dataSignature_calcPackLen(apx_dataSignature_t *self);
-//int8_t apx_dataSignature_update(apx_dataSignature_t *self,const char *dsg);
-apx_error_t apx_dataSignature_derive(apx_dataSignature_t *self, struct adt_ary_tag *typeList, struct adt_hash_tag typeMap);
+apx_error_t apx_dataSignature_resolveTypes(apx_dataSignature_t *self, struct adt_ary_tag *typeList, struct adt_hash_tag *typeMap);
 
 #endif //APX_DATASIGNATURE_H

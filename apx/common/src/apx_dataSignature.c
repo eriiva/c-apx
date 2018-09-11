@@ -36,8 +36,10 @@
 #include "apx_cfg.h"
 #include "apx_dataSignature.h"
 #include "bstr.h"
-#include "bstr.h"
+#include "adt_ary.h"
+#include "adt_hash.h"
 #include "apx_types.h"
+#include "apx_datatype.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -177,67 +179,44 @@ int32_t apx_dataSignature_calcPackLen(apx_dataSignature_t *self)
    return -1;
 }
 
-#if 0
-/**
- * updates the datasignature object with new dataSignature string.
- * the internal dataelement object will also be updated to reflect the new string.
- */
-int8_t apx_dataSignature_update(apx_dataSignature_t *self,const char *dsg)
+apx_error_t apx_dataSignature_resolveTypes(apx_dataSignature_t *self, struct adt_ary_tag *typeList, struct adt_hash_tag *typeMap)
 {
-   if ( (self != 0) )
+   if (self != 0)
    {
-      if (dsg == 0)
+      if (self->dataElement->baseType == APX_BASE_TYPE_REF_ID)
       {
-         if (self->raw != 0)
+         if (typeList != 0)
          {
-            free(self->raw);
-            self->raw=0;
-            if (self->dataElement != 0)
+            if (self->dataElement->typeRef.id < adt_ary_length(typeList) )
             {
-               apx_dataElement_destroy(self->dataElement);
-               apx_dataElement_create(self->dataElement,APX_BASE_TYPE_NONE,0);
-            }
-            else
-            {
-               self->dataElement = apx_dataElement_new(APX_BASE_TYPE_NONE,0);
+               apx_dataElement_setTypeReferencePtr(self->dataElement, (apx_datatype_t*) adt_ary_value(typeList, self->dataElement->typeRef.id));
+               //TODO: Implement support for recursive type lookups here, possibly with circular redundancy check
+               return APX_NO_ERROR;
             }
          }
+         return APX_INVALID_TYPE_REF_ERROR;
+      }
+      else if (self->dataElement->baseType == APX_BASE_TYPE_REF_NAME)
+      {
+         if (typeMap != 0)
+         {
+            void **ppVal = adt_hash_get(typeMap, self->dataElement->typeRef.name, 0);
+            if (ppVal != 0)
+            {
+               apx_dataElement_setTypeReferencePtr(self->dataElement, (apx_datatype_t*) *ppVal);
+               //TODO: Implement support for recursive type lookups here, possibly with circular redundancy check
+               return APX_NO_ERROR;
+            }
+         }
+         return APX_INVALID_TYPE_REF_ERROR;
       }
       else
       {
-         if ( (self->raw != 0) && (strcmp(self->raw,dsg)==0)  )
-         {
-            return 0; //no change
-         }
-         if ( self->raw != 0)
-         {
-            free(self->raw);
-         }
-         self->raw=STRDUP(dsg);
-         if (self->raw == 0)
-         {
-            errno = ENOMEM;
-            return -1;
-         }
-         if (self->dataElement != 0)
-         {
-            apx_dataElement_destroy(self->dataElement);
-            apx_dataElement_create(self->dataElement,APX_BASE_TYPE_NONE,0);
-         }
-         else
-         {
-            self->dataElement = apx_dataElement_new(APX_BASE_TYPE_NONE,0);
-         }
-         parseDataSignature(self,(const uint8_t*) self->raw);
+         //MISRA
       }
+      return APX_NO_ERROR;
    }
-   return 0;
-}
-#endif
-
-apx_error_t apx_dataSignature_derive(apx_dataSignature_t *self, struct adt_ary_tag *typeList, struct adt_hash_tag typeMap)
-{
-   return APX_NOT_IMPLEMENTED_ERROR;
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 
 //////////////////////////////////////////////////////////////////////////////

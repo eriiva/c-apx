@@ -26,6 +26,7 @@
 #define APX_INVALID_TYPE_REF_ERROR    14
 #define APX_EXPECTED_BRACKET_ERROR    15
 
+
 typedef int32_t apx_error_t;
 
 //////////////////////////////////////////////////////////////////////////////
