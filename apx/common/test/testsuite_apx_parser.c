@@ -27,8 +27,11 @@
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_parser_file(CuTest* tc);
-static void test_apx_parser_fileWithErrors(CuTest* tc);
 static void test_apx_parser_fileWithInitValues(CuTest* tc);
+static void test_apx_parser_providePortWithInvalidAttributeString(CuTest* tc);
+static void test_apx_parser_requirePortWithInvalidAttributeString(CuTest* tc);
+static void test_apx_parser_providePortWithInvalidDataSignature(CuTest* tc);
+
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -49,8 +52,11 @@ CuSuite* testSuite_apx_parser(void)
    CuSuite* suite = CuSuiteNew();
 
    SUITE_ADD_TEST(suite, test_apx_parser_file);
-   SUITE_ADD_TEST(suite, test_apx_parser_fileWithErrors);
    SUITE_ADD_TEST(suite, test_apx_parser_fileWithInitValues);
+   SUITE_ADD_TEST(suite, test_apx_parser_providePortWithInvalidAttributeString);
+   SUITE_ADD_TEST(suite, test_apx_parser_requirePortWithInvalidAttributeString);
+   SUITE_ADD_TEST(suite, test_apx_parser_providePortWithInvalidDataSignature);
+
 
    return suite;
 }
@@ -68,13 +74,16 @@ static void test_apx_parser_file(CuTest* tc)
    apx_parser_destroy(&parser);
 }
 
-static void test_apx_parser_fileWithErrors(CuTest* tc)
+static void test_apx_parser_providePortWithInvalidAttributeString(CuTest* tc)
 {
    apx_parser_t parser;
    apx_node_t *node;
    apx_parser_create(&parser);
-   node=apx_parser_parseFile(&parser, APX_TEST_DATA_PATH "test6.apx");
-   CuAssertPtrNotNull(tc,node);
+   const char *apx_text = "APX/1.2\n"
+"N\"test\"\n"
+"P\"VehicleSpeed\"S:abcd\n";
+   node=apx_parser_parseString(&parser, apx_text);
+   CuAssertPtrEquals(tc, 0, node);
    CuAssertIntEquals(tc, APX_PARSE_ERROR, apx_parser_getLastError(&parser));
    CuAssertIntEquals(tc, 3, apx_parser_getErrorLine(&parser));
    apx_parser_destroy(&parser);
@@ -113,3 +122,35 @@ static void test_apx_parser_fileWithInitValues(CuTest* tc)
 
    apx_parser_destroy(&parser);
 }
+
+static void test_apx_parser_requirePortWithInvalidAttributeString(CuTest* tc)
+{
+   apx_parser_t parser;
+   apx_node_t *node;
+   apx_parser_create(&parser);
+   const char *apx_text = "APX/1.2\n"
+"N\"test\"\n"
+"R\"VehicleSpeed\"S:abcd\n";
+   node=apx_parser_parseString(&parser, apx_text);
+   CuAssertPtrEquals(tc, 0, node);
+   CuAssertIntEquals(tc, APX_PARSE_ERROR, apx_parser_getLastError(&parser));
+   CuAssertIntEquals(tc, 3, apx_parser_getErrorLine(&parser));
+   apx_parser_destroy(&parser);
+}
+
+static void test_apx_parser_providePortWithInvalidDataSignature(CuTest* tc)
+{
+   apx_parser_t parser;
+   apx_node_t *node;
+   apx_parser_create(&parser);
+   const char *apx_text = "APX/1.2\n"
+"N\"test\"\n"
+"P\"Signal1\"{\"User\"L:=0\n" //missing terminating '}' character
+"R\"Signal2\"S:=0";
+   node=apx_parser_parseString(&parser, apx_text);
+   CuAssertPtrEquals(tc, 0, node);
+   CuAssertIntEquals(tc, APX_PARSE_ERROR, apx_parser_getLastError(&parser));
+   CuAssertIntEquals(tc, 3, apx_parser_getErrorLine(&parser));
+   apx_parser_destroy(&parser);
+}
+

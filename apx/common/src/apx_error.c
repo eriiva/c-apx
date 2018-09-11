@@ -16,7 +16,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
-static int32_t m_lastError = APX_NO_ERROR;
+static apx_error_t m_lastError = APX_NO_ERROR;
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
@@ -26,12 +26,12 @@ void apx_clearError(void)
    m_lastError = APX_NO_ERROR;
 }
 
-int32_t apx_getLastError(void)
+apx_error_t apx_getLastError(void)
 {
    return m_lastError;
 }
 
-void apx_setError(int32_t error)
+void apx_setError(apx_error_t error)
 {
    m_lastError = error;
 }

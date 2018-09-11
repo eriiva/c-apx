@@ -6,11 +6,7 @@
 #include "apx_datatype.h"
 #include "apx_port.h"
 #include "apx_attributeParser.h"
-#if defined(_MSC_PLATFORM_TOOLSET) && (_MSC_PLATFORM_TOOLSET<=110)
-#include "msc_bool.h"
-#else
 #include <stdbool.h>
-#endif
 
 struct apx_node_t;
 struct apx_nodeInfo_tag;
@@ -19,13 +15,14 @@ typedef struct apx_node_t{
    adt_ary_t datatypeList;
    adt_ary_t requirePortList;
    adt_ary_t providePortList;
-   int8_t lastPortError;
+   apx_error_t lastPortError;
    int8_t lastPortId;
    int16_t lastPortType;
    char *name;
    struct apx_nodeInfo_tag *nodeInfo;
    bool isFinalized;
    apx_attributeParser_t attributeParser;
+
 } apx_node_t;
 
 
@@ -54,5 +51,6 @@ int32_t apx_node_getNumRequirePorts(apx_node_t *self);
 int32_t apx_node_getNumProvidePorts(apx_node_t *self);
 adt_bytearray_t *apx_node_createPortInitData(apx_node_t *self, apx_port_t *port);
 int32_t apx_node_fillPortInitData(apx_node_t *self, apx_port_t *port, adt_bytearray_t *output);
+int32_t apx_node_getLastPortError(apx_node_t *self);
 
 #endif //APX_NODE_H

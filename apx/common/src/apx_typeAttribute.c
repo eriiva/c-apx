@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_dataSignature.h
+* \file      apx_typeAttribute.c
 * \author    Conny Gustafsson
-* \date      2017-02-20
-* \brief     Data Signature (DSG) container and parser logic
+* \date      2018-09-11
+* \brief     APX type attribute class
 *
-* Copyright (c) 2017-2018 Conny Gustafsson
+* Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -23,50 +23,92 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_DATASIGNATURE_H
-#define APX_DATASIGNATURE_H
-
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <stdint.h>
-#include "apx_dataElement.h"
-#include "apx_error.h"
+#include "apx_typeAttribute.h"
+#include "apx_types.h"
+#include <string.h>
+#include <malloc.h>
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-//forward declarations
-struct adt_ary_tag;
-struct adt_hash_tag;
 
-typedef struct apx_dataSignature_tag
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE VARIABLES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+apx_error_t apx_typeAttribute_create(apx_typeAttribute_t *self, const char *attr)
 {
-   char *raw;
-   uint8_t dsgType; //this will always have value APX_DSG_TYPE_SENDER_RECEIVER until client/server has been implemented
-   apx_dataElement_t *dataElement;
-   //TODO: implement support for client/server interfaces here
-}apx_dataSignature_t;
+   if (self != 0)
+   {
+      self->rawString = (attr!=0)? STRDUP(attr) : 0;
+      return APX_NO_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
 
-#define APX_DSG_TYPE_SENDER_RECEIVER   0
-#define APX_DSG_TYPE_CLIENT_SERVER     1
+void apx_typeAttribute_destroy(apx_typeAttribute_t *self)
+{
+   if (self != 0)
+   {
+      if (self->rawString != 0)
+      {
+         free(self->rawString);
+      }
+   }
+}
 
+apx_typeAttribute_t *apx_typeAttribute_new(const char *attr)
+{
+   apx_typeAttribute_t *self = (apx_typeAttribute_t*) malloc(sizeof(apx_typeAttribute_t));
+   if (self != 0)
+   {
+      apx_error_t result = apx_typeAttribute_create(self, attr);
+      if (result != APX_NO_ERROR)
+      {
+         apx_setError(result);
+         free(self);
+      }
+   }
+   else
+   {
+      apx_setError(APX_MEM_ERROR);
+   }
+   return self;
+}
+
+void apx_typeAttribute_delete(apx_typeAttribute_t *self)
+{
+   if (self != 0)
+   {
+      apx_typeAttribute_destroy(self);
+      free(self);
+   }
+}
+
+const char *apx_typeAttribute_cstr(apx_typeAttribute_t *self)
+{
+   if (self != 0)
+   {
+      return self->rawString;
+   }
+   return (const char*) 0;
+}
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
+// PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
-apx_dataSignature_t *apx_dataSignature_new(const char *dsg);
-void apx_dataSignature_delete(apx_dataSignature_t *self);
-void apx_dataSignature_vdelete(void *arg);
-apx_error_t apx_dataSignature_create(apx_dataSignature_t *self, const char *dsg);
-void apx_dataSignature_destroy(apx_dataSignature_t *self);
-int32_t apx_dataSignature_getPackLen(apx_dataSignature_t *self);
-int32_t apx_dataSignature_calcPackLen(apx_dataSignature_t *self);
-//int8_t apx_dataSignature_update(apx_dataSignature_t *self,const char *dsg);
-apx_error_t apx_dataSignature_derive(apx_dataSignature_t *self, struct adt_ary_tag *typeList, struct adt_hash_tag typeMap);
 
-#endif //APX_DATASIGNATURE_H

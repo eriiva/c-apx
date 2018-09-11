@@ -1,3 +1,31 @@
+/*****************************************************************************
+* \file      apx_dataSignature.c
+* \author    Conny Gustafsson
+* \date      2017-02-20
+* \brief     Data Signature (DSG) container and parser logic
+*
+* Copyright (c) 2017-2018 Conny Gustafsson
+* Permission is hereby granted, free of charge, to any person obtaining a copy of
+* this software and associated documentation files (the "Software"), to deal in
+* the Software without restriction, including without limitation the rights to
+* use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+* the Software, and to permit persons to whom the Software is furnished to do so,
+* subject to the following conditions:
+
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+* FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+* IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+* CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*
+******************************************************************************/
+//////////////////////////////////////////////////////////////////////////////
+// INCLUDES
+//////////////////////////////////////////////////////////////////////////////
 #include <errno.h>
 #include <malloc.h>
 #include <assert.h>
@@ -9,37 +37,40 @@
 #include "apx_dataSignature.h"
 #include "bstr.h"
 #include "bstr.h"
+#include "apx_types.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
 
-#ifdef _MSC_VER
-#define STRDUP _strdup
-#else
-#define STRDUP strdup
-#endif
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE CONSTANTS AND DATA TYPES
+//////////////////////////////////////////////////////////////////////////////
 
-
-/**************** Private Function Declarations *******************/
-
-static int8_t parseDataSignature(apx_dataSignature_t *self, const uint8_t *dsg);
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+static apx_error_t parseDataSignature(apx_dataSignature_t *self, const uint8_t *dsg);
 static const uint8_t *parseDataElement(const uint8_t *pBegin, const uint8_t *pEnd, apx_dataElement_t *pDataElement);
 static const uint8_t *parseName(const uint8_t *pBegin, const uint8_t *pEnd, apx_dataElement_t *pDataElement);
 static const uint8_t *parseType(const uint8_t *pBegin, const uint8_t *pEnd, apx_dataElement_t *pDataElement);
 static const uint8_t *parseArrayLength(const uint8_t *pBegin, const uint8_t *pEnd, apx_dataElement_t *pDataElement);
 static const uint8_t *parseLimit(const uint8_t *pBegin, const uint8_t *pEnd, apx_dataElement_t *pDataElement);
-static void calcPackLen(apx_dataElement_t *pDataElement);
-/**************** Private Variable Declarations *******************/
+static const uint8_t *parseTypeReference(const uint8_t *pBegin, const uint8_t *pEnd, apx_dataElement_t *pDataElement);
 
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE VARIABLES
+//////////////////////////////////////////////////////////////////////////////
 
-/****************** Public Function Definitions *******************/
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
 apx_dataSignature_t *apx_dataSignature_new(const char *dsg)
 {
    apx_dataSignature_t *self = (apx_dataSignature_t*) malloc(sizeof(apx_dataSignature_t));
    if(self != 0)
    {
-      int8_t result = apx_dataSignature_create(self,dsg);
-      if (result<0) //apx_dataSignature_create should have already set errno
+      apx_error_t result = apx_dataSignature_create(self,dsg);
+      if (result != APX_NO_ERROR)
       {
          free(self);
          self=0;
@@ -66,17 +97,14 @@ void apx_dataSignature_vdelete(void *arg)
    apx_dataSignature_delete((apx_dataSignature_t*) arg);
 }
 
-/**
- * returns 0 on sucess, -1 on failure (also sets errno)
- */
-int8_t apx_dataSignature_create(apx_dataSignature_t *self, const char *dsg)
+apx_error_t apx_dataSignature_create(apx_dataSignature_t *self, const char *dsg)
 {
    if (self != 0)
    {
       if (dsg != 0)
       {
-         self->str=STRDUP(dsg);
-         if (self->str == 0)
+         self->raw=STRDUP(dsg);
+         if (self->raw == 0)
          {
             errno = ENOMEM;
             return -1;
@@ -84,12 +112,22 @@ int8_t apx_dataSignature_create(apx_dataSignature_t *self, const char *dsg)
       }
       else
       {
-         self->str = 0;
+         self->raw = 0;
       }
-      if (self->str != 0)
+      if (self->raw != 0)
       {
+         apx_error_t result;
          self->dataElement=apx_dataElement_new(APX_BASE_TYPE_NONE,0);
-         parseDataSignature(self,(const uint8_t*) self->str);
+         result = parseDataSignature(self,(const uint8_t*) self->raw);
+         if (result != APX_NO_ERROR)
+         {
+            apx_dataElement_delete(self->dataElement);
+            if (self->raw)
+            {
+               free(self->raw);
+            }
+            return result;
+         }
       }
       else
       {
@@ -97,7 +135,7 @@ int8_t apx_dataSignature_create(apx_dataSignature_t *self, const char *dsg)
       }
       self->dsgType = APX_DSG_TYPE_SENDER_RECEIVER; //No support for client/server yet
    }
-   return 0;
+   return APX_NO_ERROR;
 }
 
 void apx_dataSignature_destroy(apx_dataSignature_t *self)
@@ -108,25 +146,38 @@ void apx_dataSignature_destroy(apx_dataSignature_t *self)
       {
          apx_dataElement_delete(self->dataElement);
       }
-      if (self->str != 0)
+      if (self->raw != 0)
       {
-         free(self->str);
+         free(self->raw);
       }
    }
 }
 
-uint32_t apx_dataSignature_packLen(apx_dataSignature_t *self)
+int32_t apx_dataSignature_getPackLen(apx_dataSignature_t *self)
 {
    if (self != 0)
    {
       if (self->dataElement != 0)
       {
-         return self->dataElement->packLen;
+         return apx_dataElement_getPackLen(self->dataElement);
       }
    }
-   return 0;
+   return -1;
 }
 
+int32_t apx_dataSignature_calcPackLen(apx_dataSignature_t *self)
+{
+   if (self != 0)
+   {
+      if (self->dsgType == APX_DSG_TYPE_SENDER_RECEIVER)
+      {
+         return apx_dataElement_calcPackLen(self->dataElement);
+      }
+   }
+   return -1;
+}
+
+#if 0
 /**
  * updates the datasignature object with new dataSignature string.
  * the internal dataelement object will also be updated to reflect the new string.
@@ -137,10 +188,10 @@ int8_t apx_dataSignature_update(apx_dataSignature_t *self,const char *dsg)
    {
       if (dsg == 0)
       {
-         if (self->str != 0)
+         if (self->raw != 0)
          {
-            free(self->str);
-            self->str=0;
+            free(self->raw);
+            self->raw=0;
             if (self->dataElement != 0)
             {
                apx_dataElement_destroy(self->dataElement);
@@ -154,16 +205,16 @@ int8_t apx_dataSignature_update(apx_dataSignature_t *self,const char *dsg)
       }
       else
       {
-         if ( (self->str != 0) && (strcmp(self->str,dsg)==0)  )
+         if ( (self->raw != 0) && (strcmp(self->raw,dsg)==0)  )
          {
             return 0; //no change
          }
-         if ( self->str != 0)
+         if ( self->raw != 0)
          {
-            free(self->str);
+            free(self->raw);
          }
-         self->str=STRDUP(dsg);
-         if (self->str == 0)
+         self->raw=STRDUP(dsg);
+         if (self->raw == 0)
          {
             errno = ENOMEM;
             return -1;
@@ -177,22 +228,31 @@ int8_t apx_dataSignature_update(apx_dataSignature_t *self,const char *dsg)
          {
             self->dataElement = apx_dataElement_new(APX_BASE_TYPE_NONE,0);
          }
-         parseDataSignature(self,(const uint8_t*) self->str);
+         parseDataSignature(self,(const uint8_t*) self->raw);
       }
    }
    return 0;
 }
+#endif
 
-/***************** Private Function Definitions *******************/
+apx_error_t apx_dataSignature_derive(apx_dataSignature_t *self, struct adt_ary_tag *typeList, struct adt_hash_tag typeMap)
+{
+   return APX_NOT_IMPLEMENTED_ERROR;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
 /**
  * returns 0 on success, -1 on error
  */
-static int8_t parseDataSignature(apx_dataSignature_t *self, const uint8_t *dsg)
+static apx_error_t parseDataSignature(apx_dataSignature_t *self, const uint8_t *dsg)
 {
    const uint8_t *pNext=dsg;
    const uint8_t *pEnd=pNext+strlen((const char*)dsg);
    const uint8_t *pResult;
    char c = (char) *pNext;
+   apx_clearError();
 
    if (c =='{')
    {
@@ -220,14 +280,13 @@ static int8_t parseDataSignature(apx_dataSignature_t *self, const uint8_t *dsg)
                apx_dataElement_delete(pChildElement);
                apx_dataElement_delete(self->dataElement);
                self->dataElement=0;
-               return -1;
+               return apx_getLastError();
             }
          }
       }
       else
       {
-         //not enough bytes in buffer, trigger parse error
-         return -1;
+         return APX_UNMATCHED_BRACE_ERROR;
       }
    }
    else
@@ -235,10 +294,9 @@ static int8_t parseDataSignature(apx_dataSignature_t *self, const uint8_t *dsg)
       pResult = parseDataElement(pNext,pEnd,self->dataElement);
       if (pResult <= pNext)
       {
-         return -1;
+         return apx_getLastError();
       }
    }
-   calcPackLen(self->dataElement);
    return 0;
 }
 
@@ -258,19 +316,29 @@ static const uint8_t *parseDataElement(const uint8_t *pBegin, const uint8_t *pEn
    {
       return NULL;
    }
-   //optional array length [arrayLen]
-   pNext = parseArrayLength(pNext,pEnd,pDataElement);
-   if (pNext == 0)
+   if (pDataElement->baseType==APX_BASE_TYPE_REF_ID)
    {
-      return NULL;
+      pNext = parseTypeReference(pNext,pEnd,pDataElement);
+      if (pNext == 0)
+      {
+         return NULL;
+      }
    }
-   //optional range limit (min,max)
-   pNext = parseLimit(pNext,pEnd,pDataElement);
-   if (pNext == 0)
+   else
    {
-      return NULL;
+      //optional array length [arrayLen]
+      pNext = parseArrayLength(pNext,pEnd,pDataElement);
+      if (pNext == 0)
+      {
+         return NULL;
+      }
+      //optional range limit (min,max)
+      pNext = parseLimit(pNext,pEnd,pDataElement);
+      if (pNext == 0)
+      {
+         return NULL;
+      }
    }
-   calcPackLen(pDataElement);
    return pNext;
 }
 
@@ -334,6 +402,9 @@ static const uint8_t *parseType(const uint8_t *pBegin, const uint8_t *pEnd, apx_
    case 'L':
       pDataElement->baseType=APX_BASE_TYPE_UINT32;
       break;
+   case 'T':
+      pDataElement->baseType=APX_BASE_TYPE_REF_ID; //assume type ID reference until we have parsed further into the string
+      break;
    case 'a':
       pDataElement->baseType=APX_BASE_TYPE_STRING;
       break;
@@ -351,6 +422,7 @@ static const uint8_t *parseType(const uint8_t *pBegin, const uint8_t *pEnd, apx_
       //TODO: implement child record parsing here
       return NULL;
    default:
+      apx_setError(APX_ELEMENT_TYPE_ERROR);
       return NULL;
    }
    return pNext;
@@ -461,62 +533,80 @@ static const uint8_t *parseLimit(const uint8_t *pBegin, const uint8_t *pEnd, apx
    return pNext;
 }
 
-static void calcPackLen(apx_dataElement_t *pDataElement)
+static const uint8_t *parseTypeReference(const uint8_t *pBegin, const uint8_t *pEnd, apx_dataElement_t *pDataElement)
 {
-   if (pDataElement->baseType == APX_BASE_TYPE_RECORD)
+   const uint8_t *pNext=pBegin;
+   if ( (pBegin == 0) || (pEnd == 0) || (pDataElement == 0) || (pEnd < pBegin) )
    {
-      int32_t i;
-      int32_t end = adt_ary_length(pDataElement->childElements);
-      pDataElement->packLen=0;
-      for(i=0;i<end;i++)
-      {
-         apx_dataElement_t *pChildElement = (apx_dataElement_t*) adt_ary_value(pDataElement->childElements,i);
-         assert (pChildElement != 0);
-         pDataElement->packLen+=pChildElement->packLen;
-      }
+      apx_setError(APX_INVALID_ARGUMENT_ERROR);
+      return NULL;
    }
-   else
+   if (pNext < pEnd)
    {
-      uint32_t elemLen=0;
-      switch(pDataElement->baseType)
+      char c = (char) *pNext;
+      if(c == '[')
       {
-      case APX_BASE_TYPE_NONE:
-         break;
-      case APX_BASE_TYPE_UINT8:
-         elemLen=1;
-         break;
-      case APX_BASE_TYPE_UINT16:
-         elemLen=2;
-         break;
-      case APX_BASE_TYPE_UINT32:
-         elemLen=4;
-         break;
-      case APX_BASE_TYPE_SINT8:
-         elemLen=1;
-         break;
-      case APX_BASE_TYPE_SINT16:
-         elemLen=2;
-         break;
-      case APX_BASE_TYPE_SINT32:
-         elemLen=4;
-         break;
-      case APX_BASE_TYPE_STRING:
-         elemLen=1;
-         break;
-      default:
-         break;
-      }
-      if (elemLen > 0)
-      {
-         if (pDataElement->arrayLen > 0)
+         const uint8_t *pResult;
+         pResult=bstr_matchPair(pNext,pEnd,'[',']','\\');
+         if (pResult>pNext)
          {
-            pDataElement->packLen=(uint32_t)elemLen*pDataElement->arrayLen;
+            const uint8_t *pInner = pNext+1;
+            if ( (pInner < pResult) && (pInner[0] == '"') )
+            {
+               const uint8_t *pInnerEnd = bstr_matchPair(pInner, pResult,'"','"','\\');
+               if (pInnerEnd > pInner)
+               {
+                  uint8_t *tmp = bstr_make(pInner+1, pInnerEnd);
+                  if (tmp != 0)
+                  {
+                     apx_dataElement_setTypeReferenceName(pDataElement, (const char*) tmp);
+                     free(tmp);
+                  }
+                  else
+                  {
+                     apx_setError(APX_MEM_ERROR);
+                     return NULL;
+                  }
+               }
+               else
+               {
+                  apx_setError(APX_UNMATCHED_STRING_ERROR);
+                  return NULL;
+               }
+            }
+            else
+            {
+               long value;
+               const uint8_t *pResult2 = bstr_toLong(pInner, pResult, &value);
+               if ( (pInner < pResult) && (pResult2 == pResult) )
+               {
+                  apx_dataElement_setTypeReferenceId(pDataElement, (int32_t) value);
+               }
+               else
+               {
+                  apx_setError(APX_INVALID_TYPE_REF_ERROR);
+                  return NULL;
+               }
+            }
+            pNext=pResult+1;
          }
          else
          {
-            pDataElement->packLen=elemLen;
+            apx_setError(APX_UNMATCHED_BRACKET_ERROR);
+            return NULL;
          }
       }
+      else
+      {
+         apx_setError(APX_EXPECTED_BRACKET_ERROR);
+         return NULL;
+      }
    }
+   return pNext;
 }
+
+
+
+
+
 

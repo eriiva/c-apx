@@ -1,29 +1,61 @@
+/*****************************************************************************
+* \file      apx_dataElement.c
+* \author    Conny Gustafsson
+* \date      2017-02-20
+* \brief     Data element data structure
+*
+* Copyright (c) 2017-2018 Conny Gustafsson
+* Permission is hereby granted, free of charge, to any person obtaining a copy of
+* this software and associated documentation files (the "Software"), to deal in
+* the Software without restriction, including without limitation the rights to
+* use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+* the Software, and to permit persons to whom the Software is furnished to do so,
+* subject to the following conditions:
+
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+* FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+* IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+* CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*
+******************************************************************************/
+//////////////////////////////////////////////////////////////////////////////
+// INCLUDES
+//////////////////////////////////////////////////////////////////////////////
 #include <errno.h>
 #include <malloc.h>
 #include <assert.h>
 #include <string.h>
 #include "apx_dataElement.h"
 #include "apx_error.h"
+#include "apx_types.h"
+#include "apx_datatype.h"
 #include "pack.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
 
-#ifdef _MSC_VER
-#define STRDUP _strdup
-#else
-#define STRDUP strdup
-#endif
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE CONSTANTS AND DATA TYPES
+//////////////////////////////////////////////////////////////////////////////
 
-
-/**************** Private Function Declarations *******************/
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
 static uint8_t *apx_dataElement_pack_sv(apx_dataElement_t *self, uint8_t *pBegin, uint8_t *pEnd, dtl_sv_t *sv);
 static uint8_t *apx_dataElement_pack_record(apx_dataElement_t *self, uint8_t *pBegin, uint8_t *pEnd, dtl_av_t *av);
 
-/**************** Private Variable Declarations *******************/
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE VARIABLES
+//////////////////////////////////////////////////////////////////////////////
 
-
-/****************** Public Function Definitions *******************/
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
 apx_dataElement_t *apx_dataElement_new(int8_t baseType, const char *name)
 {
    apx_dataElement_t *self = (apx_dataElement_t*) malloc(sizeof(apx_dataElement_t));
@@ -83,10 +115,11 @@ int8_t apx_dataElement_create(apx_dataElement_t *self, int8_t baseType, const ch
       {
          self->childElements = (adt_ary_t*) 0;
       }
-      self->arrayLen=0;
-      self->min.s32=0;
-      self->max.s32=0;
-      self->packLen=0;
+      self->arrayLen = 0;
+      self->min.s32 = 0;
+      self->max.s32 = 0;
+      self->packLen = 0;
+      self->typeRef.id = 0;
    }
    return 0;
 }
@@ -102,6 +135,10 @@ void apx_dataElement_destroy(apx_dataElement_t *self)
       if (self->childElements != 0)
       {
          adt_ary_delete(self->childElements);
+      }
+      if ( (self->baseType == APX_BASE_TYPE_REF_NAME) && (self->typeRef.name != 0) )
+      {
+         free(self->typeRef.name);
       }
    }
 }
@@ -268,8 +305,159 @@ uint32_t apx_dataElement_getArrayLen(apx_dataElement_t *self)
    return 0;
 }
 
+void apx_dataElement_setTypeReferenceId(apx_dataElement_t *self, int32_t typeId)
+{
+   if (self != 0)
+   {
+      if ( (self->baseType == APX_BASE_TYPE_REF_NAME) && (self->typeRef.name != 0) )
+      {
+         free(self->typeRef.name);
+      }
+      if (self->baseType != APX_BASE_TYPE_REF_ID)
+      {
+         self->baseType = APX_BASE_TYPE_REF_ID;
+      }
+      self->typeRef.id = typeId;
+   }
+}
 
-/***************** Private Function Definitions *******************/
+int32_t apx_dataElement_getTypeReferenceId(apx_dataElement_t *self)
+{
+   if ( (self != 0) && (self->baseType == APX_BASE_TYPE_REF_ID))
+   {
+      return self->typeRef.id;
+   }
+   return -1;
+}
+
+void apx_dataElement_setTypeReferenceName(apx_dataElement_t *self, const char *typeName)
+{
+   if (self != 0)
+   {
+      if ( (self->baseType == APX_BASE_TYPE_REF_NAME) && (self->typeRef.name != 0) )
+      {
+         free(self->typeRef.name);
+      }
+      if (self->baseType != APX_BASE_TYPE_REF_NAME)
+      {
+         self->baseType = APX_BASE_TYPE_REF_NAME;
+      }
+      self->typeRef.name = STRDUP(typeName);
+   }
+}
+
+const char *apx_dataElement_getTypeReferenceName(apx_dataElement_t *self)
+{
+   if ( (self != 0) && (self->baseType == APX_BASE_TYPE_REF_NAME) )
+   {
+      return self->typeRef.name;
+   }
+   return (const char*) 0;
+}
+
+void apx_dataElement_setTypeReferencePtr(apx_dataElement_t *self, struct apx_datatype_tag *ptr)
+{
+   if (self != 0)
+   {
+      if ( (self->baseType == APX_BASE_TYPE_REF_NAME) && (self->typeRef.name != 0) )
+      {
+         free(self->typeRef.name);
+      }
+      if (self->baseType != APX_BASE_TYPE_REF_PTR)
+      {
+         self->baseType = APX_BASE_TYPE_REF_PTR;
+      }
+      self->typeRef.ptr = ptr;
+   }
+}
+
+apx_datatype_t *apx_dataElement_getTypeReferencePtr(apx_dataElement_t *self)
+{
+   if ( (self != 0) && (self->baseType == APX_BASE_TYPE_REF_PTR) )
+   {
+      return self->typeRef.ptr;
+   }
+   return (apx_datatype_t*) 0;
+}
+
+int32_t apx_dataElement_calcPackLen(apx_dataElement_t *self)
+{
+   if (self != 0)
+   {
+      self->packLen=0;
+      if (self->baseType == APX_BASE_TYPE_RECORD)
+      {
+         int32_t i;
+         int32_t end = adt_ary_length(self->childElements);
+         for(i=0;i<end;i++)
+         {
+            apx_dataElement_t *pChildElement = (apx_dataElement_t*) adt_ary_value(self->childElements,i);
+            assert (pChildElement != 0);
+            self->packLen+=apx_dataElement_calcPackLen(pChildElement);
+         }
+      }
+      else
+      {
+         uint32_t elemLen=0;
+         switch(self->baseType)
+         {
+         case APX_BASE_TYPE_NONE:
+            break;
+         case APX_BASE_TYPE_UINT8:
+            elemLen=1;
+            break;
+         case APX_BASE_TYPE_UINT16:
+            elemLen=2;
+            break;
+         case APX_BASE_TYPE_UINT32:
+            elemLen=4;
+            break;
+         case APX_BASE_TYPE_SINT8:
+            elemLen=1;
+            break;
+         case APX_BASE_TYPE_SINT16:
+            elemLen=2;
+            break;
+         case APX_BASE_TYPE_SINT32:
+            elemLen=4;
+            break;
+         case APX_BASE_TYPE_STRING:
+            elemLen=1;
+            break;
+         default:
+            break;
+         }
+         if (elemLen > 0)
+         {
+            if (self->arrayLen > 0)
+            {
+               self->packLen=(uint32_t)elemLen*self->arrayLen;
+            }
+            else
+            {
+               self->packLen=elemLen;
+            }
+         }
+      }
+      return self->packLen;
+   }
+   return -1;
+}
+
+int32_t apx_dataElement_getPackLen(apx_dataElement_t *self)
+{
+   if (self != 0)
+   {
+      return self->packLen;
+   }
+   return -1;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
 
 static uint8_t *apx_dataElement_pack_sv(apx_dataElement_t *self, uint8_t *pBegin, uint8_t *pEnd, dtl_sv_t *sv)
 {
@@ -476,5 +664,7 @@ static uint8_t *apx_dataElement_pack_record(apx_dataElement_t *self, uint8_t *pB
    errno = EINVAL;
    return 0;
 }
+
+
 
 

@@ -172,6 +172,32 @@ apx_node_t *apx_parser_parseFile(apx_parser_t *self, const char *filename)
 }
 #endif
 
+apx_node_t *apx_parser_parseString(apx_parser_t *self, const char *data)
+{
+   apx_istream_t apx_istream;
+   apx_istream_handler_t apx_istream_handler;
+   uint32_t dataLen = (uint32_t) strlen(data);
+
+   memset(&apx_istream_handler,0,sizeof(apx_istream_handler));
+
+   apx_istream_handler.arg = self;
+   apx_istream_handler.open = apx_parser_vopen;
+   apx_istream_handler.close = apx_parser_vclose;
+   apx_istream_handler.node = apx_parser_vnode;
+   apx_istream_handler.datatype = apx_parser_vdatatype;
+   apx_istream_handler.provide = apx_parser_vprovide;
+   apx_istream_handler.require = apx_parser_vrequire;
+   apx_istream_handler.node_end = apx_parser_vnode_end;
+   apx_istream_handler.parse_error = apx_parser_vparse_error;
+
+   apx_istream_create(&apx_istream,&apx_istream_handler);
+   apx_istream_open(&apx_istream);
+   apx_istream_write(&apx_istream, (const uint8_t*) data, dataLen);
+   apx_istream_close(&apx_istream);
+   apx_istream_destroy(&apx_istream);
+   return apx_parser_getNode(self,-1);
+}
+
 //event handlers
 void apx_parser_open(apx_parser_t *self)
 {
@@ -185,9 +211,16 @@ void apx_parser_close(apx_parser_t *self)
 {
    if ( (self!=0) && (self->currentNode!=0) )
    {
-      apx_node_finalize(self->currentNode);
-      adt_ary_push(&self->nodeList,self->currentNode);
-      self->currentNode=0;
+      if (self->lastErrorType == APX_NO_ERROR)
+      {
+         apx_node_finalize(self->currentNode);
+         adt_ary_push(&self->nodeList,self->currentNode);
+         self->currentNode=0;
+      }
+      else
+      {
+         apx_node_delete(self->currentNode);
+      }
    }
 }
 
@@ -219,7 +252,11 @@ int32_t apx_parser_require(apx_parser_t *self, const char *name, const char *dsg
 {
    if ( (self != 0) && (self->currentNode != 0) )
    {
-      (void) apx_node_createRequirePort(self->currentNode,name,dsg,attr);
+      apx_port_t *port = apx_node_createRequirePort(self->currentNode,name,dsg,attr);
+      if (port == 0)
+      {
+         return APX_PARSE_ERROR;
+      }
       return 0;
    }
    return -1;

@@ -4,11 +4,6 @@
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
-#if defined(_MSC_PLATFORM_TOOLSET) && (_MSC_PLATFORM_TOOLSET<=110)
-#include "msc_bool.h"
-#else
-#include <stdbool.h>
-#endif
 #ifdef _MSC_VER
 #include <Windows.h>
 #else

@@ -56,6 +56,7 @@ void apx_parser_clearNodes(apx_parser_t *self);
 #if defined(_WIN32) || defined(__GNUC__)
 apx_node_t *apx_parser_parseFile(apx_parser_t *self, const char *filename);
 #endif
+apx_node_t *apx_parser_parseString(apx_parser_t *self, const char *data);
 
 //event handlers
 void apx_parser_open(apx_parser_t *self);

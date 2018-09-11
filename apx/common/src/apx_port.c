@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include "apx_port.h"
+#include "apx_error.h"
+#include "apx_types.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -11,11 +13,7 @@
 
 #define APX_MAX_PORT_SIG_LEN 1024
 
-#ifdef _MSC_VER
-#define STRDUP _strdup
-#else
-#define STRDUP strdup
-#endif
+
 
 
 /**************** Private Function Declarations *******************/
@@ -27,36 +25,43 @@
 
 
 /****************** Public Function Definitions *******************/
-
-
-void apx_port_create(apx_port_t *self,uint8_t portDirection,const char *name, const char* dataSignature, const char *attributes){
-	if(self != 0 ){
-			self->name = (name != 0)? STRDUP(name) : 0;
-			self->dataSignature = (dataSignature != 0)? STRDUP(dataSignature) : 0;
-			self->portType = portDirection;
-         self->portSignature = 0;
-         self->portIndex = -1;
-			apx_dataSignature_create(&self->derivedDsg,0);
-			if (attributes != 0)
-			{
-			   self->portAttributes = apx_portAttributes_new(attributes);
-			}
-			else
-			{
-			   self->portAttributes = (apx_portAttributes_t*) 0;
-			}
-	}
+apx_error_t apx_port_create(apx_port_t *self, uint8_t portDirection, const char *name, const char* dataSignature, const char *attributes, int32_t lineNumber){
+   if( (self != 0) && (dataSignature != 0) ){
+      apx_error_t error;
+      self->name = (name != 0)? STRDUP(name) : 0;
+      self->portType = portDirection;
+      self->portSignature = (char*) 0;
+      self->portIndex = -1;
+      self->lineNumber = -1;
+      error = apx_dataSignature_create(&self->dataSignature, dataSignature);
+      if (error != APX_NO_ERROR)
+      {
+         if (self->name != 0)
+         {
+            free(self->name);
+         }
+         return error;
+      }
+      if (attributes != 0)
+      {
+         self->portAttributes = apx_portAttributes_new(attributes);
+      }
+      else
+      {
+         self->portAttributes = (apx_portAttributes_t*) 0;
+      }
+      return APX_NO_ERROR;
+   }
+   errno = EINVAL;
+   return -1;
 }
+
 void apx_port_destroy(apx_port_t *self){
 	if(self != 0){
 		if (self->name != 0)
 		{
 			free(self->name);
 		}
-      if (self->dataSignature != 0)
-      {
-         free(self->dataSignature);
-      }
 		if (self->portAttributes != 0)
 		{
 			apx_portAttributes_delete(self->portAttributes);
@@ -65,7 +70,7 @@ void apx_port_destroy(apx_port_t *self){
       {
          free(self->portSignature);
       }
-      apx_dataSignature_destroy(&self->derivedDsg);
+      apx_dataSignature_destroy(&self->dataSignature);
 	}
 }
 
@@ -73,7 +78,7 @@ apx_port_t* apx_providePort_new(const char *name, const char* dataSignature, con
 {
    apx_port_t *self = (apx_port_t*) malloc(sizeof(apx_port_t));
    if(self != 0){
-      apx_port_create(self,APX_PROVIDE_PORT,name,dataSignature,attributes);
+      apx_port_create(self, APX_PROVIDE_PORT, name, dataSignature, attributes, 0);
    }
    else{
       errno = ENOMEM;
@@ -85,7 +90,7 @@ apx_port_t* apx_requirePort_new(const char *name, const char* dataSignature, con
 {
    apx_port_t *self = malloc(sizeof(apx_port_t));
    if(self != 0){
-      apx_port_create(self,APX_REQUIRE_PORT,name,dataSignature,attributes);
+      apx_port_create(self, APX_REQUIRE_PORT, name, dataSignature, attributes, 0);
    }
    else{
       errno = ENOMEM;
@@ -106,6 +111,7 @@ void apx_port_vdelete(void *arg){
 	apx_port_delete((apx_port_t*) arg);
 }
 
+#if 0
 void apx_port_setDerivedDataSignature(apx_port_t *self, const char *dataSignature)
 {
    if (self != 0)
@@ -167,6 +173,7 @@ const char *apx_port_derivePortSignature(apx_port_t *self)
    }
    return 0;
 }
+#endif
 
 const char *apx_port_getPortSignature(apx_port_t *self)
 {
@@ -174,7 +181,8 @@ const char *apx_port_getPortSignature(apx_port_t *self)
    {
       if (self->portSignature == 0)
       {
-         return apx_port_derivePortSignature(self);
+//         return apx_port_derivePortSignature(self);
+         return 0;
       }
       else
       {
@@ -184,17 +192,19 @@ const char *apx_port_getPortSignature(apx_port_t *self)
    return 0;
 }
 
+
 int32_t apx_port_getPackLen(apx_port_t *self)
 {
    if (self != 0)
    {
-      if(self->derivedDsg.dsgType != APX_BASE_TYPE_NONE)
+      if(self->dataSignature.dsgType == APX_DSG_TYPE_SENDER_RECEIVER)
       {
-         return (int32_t) apx_dataSignature_packLen(&self->derivedDsg);
+         return apx_dataSignature_getPackLen(&self->dataSignature);
       }
    }
    return -1;
 }
+
 
 void apx_port_setPortIndex(apx_port_t *self, int32_t portIndex)
 {

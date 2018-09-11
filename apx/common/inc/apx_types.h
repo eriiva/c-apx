@@ -44,5 +44,17 @@ typedef struct apx_dataWriteCmd_tag
 #define APX_INDATA_FILE_EXT       ".in"
 #define APX_DEFINITION_FILE_EXT   ".apx"
 
+#if defined(_MSC_PLATFORM_TOOLSET) && (_MSC_PLATFORM_TOOLSET<=110)
+#include "msc_bool.h"
+#else
+#include <stdbool.h>
+#endif
+
+#ifdef _MSC_VER
+#define STRDUP _strdup
+#else
+#define STRDUP strdup
+#endif
+
 
 #endif //APX_TYPES_H

@@ -9,22 +9,15 @@
 #include "apx_nodeInfo.h"
 #include "apx_logging.h"
 #include "apx_error.h"
+#include "apx_types.h"
 #include "pack.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
 
-#ifdef _MSC_VER
-#define STRDUP _strdup
-#else
-#define STRDUP strdup
-#endif
-
 #define ERROR_STR_MAX 128
 /**************** Private Function Declarations *******************/
 static void apx_node_setPortSignature(const apx_node_t *self, apx_port_t *port);
-static int apx_node_getDatatypeId(apx_port_t *port);
-static const char *apx_node_resolveDataSignature(const apx_node_t *self,apx_port_t *port);
 static void apx_parser_attributeParseError(apx_port_t *port, int32_t lastError);
 
 /**************** Private Variable Declarations *******************/
@@ -63,7 +56,7 @@ void apx_node_create(apx_node_t *self,const char *name){
       adt_ary_create(&self->providePortList,apx_port_vdelete);
       apx_attributeParser_create(&self->attributeParser);
       apx_node_setName(self,name);
-      self->lastPortError=0;
+      self->lastPortError=APX_NO_ERROR;
       self->lastPortId=-1;
       self->lastPortType=-1;
       self->nodeInfo=(apx_nodeInfo_t*) 0;
@@ -113,7 +106,7 @@ apx_datatype_t *apx_node_createDataType(apx_node_t *self, const char* name, cons
    apx_datatype_t *datatype=0;
    if (self != 0)
    {
-     datatype = apx_datatype_new(name,dsg,attr);
+     datatype = apx_datatype_new(name,dsg,attr, 0);
      if (datatype != 0)
      {
         adt_ary_push(&self->datatypeList,datatype);
@@ -272,15 +265,15 @@ adt_bytearray_t *apx_node_createPortInitData(apx_node_t *self, apx_port_t *port)
 /***************** Private Function Definitions *******************/
 static void apx_node_setPortSignature(const apx_node_t *self, apx_port_t *port)
 {
-   assert(port != 0);
+/*   assert(port != 0);
    if ( port->dataSignature != 0 )
    {
       const char *dataSignature = apx_node_resolveDataSignature(self,port);
       apx_port_setDerivedDataSignature(port,dataSignature);
    }
-   apx_port_derivePortSignature(port);
+   apx_port_derivePortSignature(port);*/
 }
-
+/*
 static int apx_node_getDatatypeId(apx_port_t *port)
 {
    const uint8_t *pEnd;
@@ -306,10 +299,12 @@ static int apx_node_getDatatypeId(apx_port_t *port)
    }
    return -1;
 }
+*/
 
 /**
  * returns the datasignature of the port. If the datasignature is a typereference it will resolve the type reference and return the true data signature
  */
+#if 0
 static const char *apx_node_resolveDataSignature(const apx_node_t *self,apx_port_t *port)
 {
    if ( (self != 0) && (port != 0) )
@@ -344,6 +339,7 @@ static const char *apx_node_resolveDataSignature(const apx_node_t *self,apx_port
    }
    return 0;
 }
+#endif
 
 
 static void apx_parser_attributeParseError(apx_port_t *port, int32_t lastError)
@@ -389,7 +385,7 @@ int32_t apx_node_fillPortInitData(apx_node_t *self, apx_port_t *port, adt_bytear
       {
          apx_node_finalize(self);
       }
-      dataElement = port->derivedDsg.dataElement;
+      dataElement = port->dataSignature.dataElement;
       if ( (dataElement == 0) || (dataElement->baseType == APX_BASE_TYPE_NONE) || (dataElement->packLen == 0) )
       {
          apx_setError(APX_VALUE_ERROR);
