@@ -55,7 +55,7 @@ static void test_apx_port_create(CuTest* tc)
    CuAssertIntEquals(tc, APX_NO_ERROR, apx_port_create(&port, APX_REQUIRE_PORT, NULL, "C", NULL, 0));
    CuAssertPtrEquals(tc,NULL,port.portAttributes);
    CuAssertPtrEquals(tc,NULL,port.name);
-   CuAssertPtrEquals(tc,NULL,port.portSignature);
+   CuAssertPtrEquals(tc,NULL,port.derivedPortSignature);
    apx_port_destroy(&port);
 
    CuAssertIntEquals(tc, APX_NO_ERROR, apx_port_create(&port,APX_REQUIRE_PORT,"SootLevel","T[95]",NULL, 0));

@@ -39,10 +39,12 @@
 //forward declarations
 struct adt_ary_tag;
 struct adt_hash_tag;
+struct adt_str_tag;
 
 typedef struct apx_dataSignature_tag
 {
    char *raw;
+   char *derived;
    uint8_t dsgType; //this will always have value APX_DSG_TYPE_SENDER_RECEIVER until client/server has been implemented
    apx_dataElement_t *dataElement;
    //TODO: implement support for client/server interfaces here
@@ -67,5 +69,6 @@ void apx_dataSignature_destroy(apx_dataSignature_t *self);
 int32_t apx_dataSignature_getPackLen(apx_dataSignature_t *self);
 int32_t apx_dataSignature_calcPackLen(apx_dataSignature_t *self);
 apx_error_t apx_dataSignature_resolveTypes(apx_dataSignature_t *self, struct adt_ary_tag *typeList, struct adt_hash_tag *typeMap);
+const char *apx_dataSignature_getDerivedString(apx_dataSignature_t *self);
 
 #endif //APX_DATASIGNATURE_H

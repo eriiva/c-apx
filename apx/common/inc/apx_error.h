@@ -13,7 +13,7 @@
 #define APX_INVALID_ARGUMENT_ERROR    1
 #define APX_MEM_ERROR                 2
 #define APX_PARSE_ERROR               3
-#define APX_DATA_DATA_SIGNATURE_ERROR 4
+#define APX_DATA_SIGNATURE_ERROR      4
 #define APX_VALUE_ERROR               5
 #define APX_LENGTH_ERROR              6
 #define APX_ELEMENT_TYPE_ERROR        7

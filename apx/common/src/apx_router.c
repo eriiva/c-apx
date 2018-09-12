@@ -267,7 +267,7 @@ static void apx_router_attachPortToPortMap(apx_router_t *self, apx_node_t *node,
    {
       apx_routerPortMapEntry_t *portMapEntry = (apx_routerPortMapEntry_t*) 0;
       void **ptr;
-      const char *psg = apx_port_getPortSignature(port);
+      const char *psg = apx_port_getDerivedPortSignature(port);
       ptr = adt_hash_get(&self->portMap,psg,0);
       if (ptr == 0)
       {
@@ -292,7 +292,7 @@ static void apx_router_detachPortFromPortMap(apx_router_t *self, apx_node_t *nod
    {
       apx_routerPortMapEntry_t *portMapEntry = (apx_routerPortMapEntry_t*) 0;
       void **ptr;
-      const char *psg = apx_port_getPortSignature(port);
+      const char *psg = apx_port_getDerivedPortSignature(port);
       ptr = adt_hash_get(&self->portMap,psg,0);
       if (ptr == 0)
       {
@@ -319,7 +319,7 @@ static bool apx_router_createDefaultPortConnector(const apx_router_t *self, apx_
       apx_routerPortMapEntry_t *portMapEntry = (apx_routerPortMapEntry_t*) 0;
       //char debugInfoStr[APX_DEBUG_INFO_MAX_LEN];
       void **ptr;
-      const char *psg = apx_port_getPortSignature(port);
+      const char *psg = apx_port_getDerivedPortSignature(port);
       //debugInfoStr[0]=0;
 /*      if (nodeInfo->nodeData->fileManager->debugInfo != 0)
       {

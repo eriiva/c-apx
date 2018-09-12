@@ -63,6 +63,9 @@ static void test_apx_dataSignature_resolveIndexType(CuTest *tc);
 static void test_apx_dataSignature_resolveIndexTypeWithError(CuTest *tc);
 static void test_apx_dataSignature_resolveNameType(CuTest *tc);
 static void test_apx_dataSignature_resolveNameTypeWithError(CuTest *tc);
+static void test_apx_dataSignature_getDerivedString_uint8(CuTest *tc);
+static void test_apx_dataSignature_getDerivedString_uint16(CuTest *tc);
+static void test_apx_dataSignature_getDerivedString_uint32(CuTest *tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -90,6 +93,9 @@ CuSuite* testsuite_apx_dataSignature(void)
    SUITE_ADD_TEST(suite, test_apx_dataSignature_resolveIndexTypeWithError);
    SUITE_ADD_TEST(suite, test_apx_dataSignature_resolveNameType);
    SUITE_ADD_TEST(suite, test_apx_dataSignature_resolveNameTypeWithError);
+   SUITE_ADD_TEST(suite, test_apx_dataSignature_getDerivedString_uint8);
+   SUITE_ADD_TEST(suite, test_apx_dataSignature_getDerivedString_uint16);
+   SUITE_ADD_TEST(suite, test_apx_dataSignature_getDerivedString_uint32);
 
    return suite;
 }
@@ -101,6 +107,7 @@ static void test_apx_dataSignature_create(CuTest* tc)
    apx_dataSignature_t dsg;
    CuAssertIntEquals(tc, APX_NO_ERROR, apx_dataSignature_create(&dsg, NULL));
    CuAssertPtrEquals(tc, NULL, dsg.raw);
+   CuAssertPtrEquals(tc, NULL, dsg.derived);
 }
 
 static void test_apx_dataSignature_uint8(CuTest* tc)
@@ -148,6 +155,8 @@ static void test_apx_dataSignature_uint8(CuTest* tc)
    CuAssertUIntEquals(tc,7,pSignature->dataElement->max.u32);
    CuAssertUIntEquals(tc,sizeof(uint8_t)*8, apx_dataSignature_calcPackLen(pSignature));
    apx_dataSignature_delete(pSignature);
+
+
 
 }
 
@@ -443,3 +452,81 @@ static void test_apx_dataSignature_resolveNameTypeWithError(CuTest *tc)
    adt_hash_delete(typeMap);
 }
 
+static void test_apx_dataSignature_getDerivedString_uint8(CuTest *tc)
+{
+   apx_dataSignature_t *dsg;
+
+   //simple uint8
+   dsg = apx_dataSignature_new("C");
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   CuAssertStrEquals(tc, "C", apx_dataSignature_getDerivedString(dsg));
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   apx_dataSignature_delete(dsg);
+
+   //uint8 with limits
+   dsg = apx_dataSignature_new("C(0,3)");
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   CuAssertStrEquals(tc, "C(0,3)", apx_dataSignature_getDerivedString(dsg));
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   apx_dataSignature_delete(dsg);
+
+   //uint8 array
+   dsg = apx_dataSignature_new("C[8]");
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   CuAssertStrEquals(tc, "C[8]", apx_dataSignature_getDerivedString(dsg));
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   apx_dataSignature_delete(dsg);
+
+}
+
+static void test_apx_dataSignature_getDerivedString_uint16(CuTest *tc)
+{
+   apx_dataSignature_t *dsg;
+
+   //simple uint16
+   dsg = apx_dataSignature_new("S");
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   CuAssertStrEquals(tc, "S", apx_dataSignature_getDerivedString(dsg));
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   apx_dataSignature_delete(dsg);
+
+   //uint16 with limits
+   dsg = apx_dataSignature_new("S(0,10000)");
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   CuAssertStrEquals(tc, "S(0,10000)", apx_dataSignature_getDerivedString(dsg));
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   apx_dataSignature_delete(dsg);
+
+   //uint16 array
+   dsg = apx_dataSignature_new("S[6]");
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   CuAssertStrEquals(tc, "S[6]", apx_dataSignature_getDerivedString(dsg));
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   apx_dataSignature_delete(dsg);
+}
+
+static void test_apx_dataSignature_getDerivedString_uint32(CuTest *tc)
+{
+   apx_dataSignature_t *dsg;
+
+   //simple uint32
+   dsg = apx_dataSignature_new("L");
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   CuAssertStrEquals(tc, "L", apx_dataSignature_getDerivedString(dsg));
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   apx_dataSignature_delete(dsg);
+
+   //uint32 with limits
+   dsg = apx_dataSignature_new("L(0,100000)");
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   CuAssertStrEquals(tc, "L(0,100000)", apx_dataSignature_getDerivedString(dsg));
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   apx_dataSignature_delete(dsg);
+
+   //uint32 array
+   dsg = apx_dataSignature_new("L[4]");
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   CuAssertStrEquals(tc, "L[4]", apx_dataSignature_getDerivedString(dsg));
+   CuAssertPtrEquals(tc, NULL, dsg->derived);
+   apx_dataSignature_delete(dsg);
+}

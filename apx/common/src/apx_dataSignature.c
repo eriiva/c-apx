@@ -38,6 +38,7 @@
 #include "bstr.h"
 #include "adt_ary.h"
 #include "adt_hash.h"
+#include "adt_str.h"
 #include "apx_types.h"
 #include "apx_datatype.h"
 #ifdef MEM_LEAK_CHECK
@@ -136,6 +137,7 @@ apx_error_t apx_dataSignature_create(apx_dataSignature_t *self, const char *dsg)
          self->dataElement=0;
       }
       self->dsgType = APX_DSG_TYPE_SENDER_RECEIVER; //No support for client/server yet
+      self->derived = NULL;
    }
    return APX_NO_ERROR;
 }
@@ -217,6 +219,27 @@ apx_error_t apx_dataSignature_resolveTypes(apx_dataSignature_t *self, struct adt
       return APX_NO_ERROR;
    }
    return APX_INVALID_ARGUMENT_ERROR;
+}
+
+const char *apx_dataSignature_getDerivedString(apx_dataSignature_t *self)
+{
+   if ( (self != 0) && (self->dataElement != 0) )
+   {
+      apx_dataElement_t *dataElement = self->dataElement;
+      if (dataElement->baseType != APX_BASE_TYPE_NONE)
+      {
+         if (dataElement->baseType < APX_BASE_TYPE_RECORD)
+         {
+            return self->raw;
+         }
+         else
+         {
+            apx_setError(APX_NOT_IMPLEMENTED_ERROR);
+            return (const char*) 0;
+         }
+      }
+   }
+   return (const char*) 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////
