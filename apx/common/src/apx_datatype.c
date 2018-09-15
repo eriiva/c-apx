@@ -174,6 +174,24 @@ int32_t apx_datatype_getLineNumber(apx_datatype_t *self)
    return -1;
 }
 
+int32_t apx_datatype_calcPackLen(apx_datatype_t *self)
+{
+   if (self != 0)
+   {
+      if (self->dataSignature != 0)
+      {
+         return apx_dataSignature_calcPackLen(self->dataSignature);
+      }
+      else
+      {
+         apx_setError(APX_DATA_SIGNATURE_ERROR);
+         return -1;
+      }
+   }
+   apx_setError(APX_INVALID_ARGUMENT_ERROR);
+   return -1;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////

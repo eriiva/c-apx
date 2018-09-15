@@ -106,11 +106,11 @@ void apx_port_destroy(apx_port_t *self){
    }
 }
 
-apx_port_t* apx_providePort_new(const char *name, const char* dataSignature, const char *attributes)
+apx_port_t* apx_providePort_new(const char *name, const char* dataSignature, const char *attributes, int32_t lineNumber)
 {
    apx_port_t *self = (apx_port_t*) malloc(sizeof(apx_port_t));
    if(self != 0){
-      apx_port_create(self, APX_PROVIDE_PORT, name, dataSignature, attributes, 0);
+      apx_port_create(self, APX_PROVIDE_PORT, name, dataSignature, attributes, lineNumber);
    }
    else{
       errno = ENOMEM;
@@ -118,11 +118,11 @@ apx_port_t* apx_providePort_new(const char *name, const char* dataSignature, con
    return self;
 }
 
-apx_port_t* apx_requirePort_new(const char *name, const char* dataSignature, const char *attributes)
+apx_port_t* apx_requirePort_new(const char *name, const char* dataSignature, const char *attributes, int32_t lineNumber)
 {
    apx_port_t *self = malloc(sizeof(apx_port_t));
    if(self != 0){
-      apx_port_create(self, APX_REQUIRE_PORT, name, dataSignature, attributes, 0);
+      apx_port_create(self, APX_REQUIRE_PORT, name, dataSignature, attributes, lineNumber);
    }
    else{
       errno = ENOMEM;
@@ -202,6 +202,26 @@ apx_error_t apx_port_updateDerivedPortSignature(apx_port_t *self)
    else
    {
       return APX_DATA_SIGNATURE_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+apx_error_t apx_port_updatePackLen(apx_port_t *self)
+{
+   if (self != 0)
+   {
+      if(self->dataSignature.dsgType == APX_DSG_TYPE_SENDER_RECEIVER)
+      {
+          int32_t result = apx_dataSignature_calcPackLen(&self->dataSignature);
+          if (result < 0)
+          {
+             return APX_DATA_SIGNATURE_ERROR;
+          }
+          else
+          {
+             return APX_NO_ERROR;
+          }
+      }
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }

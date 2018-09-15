@@ -53,6 +53,7 @@ void apx_datatype_vdelete(void *arg);
 apx_error_t apx_datatype_create(apx_datatype_t *self, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
 void apx_datatype_destroy(apx_datatype_t *self);
 int32_t apx_datatype_getLineNumber(apx_datatype_t *self);
+int32_t apx_datatype_calcPackLen(apx_datatype_t *self);
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES

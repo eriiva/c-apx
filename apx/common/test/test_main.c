@@ -52,7 +52,7 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testsuite_apx_dataSignature());
    CuSuiteAddSuite(suite, testsuite_apx_port());
    CuSuiteAddSuite(suite, testsuite_apx_datatype());
-//   CuSuiteAddSuite(suite, testSuite_apx_node());
+   CuSuiteAddSuite(suite, testSuite_apx_node());
 //   CuSuiteAddSuite(suite, testSuite_apx_parser());
 //   CuSuiteAddSuite(suite, testSuite_apx_portDataMap());
 //   CuSuiteAddSuite(suite, testSuite_apx_nodeInfo());

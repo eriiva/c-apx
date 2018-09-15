@@ -57,17 +57,18 @@ static void test_apx_routerPortMapEntry_create(CuTest* tc)
    apx_node_t node3;
    apx_node_t node4;
    apx_node_t node5;
+   int32_t lineNumber=1;
 
    apx_node_create(&node1, "test1");
    apx_node_create(&node2, "test2");
    apx_node_create(&node3, "test3");
    apx_node_create(&node4, "test4");
    apx_node_create(&node5, "test5");
-   apx_node_createProvidePort(&node1, "WheelBasedVehicleSpeed", "S", 0);
-   apx_node_createProvidePort(&node2, "WheelBasedVehicleSpeed", "S", 0);
-   apx_node_createRequirePort(&node3, "WheelBasedVehicleSpeed", "S", 0);
-   apx_node_createRequirePort(&node4, "WheelBasedVehicleSpeed", "S", 0);
-   apx_node_createRequirePort(&node5, "WheelBasedVehicleSpeed", "S", 0);
+   apx_node_createProvidePort(&node1, "WheelBasedVehicleSpeed", "S", 0, lineNumber++);
+   apx_node_createProvidePort(&node2, "WheelBasedVehicleSpeed", "S", 0, lineNumber++);
+   apx_node_createRequirePort(&node3, "WheelBasedVehicleSpeed", "S", 0, lineNumber++);
+   apx_node_createRequirePort(&node4, "WheelBasedVehicleSpeed", "S", 0, lineNumber++);
+   apx_node_createRequirePort(&node5, "WheelBasedVehicleSpeed", "S", 0, lineNumber++);
    apx_routerPortMapEntry_create(&portMapEntry);
 
    apx_routerPortMapEntry_insertProvidePort(&portMapEntry,&node1,0);

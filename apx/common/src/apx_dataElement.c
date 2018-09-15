@@ -404,25 +404,28 @@ int32_t apx_dataElement_calcPackLen(apx_dataElement_t *self)
          case APX_BASE_TYPE_NONE:
             break;
          case APX_BASE_TYPE_UINT8:
-            elemLen=1;
+            elemLen = (uint32_t) sizeof(uint8_t);
             break;
          case APX_BASE_TYPE_UINT16:
-            elemLen=2;
+            elemLen = (uint32_t) sizeof(uint16_t);
             break;
          case APX_BASE_TYPE_UINT32:
-            elemLen=4;
+            elemLen = (uint32_t) sizeof(uint32_t);
             break;
          case APX_BASE_TYPE_SINT8:
-            elemLen=1;
+            elemLen = (uint32_t) sizeof(int8_t);
             break;
          case APX_BASE_TYPE_SINT16:
-            elemLen=2;
+            elemLen = (uint32_t) sizeof(int16_t);
             break;
          case APX_BASE_TYPE_SINT32:
-            elemLen=4;
+            elemLen = (uint32_t) sizeof(int32_t);
             break;
          case APX_BASE_TYPE_STRING:
-            elemLen=1;
+            elemLen = (uint32_t) sizeof(uint8_t);
+            break;
+         case APX_BASE_TYPE_REF_PTR:
+            elemLen = apx_datatype_calcPackLen(self->typeRef.ptr);
             break;
          default:
             break;

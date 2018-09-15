@@ -59,14 +59,15 @@ typedef struct apx_port_tag
 //////////////////////////////////////////////////////////////////////////////
 apx_error_t apx_port_create(apx_port_t *self, uint8_t portDirection, const char *name, const char* dataSignature, const char *attributes, int32_t lineNumber);
 void apx_port_destroy(apx_port_t *self);
-apx_port_t* apx_providePort_new(const char *name, const char* dataSignature, const char *attributes);
-apx_port_t* apx_requirePort_new(const char *name, const char* dataSignature, const char *attributes);
+apx_port_t* apx_providePort_new(const char *name, const char* dataSignature, const char *attributes, int32_t lineNumber);
+apx_port_t* apx_requirePort_new(const char *name, const char* dataSignature, const char *attributes, int32_t lineNumber);
 void apx_port_delete(apx_port_t *self);
 void apx_port_vdelete(void *arg);
 
 apx_error_t apx_port_resolveTypes(apx_port_t *self, struct adt_ary_tag *typeList, struct adt_hash_tag *typeMap);
 apx_error_t apx_port_updateDerivedPortSignature(apx_port_t *self);
 const char *apx_port_getDerivedPortSignature(apx_port_t *self);
+apx_error_t apx_port_updatePackLen(apx_port_t *self);
 
 int32_t apx_port_getPackLen(apx_port_t *self);
 void apx_port_setPortIndex(apx_port_t *self, int32_t portIndex);

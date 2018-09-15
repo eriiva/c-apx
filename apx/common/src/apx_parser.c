@@ -240,21 +240,21 @@ void apx_parser_node(apx_parser_t *self, const char *name) //N"<name>"
    }
 }
 
-int32_t apx_parser_datatype(apx_parser_t *self, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_datatype(apx_parser_t *self, const char *name, const char *dsg, const char *attr, int32_t lineNumber)
 {
    if ( (self != 0) && (self->currentNode != 0) )
    {
-      apx_node_createDataType(self->currentNode,name,dsg,attr);
+      apx_node_createDataType(self->currentNode,name, dsg, attr, lineNumber);
       return 0;
    }
    return -1;
 }
 
-int32_t apx_parser_require(apx_parser_t *self, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_require(apx_parser_t *self, const char *name, const char *dsg, const char *attr, int32_t lineNumber)
 {
    if ( (self != 0) && (self->currentNode != 0) )
    {
-      apx_port_t *port = apx_node_createRequirePort(self->currentNode,name,dsg,attr);
+      apx_port_t *port = apx_node_createRequirePort(self->currentNode, name, dsg, attr, lineNumber);
       if (port == 0)
       {
          return APX_PARSE_ERROR;
@@ -264,11 +264,11 @@ int32_t apx_parser_require(apx_parser_t *self, const char *name, const char *dsg
    return -1;
 }
 
-int32_t apx_parser_provide(apx_parser_t *self, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_provide(apx_parser_t *self, const char *name, const char *dsg, const char *attr, int32_t lineNumber)
 {
    if ( (self != 0) && (self->currentNode != 0) )
    {
-      apx_port_t *port = apx_node_createProvidePort(self->currentNode,name,dsg,attr);
+      apx_port_t *port = apx_node_createProvidePort(self->currentNode, name, dsg, attr, lineNumber);
       if (port == 0)
       {
          return APX_PARSE_ERROR;
@@ -314,19 +314,19 @@ void apx_parser_vnode(void *arg, const char *name)
    apx_parser_node((apx_parser_t*) arg,name);
 }
 
-int32_t apx_parser_vdatatype(void *arg, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_vdatatype(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber)
 {
-   return apx_parser_datatype((apx_parser_t*) arg,name,dsg,attr);
+   return apx_parser_datatype((apx_parser_t*) arg, name, dsg, attr, lineNumber);
 }
 
-int32_t apx_parser_vrequire(void *arg, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_vrequire(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber)
 {
-   return apx_parser_require((apx_parser_t*) arg,name,dsg,attr);
+   return apx_parser_require((apx_parser_t*) arg, name, dsg, attr, lineNumber);
 }
 
-int32_t apx_parser_vprovide(void *arg, const char *name, const char *dsg, const char *attr)
+int32_t apx_parser_vprovide(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber)
 {
-   return apx_parser_provide((apx_parser_t*) arg,name,dsg,attr);
+   return apx_parser_provide((apx_parser_t*) arg, name, dsg, attr, lineNumber);
 }
 
 void apx_parser_vnode_end(void *arg)

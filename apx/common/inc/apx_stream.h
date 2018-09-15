@@ -20,9 +20,9 @@ typedef struct apx_istream_handler_t{
 
    //text-based messages
    void (*node)(void *arg, const char *name); //N"<name>"
-   int32_t (*datatype)(void *arg, const char *name, const char *dsg, const char *attr); //T"<name>"<dsg>:<attr>
-   int32_t (*require)(void *arg, const char *name, const char *dsg, const char *attr); //R"<name>"<dsg>:<attr>
-   int32_t (*provide)(void *arg, const char *name, const char *dsg, const char *attr); //P"<name>"<dsg>:<attr>
+   int32_t (*datatype)(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber); //T"<name>"<dsg>:<attr>
+   int32_t (*require)(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber); //R"<name>"<dsg>:<attr>
+   int32_t (*provide)(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber); //P"<name>"<dsg>:<attr>
    void (*node_end)(void *arg);
 
    //errors

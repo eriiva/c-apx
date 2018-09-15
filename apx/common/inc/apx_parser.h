@@ -62,9 +62,9 @@ apx_node_t *apx_parser_parseString(apx_parser_t *self, const char *data);
 void apx_parser_open(apx_parser_t *self);
 void apx_parser_close(apx_parser_t *self);
 void apx_parser_node(apx_parser_t *self, const char *name); //N"<name>"
-int32_t apx_parser_datatype(apx_parser_t *self, const char *name, const char *dsg, const char *attr);
-int32_t apx_parser_require(apx_parser_t *self, const char *name, const char *dsg, const char *attr);
-int32_t apx_parser_provide(apx_parser_t *self, const char *name, const char *dsg, const char *attr);
+int32_t apx_parser_datatype(apx_parser_t *self, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
+int32_t apx_parser_require(apx_parser_t *self, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
+int32_t apx_parser_provide(apx_parser_t *self, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
 void apx_parser_node_end(apx_parser_t *self);
 void apx_parser_parse_error(apx_parser_t *self, int32_t errorType, int32_t errorLine);
 
@@ -72,9 +72,9 @@ void apx_parser_parse_error(apx_parser_t *self, int32_t errorType, int32_t error
 void apx_parser_vopen(void *arg);
 void apx_parser_vclose(void *arg);
 void apx_parser_vnode(void *arg, const char *name); //N"<name>"
-int32_t apx_parser_vdatatype(void *arg, const char *name, const char *dsg, const char *attr);
-int32_t apx_parser_vrequire(void *arg, const char *name, const char *dsg, const char *attr);
-int32_t apx_parser_vprovide(void *arg, const char *name, const char *dsg, const char *attr);
+int32_t apx_parser_vdatatype(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
+int32_t apx_parser_vrequire(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
+int32_t apx_parser_vprovide(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
 void apx_parser_vnode_end(void *arg);
 void apx_parser_vparse_error(void *arg, int32_t errorType, int32_t errorLine);
 
