@@ -53,12 +53,12 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testsuite_apx_port());
    CuSuiteAddSuite(suite, testsuite_apx_datatype());
    CuSuiteAddSuite(suite, testSuite_apx_node());
-//   CuSuiteAddSuite(suite, testSuite_apx_parser());
-//   CuSuiteAddSuite(suite, testSuite_apx_portDataMap());
-//   CuSuiteAddSuite(suite, testSuite_apx_nodeInfo());
-//   CuSuiteAddSuite(suite, testSuite_apx_routerPortMapEntry());
-//   CuSuiteAddSuite(suite, testSuite_apx_router());
-/*   CuSuiteAddSuite(suite, testSuite_apx_dataTrigger());
+   CuSuiteAddSuite(suite, testSuite_apx_parser());
+   CuSuiteAddSuite(suite, testSuite_apx_portDataMap());
+   CuSuiteAddSuite(suite, testSuite_apx_nodeInfo());
+   CuSuiteAddSuite(suite, testSuite_apx_routerPortMapEntry());
+   CuSuiteAddSuite(suite, testSuite_apx_router());
+   CuSuiteAddSuite(suite, testSuite_apx_dataTrigger());
 
    CuSuiteAddSuite(suite, testSuite_apx_file2());
    CuSuiteAddSuite(suite, testSuite_apx_fileMap());
@@ -82,7 +82,7 @@ void RunAllTests(void)
 
    CuSuiteAddSuite(suite, testSuite_apx_nodeManager());
    CuSuiteAddSuite(suite, testSuite_apx_eventRecorderSrvRmf());
-   CuSuiteAddSuite(suite, testSuite_apx_nodeDataFactory());*/
+   CuSuiteAddSuite(suite, testSuite_apx_nodeDataFactory());
 
 
    CuSuiteRun(suite);

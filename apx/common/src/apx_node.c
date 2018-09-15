@@ -18,7 +18,6 @@
 
 #define ERROR_STR_MAX 128
 /**************** Private Function Declarations *******************/
-static void apx_parser_attributeParseError(apx_port_t *port, int32_t lastError);
 static apx_error_t apx_node_finalizePort(apx_port_t *port, adt_ary_t *typeList, adt_hash_t *typeMap);
 
 /**************** Private Variable Declarations *******************/
@@ -128,14 +127,12 @@ apx_port_t *apx_node_createRequirePort(apx_node_t *self, const char* name, const
         int32_t portIndex = adt_ary_length(&self->requirePortList);
         if ( port->portAttributes != 0 )
         {
-           bool result = apx_attributeParser_parseObject(&self->attributeParser, port->portAttributes);
-           if (result == false)
+           apx_error_t result = apx_attributeParser_parseObject(&self->attributeParser, port->portAttributes);
+           if (result != APX_NO_ERROR)
            {
-              int32_t lastError;
-              lastError = apx_attributeParser_getLastError(&self->attributeParser, 0);
-              apx_parser_attributeParseError(port, lastError);
               apx_port_delete(port);
-              return 0;
+              apx_setError(result);
+              return NULL;
            }
         }
         apx_port_setPortIndex(port,portIndex);
@@ -156,14 +153,12 @@ apx_port_t *apx_node_createProvidePort(apx_node_t *self, const char* name, const
         int32_t portIndex = adt_ary_length(&self->providePortList);
         if ( port->portAttributes != 0 )
         {
-           bool result = apx_attributeParser_parseObject(&self->attributeParser, port->portAttributes);
-           if (result == false)
+           apx_error_t result = apx_attributeParser_parseObject(&self->attributeParser, port->portAttributes);
+           if (result != APX_NO_ERROR)
            {
-              int32_t lastError;
-              lastError = apx_attributeParser_getLastError(&self->attributeParser, 0);
-              apx_parser_attributeParseError(port, lastError);
               apx_port_delete(port);
-              return 0;
+              apx_setError(result);
+              return NULL;
            }
         }
         apx_port_setPortIndex(port,portIndex);
@@ -353,35 +348,6 @@ apx_error_t apx_node_fillPortInitData(apx_node_t *self, apx_port_t *port, adt_by
 
 
 /***************** Private Function Definitions *******************/
-
-static void apx_parser_attributeParseError(apx_port_t *port, int32_t lastError)
-{
-   char errorStr[ERROR_STR_MAX+1];
-   uint32_t remain = ERROR_STR_MAX;
-   uint32_t errorStrLen=0;
-   uint32_t attrLen = strlen(port->portAttributes->rawValue);
-   switch(lastError)
-   {
-   case APX_PARSE_ERROR:
-      errorStrLen = sprintf(errorStr, "Failed to parse port attribute string: ");
-      break;
-   default:
-      return;
-   }
-   remain -= errorStrLen;
-   if (remain >= attrLen)
-   {
-      strcpy(&errorStr[errorStrLen], port->portAttributes->rawValue);
-   }
-   else
-   {
-      //truncate the port attribute string adding "..." at the end
-      uint32_t bytesToCopy = remain-3;
-      strncpy(&errorStr[errorStrLen], port->portAttributes->rawValue, bytesToCopy);
-      strcpy(&errorStr[errorStrLen+bytesToCopy], "...");
-   }
-   APX_LOG_ERROR("%s", errorStr);
-}
 
 static apx_error_t apx_node_finalizePort(apx_port_t *port, adt_ary_t *typeList, adt_hash_t *typeMap)
 {

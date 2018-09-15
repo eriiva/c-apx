@@ -25,6 +25,7 @@
 #define APX_UNMATCHED_STRING_ERROR    13
 #define APX_INVALID_TYPE_REF_ERROR    14
 #define APX_EXPECTED_BRACKET_ERROR    15
+#define APX_INVALID_ATTRIBUTE_ERROR   16
 
 
 typedef int32_t apx_error_t;

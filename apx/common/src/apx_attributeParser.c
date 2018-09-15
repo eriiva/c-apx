@@ -51,9 +51,8 @@ void apx_attributeParser_destroy(apx_attributeParser_t *self)
 
 /**
  * Convenience function for calling apx_attributeParser_parse.
- * returns true on success, false on failure
  */
-bool apx_attributeParser_parseObject(apx_attributeParser_t *self, apx_portAttributes_t *attributeObject)
+apx_error_t apx_attributeParser_parseObject(apx_attributeParser_t *self, apx_portAttributes_t *attributeObject)
 {
    if ( (self != 0 ) && (attributeObject != 0) && (attributeObject->rawValue != 0) )
    {
@@ -65,12 +64,14 @@ bool apx_attributeParser_parseObject(apx_attributeParser_t *self, apx_portAttrib
       pResult = apx_attributeParser_parse(self, pBegin, pEnd, attributeObject);
       if ( pResult == pEnd)
       {
-         //success only if entire string was parse.
-         //if error occurs (i.e. this function returns false, get the error using the apx_attributeParser_getLastError function)
-         return true;
+         return APX_NO_ERROR;
+      }
+      else
+      {
+         return self->lastError;
       }
    }
-   return false;
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 
 const uint8_t* apx_attributeParser_parse(apx_attributeParser_t *self, const uint8_t *pBegin, const uint8_t *pEnd, apx_portAttributes_t *attr)
@@ -111,7 +112,7 @@ const uint8_t* apx_attributeParser_parse(apx_attributeParser_t *self, const uint
          }
          else
          {
-            self->lastError = APX_PARSE_ERROR;
+            self->lastError = APX_INVALID_ATTRIBUTE_ERROR;
             self->pErrorNext = pNext;
             return 0;
          }
@@ -167,7 +168,7 @@ DYN_STATIC const uint8_t* apx_attributeParser_parseSingleAttribute(apx_attribute
          attribType = APX_ATTRIB_QUEUE;
          break;
       default:
-         self->lastError = APX_PARSE_ERROR;
+         self->lastError = APX_INVALID_ATTRIBUTE_ERROR;
          self->pErrorNext = pNext;
          return 0;
       }
@@ -179,7 +180,7 @@ DYN_STATIC const uint8_t* apx_attributeParser_parseSingleAttribute(apx_attribute
          pResult = apx_attributeParser_parseInitValue(self, pNext, pEnd, &attr->initValue);
          if ( (pResult == 0) || (pResult == pNext) )
          {
-            self->lastError = APX_PARSE_ERROR;
+            self->lastError = APX_INVALID_ATTRIBUTE_ERROR;
             self->pErrorNext = pNext;
             return 0;
          }
@@ -193,7 +194,7 @@ DYN_STATIC const uint8_t* apx_attributeParser_parseSingleAttribute(apx_attribute
          pResult = apx_attributeParser_parseQueueLength(self, pNext, pEnd, attr);
          if ( (pResult == 0) || (pResult == pNext) )
          {
-            self->lastError = APX_PARSE_ERROR;
+            self->lastError = APX_INVALID_ATTRIBUTE_ERROR;
             self->pErrorNext = pNext;
             return 0;
          }

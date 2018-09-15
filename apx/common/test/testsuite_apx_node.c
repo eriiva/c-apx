@@ -24,6 +24,11 @@
 static void test_apx_node_finalize(CuTest* tc);
 static void test_apx_node_createNodeWithoutTypeReferences(CuTest* tc);
 static void test_apx_node_createNodeWithIdTypeReferences(CuTest* tc);
+static void test_apx_node_createNodeWithNameTypeReferences(CuTest* tc);
+static void test_apx_node_createNodeWithInvalidTypeReferenceId(CuTest* tc);
+static void test_apx_node_createNodeWithInvalidTypeReferenceName(CuTest* tc);
+static void test_apx_node_createNodeWithInvalidDataSignatureString(CuTest* tc);
+static void test_apx_node_createNodeWithInvalidAttributeString(CuTest* tc);
 static void test_apx_node_initValue_U8(CuTest* tc);
 static void test_apx_node_initValue_U16(CuTest* tc);
 static void test_apx_node_initValue_U32(CuTest* tc);
@@ -59,6 +64,11 @@ CuSuite* testSuite_apx_node(void)
    SUITE_ADD_TEST(suite, test_apx_node_finalize);
    SUITE_ADD_TEST(suite, test_apx_node_createNodeWithoutTypeReferences);
    SUITE_ADD_TEST(suite, test_apx_node_createNodeWithIdTypeReferences);
+   SUITE_ADD_TEST(suite, test_apx_node_createNodeWithNameTypeReferences);
+   SUITE_ADD_TEST(suite, test_apx_node_createNodeWithInvalidTypeReferenceId);
+   SUITE_ADD_TEST(suite, test_apx_node_createNodeWithInvalidTypeReferenceName);
+   SUITE_ADD_TEST(suite, test_apx_node_createNodeWithInvalidDataSignatureString);
+   SUITE_ADD_TEST(suite, test_apx_node_createNodeWithInvalidAttributeString);
    SUITE_ADD_TEST(suite, test_apx_node_initValue_U8);
    SUITE_ADD_TEST(suite, test_apx_node_initValue_U16);
    SUITE_ADD_TEST(suite, test_apx_node_initValue_U32);
@@ -104,6 +114,8 @@ static void test_apx_node_finalize(CuTest* tc)
    CuAssertIntEquals(tc, APX_BASE_TYPE_REF_PTR, port2->dataSignature.dataElement->baseType);
    CuAssertIntEquals(tc, 2, apx_port_getPackLen(port1));
    CuAssertIntEquals(tc, 2, apx_port_getPackLen(port2));
+
+   apx_node_destroy(&node);
 }
 
 static void test_apx_node_createNodeWithoutTypeReferences(CuTest* tc)
@@ -136,6 +148,7 @@ static void test_apx_node_createNodeWithoutTypeReferences(CuTest* tc)
    apx_node_destroy(&node);
    CuAssertIntEquals(tc, APX_NO_ERROR, apx_getLastError());
 }
+
 
 static void test_apx_node_createNodeWithIdTypeReferences(CuTest* tc)
 {
@@ -171,6 +184,103 @@ static void test_apx_node_createNodeWithIdTypeReferences(CuTest* tc)
    CuAssertIntEquals(tc, APX_NO_ERROR, apx_getLastError());
 
 }
+
+static void test_apx_node_createNodeWithNameTypeReferences(CuTest* tc)
+{
+   apx_node_t node;
+   int32_t errorLine;
+   apx_port_t *port;
+   int32_t lineNumber=1;
+   apx_clearError();
+   apx_node_create(&node, "TestNode");
+   CuAssertPtrNotNull(tc, apx_node_createDataType(&node, "VehicleSpeed_T", "S", NULL, lineNumber++));
+   CuAssertPtrNotNull(tc, apx_node_createDataType(&node, "EnginesPeed_T", "S", NULL, lineNumber++));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(&node,"VehicleSpeed","T[\"VehicleSpeed_T\"]","=65535", lineNumber++));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(&node,"EngineSpeed","T[\"EnginesPeed_T\"]","=65535", lineNumber++));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_node_finalize(&node, &errorLine));
+
+   //verify individual ports
+   port = apx_node_getRequirePort(&node, 0);
+   CuAssertPtrNotNull(tc, port);
+   CuAssertIntEquals(tc, 2, apx_dataSignature_calcPackLen(&port->dataSignature));
+   CuAssertIntEquals(tc, 0, apx_port_getPortIndex(port));
+   CuAssertStrEquals(tc, "\"VehicleSpeed\"S", apx_port_getDerivedPortSignature(port));
+
+   port = apx_node_getRequirePort(&node, 1);
+   CuAssertPtrNotNull(tc, port);
+   CuAssertIntEquals(tc, 2, apx_dataSignature_calcPackLen(&port->dataSignature));
+   CuAssertIntEquals(tc, 1 ,apx_port_getPortIndex(port));
+   CuAssertStrEquals(tc, "\"EngineSpeed\"S", apx_port_getDerivedPortSignature(port));
+
+   port = apx_node_getRequirePort(&node, 2);
+   CuAssertPtrEquals(tc, 0, port);
+
+   apx_node_destroy(&node);
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_getLastError());
+}
+
+static void test_apx_node_createNodeWithInvalidTypeReferenceId(CuTest* tc)
+{
+   apx_node_t node;
+   int32_t errorLine = 0;
+
+   int32_t lineNumber=1;
+   apx_clearError();
+   apx_node_create(&node, "TestNode");
+   CuAssertPtrNotNull(tc, apx_node_createDataType(&node, "VehicleSpeed_T", "S", NULL, lineNumber++));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(&node,"VehicleSpeed","T[0]","=65535", lineNumber++));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(&node,"EngineSpeed","T[1]","=65535", lineNumber++));
+   CuAssertIntEquals(tc, APX_INVALID_TYPE_REF_ERROR, apx_node_finalize(&node, &errorLine));
+   CuAssertIntEquals(tc, 3, errorLine);
+
+   apx_node_destroy(&node);
+}
+
+static void test_apx_node_createNodeWithInvalidTypeReferenceName(CuTest* tc)
+{
+   apx_node_t node;
+   int32_t errorLine = 0;
+
+   int32_t lineNumber=1;
+   apx_clearError();
+   apx_node_create(&node, "TestNode");
+   CuAssertPtrNotNull(tc, apx_node_createDataType(&node, "VehicleSpeed_T", "S", NULL, lineNumber++));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(&node,"VehicleSpeed","T[\"VehicleSpeed_T\"]","=65535", lineNumber++));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(&node,"EngineSpeed","T[\"EngineSpeed_T\"]","=65535", lineNumber++));
+   CuAssertIntEquals(tc, APX_INVALID_TYPE_REF_ERROR, apx_node_finalize(&node, &errorLine));
+   CuAssertIntEquals(tc, 3, errorLine);
+
+   apx_node_destroy(&node);
+}
+
+static void test_apx_node_createNodeWithInvalidDataSignatureString(CuTest* tc)
+{
+   apx_node_t node;
+
+   int32_t lineNumber=1;
+   apx_clearError();
+   apx_node_create(&node, "TestNode");
+   CuAssertPtrNotNull(tc, apx_node_createDataType(&node, "VehicleSpeed_T", "S", NULL, lineNumber++));
+   CuAssertPtrEquals(tc, NULL, apx_node_createRequirePort(&node,"VehicleSpeed","T[]","=65535", lineNumber));
+   CuAssertIntEquals(tc, APX_INVALID_TYPE_REF_ERROR, apx_getLastError());
+
+   apx_node_destroy(&node);
+}
+
+static void test_apx_node_createNodeWithInvalidAttributeString(CuTest* tc)
+{
+   apx_node_t node;
+
+   int32_t lineNumber=1;
+   apx_clearError();
+   apx_node_create(&node, "TestNode");
+   CuAssertPtrNotNull(tc, apx_node_createDataType(&node, "VehicleSpeed_T", "S", NULL, lineNumber++));
+   CuAssertPtrEquals(tc, NULL, apx_node_createRequirePort(&node,"VehicleSpeed","T[0]","65535", lineNumber));
+   CuAssertIntEquals(tc, APX_INVALID_ATTRIBUTE_ERROR, apx_getLastError());
+
+   apx_node_destroy(&node);
+}
+
 
 static void test_apx_node_initValue_U8(CuTest* tc)
 {

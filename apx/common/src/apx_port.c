@@ -64,7 +64,7 @@ apx_error_t apx_port_create(apx_port_t *self, uint8_t portDirection, const char 
       self->portType = portDirection;
       self->derivedPortSignature = (char*) 0;
       self->portIndex = -1;
-      self->lineNumber = -1;
+      self->lineNumber = lineNumber;
       error = apx_dataSignature_create(&self->dataSignature, dataSignature);
       if (error != APX_NO_ERROR)
       {
@@ -109,8 +109,15 @@ void apx_port_destroy(apx_port_t *self){
 apx_port_t* apx_providePort_new(const char *name, const char* dataSignature, const char *attributes, int32_t lineNumber)
 {
    apx_port_t *self = (apx_port_t*) malloc(sizeof(apx_port_t));
-   if(self != 0){
-      apx_port_create(self, APX_PROVIDE_PORT, name, dataSignature, attributes, lineNumber);
+   if(self != 0)
+   {
+      apx_error_t result = apx_port_create(self, APX_PROVIDE_PORT, name, dataSignature, attributes, lineNumber);
+      if (result != APX_NO_ERROR)
+      {
+         free(self);
+         apx_setError(result);
+         self = 0;
+      }
    }
    else{
       errno = ENOMEM;
@@ -121,11 +128,19 @@ apx_port_t* apx_providePort_new(const char *name, const char* dataSignature, con
 apx_port_t* apx_requirePort_new(const char *name, const char* dataSignature, const char *attributes, int32_t lineNumber)
 {
    apx_port_t *self = malloc(sizeof(apx_port_t));
-   if(self != 0){
-      apx_port_create(self, APX_REQUIRE_PORT, name, dataSignature, attributes, lineNumber);
+   if(self != 0)
+   {
+      apx_error_t result = apx_port_create(self, APX_REQUIRE_PORT, name, dataSignature, attributes, lineNumber);
+      if (result != APX_NO_ERROR)
+      {
+         free(self);
+         apx_setError(result);
+         self = 0;
+      }
    }
-   else{
-      errno = ENOMEM;
+   else
+   {
+      apx_setError(APX_MEM_ERROR);
    }
    return self;
 }

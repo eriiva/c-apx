@@ -144,6 +144,7 @@ apx_node_t *apx_parser_parseFile(apx_parser_t *self, const char *filename)
    apx_istream_t apx_istream;
    apx_istream_handler_t apx_istream_handler;
 
+   apx_clearError();
    memset(&ifstream_handler,0,sizeof(ifstream_handler));
    memset(&apx_istream_handler,0,sizeof(apx_istream_handler));
    ifstream_handler.open = apx_istream_vopen;
@@ -178,8 +179,8 @@ apx_node_t *apx_parser_parseString(apx_parser_t *self, const char *data)
    apx_istream_handler_t apx_istream_handler;
    uint32_t dataLen = (uint32_t) strlen(data);
 
+   apx_clearError();
    memset(&apx_istream_handler,0,sizeof(apx_istream_handler));
-
    apx_istream_handler.arg = self;
    apx_istream_handler.open = apx_parser_vopen;
    apx_istream_handler.close = apx_parser_vclose;
@@ -221,6 +222,7 @@ void apx_parser_close(apx_parser_t *self)
       else
       {
          apx_node_delete(self->currentNode);
+         self->currentNode = 0;
       }
    }
 }
