@@ -143,22 +143,6 @@ void apx_port_vdelete(void *arg){
    apx_port_delete((apx_port_t*) arg);
 }
 
-#if 0
-void apx_port_setDerivedDataSignature(apx_port_t *self, const char *dataSignature)
-{
-   if (self != 0)
-   {
-      apx_dataSignature_update(&self->derivedDsg,dataSignature);
-   }
-}
-
-
-const char *apx_port_derivePortSignature(apx_port_t *self)
-{
-
-}
-#endif
-
 apx_error_t apx_port_resolveTypes(apx_port_t *self, struct adt_ary_tag *typeList, struct adt_hash_tag *typeMap)
 {
    if (self != 0)
@@ -196,30 +180,28 @@ apx_error_t apx_port_updateDerivedPortSignature(apx_port_t *self)
       if (derivedDsg != 0)
       {
          derivedDsgLen = (uint32_t) strlen(derivedDsg);
-      }
-      if ( (namelen > 0) && (derivedDsgLen > 0) && (derivedDsg != 0) )
-      {
-         uint32_t psgLen=namelen+derivedDsgLen+APX_PORT_OVERHEAD_LEN; //add 3 to fit null-terminator + 2 '"' characters
-         self->derivedPortSignature = (char*) malloc(psgLen);
-         if (self->derivedPortSignature != 0)
+         if ( (namelen > 0) && (derivedDsgLen > 0) )
          {
-            char *p = self->derivedPortSignature;
-            *p++='"';
-            memcpy(p,self->name,namelen); p+=namelen;
-            *p++='"';
-            memcpy(p, derivedDsg, derivedDsgLen); p+=derivedDsgLen;
-            *p++='\0';
-            assert(p == self->derivedPortSignature+psgLen);
-            return APX_NO_ERROR;
+            uint32_t psgLen=namelen+derivedDsgLen+APX_PORT_OVERHEAD_LEN; //add 3 to fit null-terminator + 2 '"' characters
+            self->derivedPortSignature = (char*) malloc(psgLen);
+            if (self->derivedPortSignature != 0)
+            {
+               char *p = self->derivedPortSignature;
+               *p++='"';
+               memcpy(p,self->name,namelen); p+=namelen;
+               *p++='"';
+               memcpy(p, derivedDsg, derivedDsgLen); p+=derivedDsgLen;
+               *p++='\0';
+               assert(p == self->derivedPortSignature+psgLen);
+               return APX_NO_ERROR;
+            }
          }
+         return APX_NOT_IMPLEMENTED_ERROR;
       }
-      else
-      {
-         if (derivedDsg == 0)
-         {
-            return APX_DATA_SIGNATURE_ERROR;
-         }
-      }
+   }
+   else
+   {
+      return APX_DATA_SIGNATURE_ERROR;
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }
@@ -233,6 +215,7 @@ const char *apx_port_getDerivedPortSignature(apx_port_t *self)
          apx_error_t result = apx_port_updateDerivedPortSignature(self);
          if (result != APX_NO_ERROR)
          {
+            apx_setError(result);
             return (const char*) 0;
          }
       }

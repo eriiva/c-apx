@@ -66,6 +66,7 @@ static void test_apx_dataSignature_resolveNameTypeWithError(CuTest *tc);
 static void test_apx_dataSignature_getDerivedString_uint8(CuTest *tc);
 static void test_apx_dataSignature_getDerivedString_uint16(CuTest *tc);
 static void test_apx_dataSignature_getDerivedString_uint32(CuTest *tc);
+static void test_apx_dataSignature_getDerivedString_uint8Ref(CuTest *tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -96,6 +97,7 @@ CuSuite* testsuite_apx_dataSignature(void)
    SUITE_ADD_TEST(suite, test_apx_dataSignature_getDerivedString_uint8);
    SUITE_ADD_TEST(suite, test_apx_dataSignature_getDerivedString_uint16);
    SUITE_ADD_TEST(suite, test_apx_dataSignature_getDerivedString_uint32);
+   SUITE_ADD_TEST(suite, test_apx_dataSignature_getDerivedString_uint8Ref);
 
    return suite;
 }
@@ -528,5 +530,20 @@ static void test_apx_dataSignature_getDerivedString_uint32(CuTest *tc)
    CuAssertPtrEquals(tc, NULL, dsg->derived);
    CuAssertStrEquals(tc, "L[4]", apx_dataSignature_getDerivedString(dsg));
    CuAssertPtrEquals(tc, NULL, dsg->derived);
+   apx_dataSignature_delete(dsg);
+}
+
+static void test_apx_dataSignature_getDerivedString_uint8Ref(CuTest *tc)
+{
+   apx_dataSignature_t *dsg;
+   adt_ary_t typeList;
+
+   dsg = apx_dataSignature_new("T[0]");
+   adt_ary_create(&typeList, apx_datatype_vdelete);
+   adt_ary_push(&typeList, apx_datatype_new("EnumType","C(0,3)",0, 0));
+   apx_dataSignature_resolveTypes(dsg, &typeList, 0);
+   CuAssertStrEquals(tc, "C(0,3)", apx_dataSignature_getDerivedString(dsg));
+
+   adt_ary_destroy(&typeList);
    apx_dataSignature_delete(dsg);
 }

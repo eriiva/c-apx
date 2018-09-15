@@ -8,6 +8,8 @@
 #include <string.h>
 #include "CuTest.h"
 #include "apx_port.h"
+#include "adt_ary.h"
+#include "apx_datatype.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -19,8 +21,10 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_port_create(CuTest* tc);
+static void test_apx_port_create_typeRef(CuTest* tc);
+static void test_apx_port_createDerivedDataSignature(CuTest* tc);
 static void test_apx_port_create_invalidRecordDsg(CuTest* tc);
+
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -38,7 +42,8 @@ CuSuite* testsuite_apx_port(void)
 {
    CuSuite* suite = CuSuiteNew();
 
-   SUITE_ADD_TEST(suite, test_apx_port_create);
+   SUITE_ADD_TEST(suite, test_apx_port_create_typeRef);
+   SUITE_ADD_TEST(suite, test_apx_port_createDerivedDataSignature);
    SUITE_ADD_TEST(suite, test_apx_port_create_invalidRecordDsg);
 
    return suite;
@@ -48,23 +53,34 @@ CuSuite* testsuite_apx_port(void)
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
-static void test_apx_port_create(CuTest* tc)
+static void test_apx_port_create_typeRef(CuTest* tc)
 {
    apx_port_t port;
-   //const char *psg;
-   CuAssertIntEquals(tc, APX_NO_ERROR, apx_port_create(&port, APX_REQUIRE_PORT, NULL, "C", NULL, 0));
-   CuAssertPtrEquals(tc,NULL,port.portAttributes);
-   CuAssertPtrEquals(tc,NULL,port.name);
-   CuAssertPtrEquals(tc,NULL,port.derivedPortSignature);
+
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_port_create(&port, APX_REQUIRE_PORT, "SootLevel","T[0]", NULL, 0));
+   CuAssertPtrEquals(tc, NULL, port.portAttributes);
+   CuAssertStrEquals(tc, "SootLevel" ,port.name);
+   CuAssertPtrEquals(tc, NULL, port.derivedPortSignature);
+
    apx_port_destroy(&port);
 
-   CuAssertIntEquals(tc, APX_NO_ERROR, apx_port_create(&port,APX_REQUIRE_PORT,"SootLevel","T[95]",NULL, 0));
-   //apx_port_setDerivedDataSignature(&port,"C");
-   //psg = apx_port_getPortSignature(&port);
+}
 
-   //CuAssertStrEquals(tc,"\"DPFSootLevel\"C",psg);
+static void test_apx_port_createDerivedDataSignature(CuTest* tc)
+{
+   apx_port_t port;
+   adt_ary_t typeList;
+   adt_ary_create(&typeList, apx_datatype_vdelete);
+
+   adt_ary_push(&typeList, apx_datatype_new("SootLevel_T", "C", NULL, 1));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_port_create(&port, APX_REQUIRE_PORT, "SootLevel","T[0]", NULL, 0));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_port_resolveTypes(&port, &typeList, NULL));
+   CuAssertPtrEquals(tc, NULL, port.derivedPortSignature);
+   CuAssertStrEquals(tc, "\"SootLevel\"C", apx_port_getDerivedPortSignature(&port));
+   CuAssertPtrNotNull(tc, port.derivedPortSignature);
+
    apx_port_destroy(&port);
-
+   adt_ary_destroy(&typeList);
 }
 
 static void test_apx_port_create_invalidRecordDsg(CuTest* tc)
@@ -72,6 +88,8 @@ static void test_apx_port_create_invalidRecordDsg(CuTest* tc)
    apx_port_t port;
    CuAssertIntEquals(tc, APX_UNMATCHED_BRACE_ERROR, apx_port_create(&port, APX_REQUIRE_PORT, "Hello", "{\"UserId\"S", "=0", 0));
 }
+
+
 
 
 

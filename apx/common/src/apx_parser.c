@@ -213,7 +213,8 @@ void apx_parser_close(apx_parser_t *self)
    {
       if (self->lastErrorType == APX_NO_ERROR)
       {
-         apx_node_finalize(self->currentNode);
+         int32_t errorLine;
+         apx_node_finalize(self->currentNode, &errorLine);
          adt_ary_push(&self->nodeList,self->currentNode);
          self->currentNode=0;
       }
@@ -230,7 +231,8 @@ void apx_parser_node(apx_parser_t *self, const char *name) //N"<name>"
    {
       if (self->currentNode!=0)
       {
-         apx_node_finalize(self->currentNode);
+         int32_t errorLine;
+         apx_node_finalize(self->currentNode, &errorLine);
          adt_ary_push(&self->nodeList,self->currentNode);
          self->currentNode=0;
       }
@@ -280,7 +282,8 @@ void apx_parser_node_end(apx_parser_t *self)
 {
    if ( (self != 0) && (self->currentNode!=0) )
    {
-      apx_node_finalize(self->currentNode);
+      int32_t errorLine;
+      apx_node_finalize(self->currentNode, &errorLine);
       adt_ary_push(&self->nodeList,self->currentNode);
       self->currentNode=0;
    }

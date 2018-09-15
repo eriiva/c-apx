@@ -232,13 +232,21 @@ const char *apx_dataSignature_getDerivedString(apx_dataSignature_t *self)
          {
             return self->raw;
          }
+         else if (dataElement->baseType == APX_BASE_TYPE_REF_PTR)
+         {
+            apx_dataSignature_t *referencedDsg;
+            apx_datatype_t *dataType = dataElement->typeRef.ptr;
+            referencedDsg = dataType->dataSignature;
+            return apx_dataSignature_getDerivedString(referencedDsg);
+         }
          else
          {
-            apx_setError(APX_NOT_IMPLEMENTED_ERROR);
+            apx_setError(APX_DATA_SIGNATURE_ERROR);
             return (const char*) 0;
          }
       }
    }
+   apx_setError(APX_INVALID_ARGUMENT_ERROR);
    return (const char*) 0;
 }
 
