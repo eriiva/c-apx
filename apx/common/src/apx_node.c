@@ -56,9 +56,6 @@ void apx_node_create(apx_node_t *self,const char *name){
       adt_ary_create(&self->providePortList,apx_port_vdelete);
       apx_attributeParser_create(&self->attributeParser);
       apx_node_setName(self,name);
-      //self->lastPortError=APX_NO_ERROR;
-      //self->lastPortId=-1;
-      //self->lastPortType=-1;
       self->nodeInfo=(apx_nodeInfo_t*) 0;
       self->isFinalized = false;
    }

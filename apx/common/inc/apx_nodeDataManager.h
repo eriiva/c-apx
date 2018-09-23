@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_nodeDataFactory.h
+* \file      apx_nodeDataManager.h
 * \author    Conny Gustafsson
 * \date      2018-09-03
-* \brief     Factory that is capable of creating new apxNodeData_t objects
+* \brief     Dynamically create new apx_nodeData objects
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,8 +23,8 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_NODE_DATA_FACTORY_H
-#define APX_NODE_DATA_FACTORY_H
+#ifndef APX_NODE_DATA_MANAGER_H
+#define APX_NODE_DATA_MANAGER_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
@@ -33,6 +33,7 @@
 #include "adt_list.h"
 #include "apx_parser.h"
 #include "apx_stream.h"
+#include "apx_error.h"
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -45,22 +46,24 @@
 //////////////////////////////////////////////////////////////////////////////
 #define APX_NODE_DATA_FACTORY_NO_ERROR 0u
 
-typedef struct apx_nodeDataFactory_tag
+typedef struct apx_nodeDataManager_tag
 {
    apx_parser_t parser;
    apx_istream_t apx_istream; //helper structure for parser
    MUTEX_T mutex; //locking mechanism
-   int8_t lastError;
-}apx_nodeDataFactory_t;
+}apx_nodeDataManager_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_nodeDataFactory_create(apx_nodeDataFactory_t *self);
-void apx_nodeDataFactory_destroy(apx_nodeDataFactory_t *self);
-apx_nodeDataFactory_t *apx_nodeDataFactory_new(void);
-void apx_nodeDataFactory_delete(apx_nodeDataFactory_t *self);
-int8_t apx_nodeDataFactory_getLastError(apx_nodeDataFactory_t *self);
-apx_nodeData_t *apx_nodeDataFactory_fromString(apx_nodeDataFactory_t *self, const uint8_t *definitionBuf, uint32_t definitionLen);
+void apx_nodeDataManager_create(apx_nodeDataManager_t *self);
+void apx_nodeDataManager_destroy(apx_nodeDataManager_t *self);
+apx_nodeDataManager_t *apx_nodeDataManager_new(void);
+void apx_nodeDataManager_delete(apx_nodeDataManager_t *self);
+apx_error_t apx_nodeDataManager_getLastError(apx_nodeDataManager_t *self);
+int32_t apx_nodeDataManager_getErrorLine(apx_nodeDataManager_t *self);
+apx_nodeData_t *apx_nodeDataManager_newNodeData(apx_nodeDataManager_t *self, const char *name);
+apx_error_t apx_nodeDataManager_parseDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData, const uint8_t *definitionBuf, uint32_t definitionLen);
 
-#endif //APX_NODE_DATA_FACTORY_H
+
+#endif //APX_NODE_DATA_MANAGER_H

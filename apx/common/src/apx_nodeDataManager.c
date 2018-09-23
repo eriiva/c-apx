@@ -1,5 +1,5 @@
 /*****************************************************************************
-* \file      apx_nodeDataFactory.c
+* \file      apx_nodeDataManager.c
 * \author    Conny Gustafsson
 * \date      2018-09-03
 * \brief     Description
@@ -29,7 +29,8 @@
 #include <string.h>
 #include <malloc.h>
 #include <stddef.h>
-#include "apx_nodeDataFactory.h"
+#include "apx_nodeDataManager.h"
+#include "apx_node.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -49,7 +50,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_nodeDataFactory_create(apx_nodeDataFactory_t *self)
+void apx_nodeDataManager_create(apx_nodeDataManager_t *self)
 {
    if (self != 0)
    {
@@ -63,14 +64,14 @@ void apx_nodeDataFactory_create(apx_nodeDataFactory_t *self)
       apx_istream_handler.provide = apx_parser_vprovide;
       apx_istream_handler.require = apx_parser_vrequire;
       apx_istream_handler.node_end = apx_parser_vnode_end;
+      apx_istream_handler.parse_error = apx_parser_vparse_error;
       apx_istream_create(&self->apx_istream, &apx_istream_handler);
       apx_parser_create(&self->parser);
-      self->lastError = APX_NODE_DATA_FACTORY_NO_ERROR;
       MUTEX_INIT(self->mutex);
    }
 }
 
-void apx_nodeDataFactory_destroy(apx_nodeDataFactory_t *self)
+void apx_nodeDataManager_destroy(apx_nodeDataManager_t *self)
 {
    if (self != 0)
    {
@@ -80,56 +81,79 @@ void apx_nodeDataFactory_destroy(apx_nodeDataFactory_t *self)
    }
 }
 
-apx_nodeDataFactory_t *apx_nodeDataFactory_new(void)
+apx_nodeDataManager_t *apx_nodeDataManager_new(void)
 {
-   apx_nodeDataFactory_t *self = (apx_nodeDataFactory_t*) malloc(sizeof(apx_nodeDataFactory_t));
+   apx_nodeDataManager_t *self = (apx_nodeDataManager_t*) malloc(sizeof(apx_nodeDataManager_t));
    if (self != 0)
    {
-      apx_nodeDataFactory_create(self);
+      apx_nodeDataManager_create(self);
    }
    return self;
 }
 
-void apx_nodeDataFactory_delete(apx_nodeDataFactory_t *self)
+void apx_nodeDataManager_delete(apx_nodeDataManager_t *self)
 {
    if (self != 0)
    {
-      apx_nodeDataFactory_destroy(self);
+      apx_nodeDataManager_destroy(self);
       free(self);
    }
 }
 
-int8_t apx_nodeDataFactory_getLastError(apx_nodeDataFactory_t *self)
+apx_error_t apx_nodeDataManager_getLastError(apx_nodeDataManager_t *self)
 {
    if (self != 0)
    {
-      return self->lastError;
+      return apx_parser_getLastError(&self->parser);
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+int32_t apx_nodeDataManager_getErrorLine(apx_nodeDataManager_t *self)
+{
+   if (self != 0)
+   {
+      return apx_parser_getErrorLine(&self->parser);
    }
    return -1;
 }
 
-apx_nodeData_t *apx_nodeDataFactory_fromString(apx_nodeDataFactory_t *self, const uint8_t *definitionBuf, uint32_t definitionLen)
+apx_nodeData_t *apx_nodeDataManager_newNodeData(apx_nodeDataManager_t *self, const char *name)
+{
+   if ( self != 0)
+   {
+      return apx_nodeData_new(name, false);
+   }
+   return (apx_nodeData_t*) 0;
+}
+
+apx_error_t apx_nodeDataManager_parseDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData, const uint8_t *definitionBuf, uint32_t definitionLen)
 {
    if (self != 0)
    {
-      int32_t numNodes;
+
+      apx_error_t lastError;
       apx_istream_reset(&self->apx_istream);
       apx_istream_open(&self->apx_istream);
       apx_istream_write(&self->apx_istream, definitionBuf, definitionLen);
       apx_istream_close(&self->apx_istream);
-      numNodes = apx_parser_getNumNodes(&self->parser);
-      if (numNodes > 0)
+      lastError = apx_parser_getLastError(&self->parser);
+      if (lastError == APX_NO_ERROR)
       {
-         apx_node_t *node = apx_parser_getNode(&self->parser, 0);
-         if (node != 0)
+         int32_t numNodes;
+         numNodes = apx_parser_getNumNodes(&self->parser);
+         if (numNodes > 0)
          {
-            apx_nodeData_t *nodeData = apx_nodeData_new(apx_node_getName(node), false);
-            return nodeData;
+            apx_node_t *node = apx_parser_getNode(&self->parser, -1);
+            apx_nodeData_setNode(nodeData, node);
+            apx_parser_clearNodes(&self->parser);
          }
       }
+      return lastError;
    }
-   return (apx_nodeData_t*) 0;
+   return APX_INVALID_ARGUMENT_ERROR;
 }
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS

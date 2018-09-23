@@ -74,7 +74,7 @@ static void test_apx_nodeInfo_create(CuTest* tc)
    apx_parser_create(&parser);
    node1 = apx_parser_parseFile(&parser, APX_TEST_DATA_PATH "test1.apx");
    CuAssertPtrNotNull(tc,node1);
-   CuAssertStrEquals(tc,"test1",node1->name);
+   CuAssertStrEquals(tc,"TestNode1",node1->name);
 
    node2 = apx_parser_parseFile(&parser, APX_TEST_DATA_PATH "test2.apx");
    CuAssertPtrNotNull(tc,node2);

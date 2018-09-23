@@ -129,7 +129,7 @@ static void test_apx_fileManagerShared_serializeFileInfo(CuTest *tc)
          0x00, //address
          0x00, //address
          0x00, //address
-         0x02, //length
+         0x03, //length
          0x00, //length
          0x00, //length
          0x00, //length
@@ -197,7 +197,7 @@ static void test_apx_fileManagerShared_serializeFileInfo(CuTest *tc)
          0x00, //address
          0x00, //address
          0x04, //address
-         54, //length
+         126,  //length
          0x00, //length
          0x00, //length
          0x00, //length

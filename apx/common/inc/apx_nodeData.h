@@ -41,6 +41,7 @@ struct apx_nodeInfo_tag;
 
 //forward declaration
 struct apx_nodeData_tag;
+struct apx_node_tag;
 
 /**
  * function table of event handlers that apx_nodeData_t can call when events are triggererd
@@ -76,6 +77,7 @@ typedef struct apx_nodeData_tag
    SPINLOCK_T outPortDataLock;
    SPINLOCK_T definitionDataLock;
    SPINLOCK_T internalLock;
+   struct apx_node_tag *node;
 #endif
    struct apx_file2_tag *outPortDataFile;
    struct apx_file2_tag *inPortDataFile;
@@ -119,6 +121,8 @@ void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_es_fileManager
 #else
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_fileManager_tag *fileManager);
 void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nodeInfo);
+void apx_nodeData_setNode(apx_nodeData_t *self, struct apx_node_tag *node);
+const char *apx_nodeData_getName(apx_nodeData_t *self);
 struct apx_file2_tag *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self);
 struct apx_file2_tag *apx_nodeData_newLocalOutPortDataFile(apx_nodeData_t *self);
 #endif

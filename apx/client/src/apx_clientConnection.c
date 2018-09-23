@@ -184,6 +184,14 @@ int8_t apx_clientConnection_connectTcp(apx_clientConnection_t *self, const char 
    }
    return -1;
 }
+
+# ifndef _WIN32
+apx_error_t apx_clientConnection_connectUnix(apx_clientConnection_t *self, const char *socketPath)
+{
+   return APX_NOT_IMPLEMENTED;
+}
+# endif
+
 #endif
 
 

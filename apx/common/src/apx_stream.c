@@ -161,6 +161,13 @@ void apx_istream_write(apx_istream_t *self, const uint8_t *pChunk, uint32_t chun
                   apx_istream_triggerParseError(self);
                   return;
                }
+               else if (pResult != pLineEnd)
+               {
+                  //stray character found after parsing line
+                  adt_bytearray_clear(&self->buf);
+                  apx_istream_triggerParseError(self);
+                  return;
+               }
                self->currentLine++;
             }
             else{

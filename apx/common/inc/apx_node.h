@@ -9,21 +9,16 @@
 #include "apx_error.h"
 #include <stdbool.h>
 
-struct apx_node_t;
 struct apx_nodeInfo_tag;
 
-typedef struct apx_node_t{
+typedef struct apx_node_tag{
    adt_ary_t datatypeList;
    adt_ary_t requirePortList;
    adt_ary_t providePortList;
-   //apx_error_t lastPortError;
-   //int8_t lastPortId;
-   //int16_t lastPortType;
    char *name;
    struct apx_nodeInfo_tag *nodeInfo;
    bool isFinalized;
    apx_attributeParser_t attributeParser;
-
 } apx_node_t;
 
 

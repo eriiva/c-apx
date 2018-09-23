@@ -122,7 +122,7 @@ int8_t apx_client_connect(apx_client_t *self, struct testsocket_tag *socketObjec
    return -1;
 }
 #else
-int8_t apx_client_connect_tcp(apx_client_t *self, const char *address, uint16_t port)
+int8_t apx_client_connectTcp(apx_client_t *self, const char *address, uint16_t port)
 {
    if (self != 0)
    {
@@ -130,6 +130,18 @@ int8_t apx_client_connect_tcp(apx_client_t *self, const char *address, uint16_t 
    }
    return -1;
 }
+
+# ifndef _WIN32
+int8_t apx_client_connectUnix(apx_client_t *self, const char *socketPath)
+{
+   if (self != 0)
+   {
+      return apx_clientConnection_connectUnix(self->connection, socketPath);
+   }
+   return -1;
+}
+# endif
+
 #endif
 
 void apx_client_disconnect(apx_client_t *self)
@@ -143,7 +155,7 @@ void apx_client_disconnect(apx_client_t *self)
 /**
  * attached the nodeData to the local nodeManager in the client
  */
-void apx_client_attach_local_node(apx_client_t *self, apx_nodeData_t *nodeData)
+void apx_client_attachLocalNode(apx_client_t *self, apx_nodeData_t *nodeData)
 {
    if ( (self != 0) && (nodeData != 0) )
    {

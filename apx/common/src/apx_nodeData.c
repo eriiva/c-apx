@@ -14,6 +14,7 @@
 #include <assert.h>
 #include "apx_fileManager.h"
 #include "apx_nodeInfo.h"
+#include "apx_node.h"
 #endif
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
@@ -72,6 +73,7 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       SPINLOCK_INIT(self->internalLock);
       self->fileManager = (apx_fileManager_t*) 0;
       self->nodeInfo = (apx_nodeInfo_t*) 0;
+      self->node = (apx_node_t*) 0;
 #endif
    }
 }
@@ -113,6 +115,10 @@ void apx_nodeData_destroy(apx_nodeData_t *self)
          {
             free(self->outPortDirtyFlags);
          }
+         if ( self->node != 0)
+         {
+            apx_node_delete(self->node);
+         }
       }
 #endif
    }
@@ -124,7 +130,7 @@ void apx_nodeData_destroy(apx_nodeData_t *self)
 apx_nodeData_t *apx_nodeData_new(const char *name, bool isWeakref)
 {
    apx_nodeData_t *self = 0;
-   if ( (name != 0) && (isWeakref == false))
+   if ( (name != 0) && (isWeakref == false) )
    {
       char *nameCopy = STRDUP(name);
       if (nameCopy == 0)
@@ -419,6 +425,34 @@ struct apx_file2_tag *apx_nodeData_newLocalOutPortDataFile(apx_nodeData_t *self)
       }
    }
    return (apx_file2_t*) 0;
+}
+
+void apx_nodeData_setNode(apx_nodeData_t *self, struct apx_node_tag *node)
+{
+   if ( (self != 0) && (node != 0) )
+   {
+      self->node = node;
+   }
+}
+
+const char *apx_nodeData_getName(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+#ifdef APX_EMBEDDED
+      return self->name;
+#else
+      if (self->node != 0)
+      {
+         return apx_node_getName(self->node);
+      }
+      else
+      {
+         return self->name;
+      }
+#endif
+   }
+   return (const char*) 0;
 }
 
 #endif

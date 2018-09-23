@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include "adt_bytearray.h"
 #include "apx_fileManager.h"
+#include "apx_error.h"
 #ifdef _WIN32
 # ifndef WIN32_LEAN_AND_MEAN
 # define WIN32_LEAN_AND_MEAN
@@ -64,6 +65,9 @@ void apx_clientConnection_vdelete(void *arg);
 int8_t apx_clientConnection_connect(apx_clientConnection_t *self, SOCKET_TYPE *socketObject);
 #else
 int8_t apx_clientConnection_connectTcp(apx_clientConnection_t *self, const char *address, uint16_t port);
+# ifndef _WIN32
+apx_error_t apx_clientConnection_connectUnix(apx_clientConnection_t *self, const char *socketPath);
+# endif
 #endif
 void apx_clientConnection_disconnect(apx_clientConnection_t *self);
 

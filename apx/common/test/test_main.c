@@ -33,7 +33,7 @@ CuSuite* testSuite_apx_clientConnection(void);
 CuSuite* testSuite_apx_nodeManager(void);
 CuSuite* testSuite_apx_eventRecorderSrvRmf(void);
 CuSuite* testSuite_apx_file2(void);
-CuSuite* testSuite_apx_nodeDataFactory(void);
+CuSuite* testSuite_apx_nodeDataManager(void);
 CuSuite* testsuite_apx_datatype(void);
 
 //util
@@ -82,7 +82,7 @@ void RunAllTests(void)
 
    CuSuiteAddSuite(suite, testSuite_apx_nodeManager());
    CuSuiteAddSuite(suite, testSuite_apx_eventRecorderSrvRmf());
-   CuSuiteAddSuite(suite, testSuite_apx_nodeDataFactory());
+   CuSuiteAddSuite(suite, testSuite_apx_nodeDataManager());
 
 
    CuSuiteRun(suite);

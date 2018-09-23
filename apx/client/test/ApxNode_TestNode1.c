@@ -9,9 +9,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define APX_DEFINITON_LEN 54u
+#define APX_DEFINITON_LEN 126u
 #define APX_IN_PORT_DATA_LEN 2u
-#define APX_OUT_PORT_DATA_LEN 2u
+#define APX_OUT_PORT_DATA_LEN 3u
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
@@ -20,7 +20,7 @@ static void outPortData_writeCmd(apx_offset_t offset, apx_size_t len );
 // LOCAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
 static const uint8_t m_outPortInitData[APX_OUT_PORT_DATA_LEN]= {
-   0, 0
+   0, 0, 0
 };
 
 static uint8 m_outPortdata[APX_OUT_PORT_DATA_LEN];
@@ -35,8 +35,10 @@ static apx_nodeData_t m_nodeData;
 static const char *m_apxDefinitionData=
 "APX/1.2\n"
 "N\"TestNode1\"\n"
-"P\"TestSignal1\"S\n"
-"R\"TestSignal2\"S\n"
+"P\"WheelBasedVehicleSpeed\"S\n"
+"P\"CabTiltLockWarning\"C(0,7)\n"
+"R\"VehicleMode\"C(0,15)\n"
+"R\"GearSelectionMode\"C(0,7)\n"
 "\n";
 
 //////////////////////////////////////////////////////////////////////////////
@@ -59,19 +61,35 @@ apx_nodeData_t * ApxNode_GetNodeData_TestNode1(void)
    return &m_nodeData;
 }
 
-Std_ReturnType ApxNode_Read_TestNode1_TestSignal2(uint16 *val)
+Std_ReturnType ApxNode_Read_TestNode1_VehicleMode(uint8 *val)
 {
    apx_nodeData_lockInPortData(&m_nodeData);
-   *val = (uint16) unpackLE(&m_inPortdata[0],(uint8) 2u);
+   *val = (uint8) m_inPortdata[0];
    apx_nodeData_unlockInPortData(&m_nodeData);
    return E_OK;
 }
 
-Std_ReturnType ApxNode_Write_TestNode1_TestSignal1(uint16 val)
+Std_ReturnType ApxNode_Read_TestNode1_GearSelectionMode(uint8 *val)
+{
+   apx_nodeData_lockInPortData(&m_nodeData);
+   *val = (uint8) m_inPortdata[1];
+   apx_nodeData_unlockInPortData(&m_nodeData);
+   return E_OK;
+}
+
+Std_ReturnType ApxNode_Write_TestNode1_WheelBasedVehicleSpeed(uint16 val)
 {
    apx_nodeData_lockOutPortData(&m_nodeData);
    packLE(&m_outPortdata[0],(uint32) val,(uint8) 2u);
    outPortData_writeCmd(0, 2);
+   return E_OK;
+}
+
+Std_ReturnType ApxNode_Write_TestNode1_CabTiltLockWarning(uint8 val)
+{
+   apx_nodeData_lockOutPortData(&m_nodeData);
+   m_outPortdata[2]=(uint8) val;
+   outPortData_writeCmd(2, 1);
    return E_OK;
 }
 

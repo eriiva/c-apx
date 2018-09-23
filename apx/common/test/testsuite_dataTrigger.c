@@ -67,7 +67,7 @@ static void test_apx_dataTriggerTable_create(CuTest* tc)
    apx_parser_create(&parser);
    apx_node[0] = apx_parser_parseFile(&parser, APX_TEST_DATA_PATH "test1.apx");
    CuAssertPtrNotNull(tc,apx_node[0]);
-   CuAssertStrEquals(tc,"test1",apx_node[0]->name);
+   CuAssertStrEquals(tc,"TestNode1",apx_node[0]->name);
 
    apx_node[1] = apx_parser_parseFile(&parser, APX_TEST_DATA_PATH "test2.apx");
    CuAssertPtrNotNull(tc,apx_node[1]);
