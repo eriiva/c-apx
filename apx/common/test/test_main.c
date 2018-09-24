@@ -39,6 +39,7 @@ CuSuite* testsuite_apx_datatype(void);
 //util
 CuSuite* testsuite_headerutil(void);
 CuSuite* testsuite_pack(void);
+CuSuite* testsuite_sha256(void);
 
 void RunAllTests(void)
 {
@@ -83,6 +84,9 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testSuite_apx_nodeManager());
    CuSuiteAddSuite(suite, testSuite_apx_eventRecorderSrvRmf());
    CuSuiteAddSuite(suite, testSuite_apx_nodeDataManager());
+
+   CuSuiteAddSuite(suite, testsuite_sha256());
+
 
 
    CuSuiteRun(suite);
