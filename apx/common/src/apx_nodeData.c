@@ -26,11 +26,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#ifdef _MSC_VER
-#define STRDUP _strdup
-#else
-#define STRDUP strdup
-#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
@@ -38,6 +33,9 @@
 static int8_t apx_nodeData_createFileInfo(apx_nodeData_t *self, rmf_fileInfo_t *fileInfo, uint8_t fileType);
 static const char *apx_nodeData_getFileExtenstionFromType(uint8_t fileType);
 static uint32_t apx_nodeData_getFileLengthFromType(apx_nodeData_t *self, uint8_t fileType);
+#ifndef APX_EMBEDDED
+static void apx_nodeData_clearPortBuffers(apx_nodeData_t *self);
+#endif
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -64,6 +62,8 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       apx_nodeData_setHandlerTable(self, NULL);
       self->outPortDataFile = (apx_file2_t*) 0;
       self->inPortDataFile = (apx_file2_t*) 0;
+      self->checksumType = APX_CHECKSUM_NONE;
+      memset(&self->checksumData[0], 0, sizeof(self->checksumData));
 #ifdef APX_EMBEDDED
       self->fileManager = (apx_es_fileManager_t*) 0;
 #else
@@ -95,58 +95,41 @@ void apx_nodeData_destroy(apx_nodeData_t *self)
          {
             free((char*)self->name);
          }
-         if ( self->inPortDataBuf != 0)
-         {
-            free(self->inPortDataBuf);
-         }
-         if ( self->outPortDataBuf != 0)
-         {
-            free(self->outPortDataBuf);
-         }
          if ( self->definitionDataBuf != 0)
          {
             free(self->definitionDataBuf);
          }
-         if ( self->inPortDirtyFlags != 0)
-         {
-            free(self->inPortDirtyFlags);
-         }
-         if ( self->outPortDirtyFlags != 0)
-         {
-            free(self->outPortDirtyFlags);
-         }
-         if ( self->node != 0)
-         {
-            apx_node_delete(self->node);
-         }
+         apx_nodeData_clearPortBuffers(self);
+      }
+      if ( self->node != 0)
+      {
+         apx_node_delete(self->node);
       }
 #endif
    }
 }
 #ifndef APX_EMBEDDED
 /**
- * creates a new apx_nodeData_t with all pointers (except name) set to NULL
+ * creates a new apx_nodeData_t with all pointers set to NULL
  */
-apx_nodeData_t *apx_nodeData_new(const char *name, bool isWeakref)
+apx_nodeData_t *apx_nodeData_new(uint32_t definitionDataLen)
 {
    apx_nodeData_t *self = 0;
-   if ( (name != 0) && (isWeakref == false) )
-   {
-      char *nameCopy = STRDUP(name);
-      if (nameCopy == 0)
-      {
-         return self;
-      }
-      else
-      {
-         name = nameCopy;
-      }
-   }
    self = (apx_nodeData_t*) malloc(sizeof(apx_nodeData_t));
    if (self != 0)
    {
-      apx_nodeData_create(self, name, 0, 0, 0, 0, 0, 0, 0, 0);
-      self->isWeakref = isWeakref;
+      uint8_t *definitionDataBuf = (uint8_t*) 0;
+      if (definitionDataLen > 0)
+      {
+         definitionDataBuf = (uint8_t*) malloc(definitionDataLen);
+         if (definitionDataBuf == 0)
+         {
+            free(self);
+            return (apx_nodeData_t*) 0;
+         }
+      }
+      apx_nodeData_create(self, 0, definitionDataBuf, definitionDataLen, 0, 0, 0, 0, 0, 0);
+      self->isWeakref = false;
    }
    else
    {
@@ -208,6 +191,24 @@ void apx_nodeData_vdelete(void *arg)
    apx_nodeData_delete((apx_nodeData_t*) arg);
 }
 #endif
+
+apx_error_t apx_nodeData_setChecksumData(apx_nodeData_t *self, uint8_t checksumType, uint8_t *checksumData)
+{
+   if ( (self != 0) && (checksumType <= APX_CHECKSUM_SHA256) )
+   {
+      self->checksumType = checksumType;
+      if (checksumType == APX_CHECKSUM_SHA256)
+      {
+         if (checksumData == 0)
+         {
+            return APX_INVALID_ARGUMENT_ERROR;
+         }
+         memcpy(&self->checksumData[0], checksumData, APX_CHECKSUMLEN_SHA256);
+      }
+      return APX_NO_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
 
 int8_t apx_nodeData_readDefinitionData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len)
 {
@@ -388,6 +389,41 @@ void apx_nodeData_setOutPortDataFile(apx_nodeData_t *self, struct apx_file2_tag 
 
 
 #ifndef APX_EMBEDDED
+apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
+{
+   if ( (self != 0) && (self->isWeakref == false) && (self->node != 0) )
+   {
+      self->outPortDataLen = apx_node_calcOutPortDataLen(self->node);
+      self->inPortDataLen = apx_node_calcInPortDataLen(self->node);
+      if ( (self->outPortDataLen<0) || (self->inPortDataLen<0) )
+      {
+         return APX_LENGTH_ERROR;
+      }
+      if (self->outPortDataLen > 0)
+      {
+         self->outPortDataBuf = (uint8_t*) malloc(self->outPortDataLen);
+         self->outPortDirtyFlags = (uint8_t*) malloc(self->outPortDataLen);
+         if ( (self->outPortDataBuf == 0) || (self->outPortDirtyFlags == 0) )
+         {
+            apx_nodeData_clearPortBuffers(self);
+            return APX_MEM_ERROR;
+         }
+      }
+      if (self->inPortDataLen > 0)
+      {
+         self->inPortDataBuf = (uint8_t*) malloc(self->inPortDataLen);
+         self->inPortDirtyFlags = (uint8_t*) malloc(self->inPortDataLen);
+         if ( (self->inPortDataBuf == 0) || (self->inPortDirtyFlags == 0))
+         {
+            apx_nodeData_clearPortBuffers(self);
+            return APX_MEM_ERROR;
+         }
+      }
+      return APX_NO_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
 void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nodeInfo)
 {
    if (self != 0)
@@ -548,3 +584,26 @@ static uint32_t apx_nodeData_getFileLengthFromType(apx_nodeData_t *self, uint8_t
    }
    return retval;
 }
+
+#ifndef APX_EMBEDDED
+static void apx_nodeData_clearPortBuffers(apx_nodeData_t *self)
+{
+   if ( self->inPortDataBuf != 0)
+   {
+      free(self->inPortDataBuf);
+   }
+   if ( self->outPortDataBuf != 0)
+   {
+      free(self->outPortDataBuf);
+   }
+   if ( self->inPortDirtyFlags != 0)
+   {
+      free(self->inPortDirtyFlags);
+   }
+   if ( self->outPortDirtyFlags != 0)
+   {
+      free(self->outPortDirtyFlags);
+   }
+}
+
+#endif

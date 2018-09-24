@@ -69,7 +69,7 @@ typedef struct apx_dataElement_tag
       uint32_t u32;
       int32_t  s32;
    }max;
-   adt_ary_t *childElements; //NULL for all cases except when baseType is exactly == APX_BASE_TYPE_RECORD
+   adt_ary_t *childElements; //NULL for all cases except when baseType is exactly == APX_BASE_TYPE_RECORD. Contains strong references to apx_dataElement_t
    union {
       int32_t id; //used when baseType is APX_BASE_TYPE_REFERENCE_INT
       char *name; //used when baseType is APX_BASE_TYPE_REFERENCE_STR

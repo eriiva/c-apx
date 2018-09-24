@@ -65,6 +65,49 @@ void ifstream_close(ifstream_t *self){
    }
 }
 
+int ifstream_readBinaryFile(ifstream_t *self,const char *filename)
+{
+   if( (self != 0) && (filename != 0) ){
+      uint32_t chunkLen = 0;
+      char *buf;
+      char *chunk;
+      chunk = (char*) malloc(IFSTREAM_BLOCK_SIZE);
+      if( chunk != 0 ){
+         FILE* fh = fopen(filename,"r");
+         if (fh != 0){
+            if(self->handler.open != 0){
+               self->handler.open(self->handler.arg);
+            }
+            while(1){
+               size_t len = fread(&chunk[0], 1, IFSTREAM_BLOCK_SIZE, fh);
+               if (len > 0)
+               {
+                  chunkLen = (uint32_t) len;
+                  if(self->handler.write != 0){
+                     self->handler.write(self->handler.arg,(uint8_t*)chunk, chunkLen);
+                  }
+                  if (len < IFSTREAM_BLOCK_SIZE)
+                  {
+                     break; //done
+                  }
+               }
+            }
+            if(self->handler.close != 0){
+               self->handler.close(self->handler.arg);
+            }
+            if (chunk != 0) free(chunk);
+            fclose(fh);
+            return 0;
+         }
+      }
+      if (chunk != 0) free(chunk);
+   }
+   else{
+      errno = EINVAL;
+   }
+   return -1;
+}
+
 int ifstream_readTextFile(ifstream_t *self,const char *filename){
    if( (self != 0) && (filename != 0) ){
       uint32_t chunkLen = 0;

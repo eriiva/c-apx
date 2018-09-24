@@ -34,6 +34,7 @@
 #include "apx_parser.h"
 #include "apx_stream.h"
 #include "apx_error.h"
+#include "adt_hash.h"
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -50,6 +51,7 @@ typedef struct apx_nodeDataManager_tag
 {
    apx_parser_t parser;
    apx_istream_t apx_istream; //helper structure for parser
+   adt_hash_t nodeDataMap; //references to apx_nodeData_t
    MUTEX_T mutex; //locking mechanism
 }apx_nodeDataManager_t;
 
@@ -62,8 +64,8 @@ apx_nodeDataManager_t *apx_nodeDataManager_new(void);
 void apx_nodeDataManager_delete(apx_nodeDataManager_t *self);
 apx_error_t apx_nodeDataManager_getLastError(apx_nodeDataManager_t *self);
 int32_t apx_nodeDataManager_getErrorLine(apx_nodeDataManager_t *self);
-apx_nodeData_t *apx_nodeDataManager_newNodeData(apx_nodeDataManager_t *self, const char *name);
-apx_error_t apx_nodeDataManager_parseDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData, const uint8_t *definitionBuf, uint32_t definitionLen);
-
+apx_nodeData_t *apx_nodeDataManager_createNodeData(apx_nodeDataManager_t *self, const char *name, uint32_t definitionLen);
+apx_error_t apx_nodeDataManager_parseNodeDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData);
+apx_error_t apx_nodeDataManager_attachNodeData(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData); //not sure who will use this as of now
 
 #endif //APX_NODE_DATA_MANAGER_H

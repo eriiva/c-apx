@@ -8,13 +8,13 @@
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_types.h"
+#include "apx_error.h"
 #include <stdint.h>
 #if defined(_MSC_PLATFORM_TOOLSET) && (_MSC_PLATFORM_TOOLSET<=110)
 #include "msc_bool.h"
 #else
 #include <stdbool.h>
 #endif
-#include "apx_nodeData_cfg.h"
 #ifndef APX_EMBEDDED
 #  ifndef _WIN32
      //Linux-based system
@@ -57,7 +57,7 @@ typedef struct apx_nodeData_tag
 {
    bool isRemote; //true if this is a remote nodeData structure. Default: false
    bool isWeakref; //when true all pointers in this object is owned by some other part of the program. if false then all pointers are created/freed by this class.
-   const char *name;
+   const char *name; //only used when node is code-generated
    uint8_t *inPortDataBuf;
    uint8_t *outPortDataBuf;
    uint32_t inPortDataLen;
@@ -67,6 +67,8 @@ typedef struct apx_nodeData_tag
    uint8_t *inPortDirtyFlags;
    uint8_t *outPortDirtyFlags;
    apx_nodeDataHandlerTable_t handlerTable;
+   uint8_t checksumType;
+   uint8_t checksumData[APX_CHECKSUMLEN_SHA256];
 #ifdef APX_EMBEDDED
    //used for implementations that has no underlying operating system or runs an RTOS
    struct apx_es_fileManager_tag *fileManager;
@@ -79,6 +81,7 @@ typedef struct apx_nodeData_tag
    SPINLOCK_T internalLock;
    struct apx_node_tag *node;
 #endif
+   struct apx_file2_tag *definitionFile;
    struct apx_file2_tag *outPortDataFile;
    struct apx_file2_tag *inPortDataFile;
    struct apx_nodeInfo_tag *nodeInfo;
@@ -93,13 +96,14 @@ typedef struct apx_nodeData_tag
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *definitionBuf, uint32_t definitionDataLen,  uint8_t *inPortDataBuf, uint8_t *inPortDirtyFlags, uint32_t inPortDataLen, uint8_t *outPortDataBuf, uint8_t *outPortDirtyFlags, uint32_t outPortDataLen);
+void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *definitionBuf, uint32_t definitionDataLen, uint8_t *inPortDataBuf, uint8_t *inPortDirtyFlags, uint32_t inPortDataLen, uint8_t *outPortDataBuf, uint8_t *outPortDirtyFlags, uint32_t outPortDataLen);
 void apx_nodeData_destroy(apx_nodeData_t *self);
 #ifndef APX_EMBEDDED
-apx_nodeData_t *apx_nodeData_new(const char *name, bool isWeakref);
+apx_nodeData_t *apx_nodeData_new(uint32_t definitionDataLen);
 void apx_nodeData_delete(apx_nodeData_t *self);
 void apx_nodeData_vdelete(void *arg);
 #endif
+apx_error_t apx_nodeData_setChecksumData(apx_nodeData_t *self, uint8_t checksumType, uint8_t *checksumData);
 bool apx_nodeData_isOutPortDataOpen(apx_nodeData_t *self);
 void apx_nodeData_setHandlerTable(apx_nodeData_t *self, apx_nodeDataHandlerTable_t *handlerTable);
 int8_t apx_nodeData_readDefinitionData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len);
@@ -120,9 +124,11 @@ void apx_nodeData_setOutPortDataFile(apx_nodeData_t *self, struct apx_file2_tag 
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_es_fileManager_tag *fileManager);
 #else
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_fileManager_tag *fileManager);
+apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self);
 void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nodeInfo);
 void apx_nodeData_setNode(apx_nodeData_t *self, struct apx_node_tag *node);
 const char *apx_nodeData_getName(apx_nodeData_t *self);
+
 struct apx_file2_tag *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self);
 struct apx_file2_tag *apx_nodeData_newLocalOutPortDataFile(apx_nodeData_t *self);
 #endif

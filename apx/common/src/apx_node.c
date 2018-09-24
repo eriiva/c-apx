@@ -343,6 +343,55 @@ apx_error_t apx_node_fillPortInitData(apx_node_t *self, apx_port_t *port, adt_by
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
+int32_t apx_node_calcOutPortDataLen(apx_node_t *self)
+{
+   if (self != 0)
+   {
+      int32_t providePortLen;
+      int32_t total=0;
+      int32_t i;
+      providePortLen = apx_node_getNumProvidePorts(self);
+      for(i=0;i<providePortLen;i++)
+      {
+         int32_t outPortDataLen;
+         apx_port_t *port = apx_node_getProvidePort(self, i);
+         outPortDataLen = apx_port_getPackLen(port);
+         if (outPortDataLen < 0)
+         {
+            return -1;
+         }
+         total+=outPortDataLen;
+      }
+      return total;
+   }
+   return -1;
+}
+
+int32_t apx_node_calcInPortDataLen(apx_node_t *self)
+{
+   if (self != 0)
+   {
+      int32_t providePortLen;
+      int32_t total=0;
+      int32_t i;
+      providePortLen = apx_node_getNumRequirePorts(self);
+      for(i=0;i<providePortLen;i++)
+      {
+         int32_t outPortDataLen;
+         apx_port_t *port = apx_node_getRequirePort(self, i);
+         outPortDataLen = apx_port_getPackLen(port);
+         if (outPortDataLen < 0)
+         {
+            return -1;
+         }
+         total+=outPortDataLen;
+      }
+      return total;
+   }
+   return -1;
+}
+
+
 
 /***************** Private Function Definitions *******************/
 

@@ -232,6 +232,22 @@ const char *apx_dataSignature_getDerivedString(apx_dataSignature_t *self)
          {
             return self->raw;
          }
+         else if (dataElement->baseType == APX_BASE_TYPE_RECORD)
+         {
+            int32_t i;
+            int32_t numChildElements = apx_dataElement_getNumChild(dataElement);
+            for(i=0;i<numChildElements;i++)
+            {
+               apx_dataElement_t *childElement = apx_dataElement_getChildAt(dataElement, i);
+               assert(childElement != 0);
+               if ( childElement->baseType == APX_BASE_TYPE_REF_PTR)
+               {
+                  apx_setError(APX_NOT_IMPLEMENTED_ERROR);
+                  return (const char*) 0;
+               }
+            }
+            return self->raw;
+         }
          else if (dataElement->baseType == APX_BASE_TYPE_REF_PTR)
          {
             apx_dataSignature_t *referencedDsg;

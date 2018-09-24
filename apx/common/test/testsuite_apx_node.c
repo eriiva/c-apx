@@ -41,6 +41,8 @@ static void test_apx_node_initValue_U32_array(CuTest* tc);
 static void test_apx_node_initValue_S8_array(CuTest* tc);
 static void test_apx_node_initValue_S16_array(CuTest* tc);
 static void test_apx_node_initValue_S32_array(CuTest* tc);
+static void test_apx_node_calcOutPortDataLen(CuTest* tc);
+static void test_apx_node_calcInPortDataLen(CuTest* tc);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -81,6 +83,8 @@ CuSuite* testSuite_apx_node(void)
    SUITE_ADD_TEST(suite, test_apx_node_initValue_S8_array);
    SUITE_ADD_TEST(suite, test_apx_node_initValue_S16_array);
    SUITE_ADD_TEST(suite, test_apx_node_initValue_S32_array);
+   SUITE_ADD_TEST(suite, test_apx_node_calcOutPortDataLen);
+   SUITE_ADD_TEST(suite, test_apx_node_calcInPortDataLen);
 
 
    return suite;
@@ -843,4 +847,51 @@ static void test_apx_node_initValue_S32_array(CuTest* tc)
    adt_bytearray_delete(array);
    CuAssertIntEquals(tc, APX_NO_ERROR, apx_getLastError());
    apx_node_destroy(&node);
+}
+
+static void test_apx_node_calcOutPortDataLen(CuTest* tc)
+{
+   apx_node_t *node;
+   int32_t lineNumber=1;
+   int32_t errorLine;
+   apx_clearError();
+   node = apx_node_new("TestNode");
+   CuAssertPtrNotNull(tc, node);
+   CuAssertPtrNotNull(tc, apx_node_createProvidePort(node, "U8Signal", "C(0,3)","=3", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createProvidePort(node, "U16Signal", "S","=65535", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createProvidePort(node, "U32Signal", "L","=0xFFFFFFFF", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createProvidePort(node, "StrSignal", "a[10]","=\"\"", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createProvidePort(node, "U8ArraySignal", "C[4]","={0,0,0,0}", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createProvidePort(node, "U16ArraySignal", "S[4]","={0,0,0,0}", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createProvidePort(node, "U32ArraySignal", "L[4]","={0,0,0,0}", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createProvidePort(node, "StructSignal", "{\"Name\"a[32]\"Id\"L}","={\"\",0xFFFFFFFF}", lineNumber++ ));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_node_finalize(node, &errorLine));
+
+   CuAssertIntEquals(tc, 1+2+4+10+4+2*4+4*4+(32+4), apx_node_calcOutPortDataLen(node));
+
+   apx_node_delete(node);
+}
+
+static void test_apx_node_calcInPortDataLen(CuTest* tc)
+{
+   apx_node_t *node;
+   int32_t lineNumber=1;
+   int32_t errorLine;
+   apx_clearError();
+   node = apx_node_new("TestNode");
+   CuAssertPtrNotNull(tc, node);
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(node, "U8Signal", "C(0,3)","=3", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(node, "U16Signal", "S","=65535", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(node, "U32Signal", "L","=0xFFFFFFFF", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(node, "StrSignal", "a[10]","=\"\"", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(node, "U8ArraySignal", "C[4]","={0,0,0,0}", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(node, "U16ArraySignal", "S[4]","={0,0,0,0}", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(node, "U32ArraySignal", "L[4]","={0,0,0,0}", lineNumber++ ));
+   CuAssertPtrNotNull(tc, apx_node_createRequirePort(node, "StructSignal", "{\"Name\"a[32]\"Id\"L}","={\"\",0xFFFFFFFF}", lineNumber++ ));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_node_finalize(node, &errorLine));
+
+   CuAssertIntEquals(tc, 1+2+4+10+4+2*4+4*4+(32+4), apx_node_calcInPortDataLen(node));
+
+   apx_node_delete(node);
+
 }

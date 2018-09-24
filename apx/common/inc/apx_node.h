@@ -45,6 +45,8 @@ apx_port_t *apx_node_getRequirePort(apx_node_t *self, int32_t portIndex);
 apx_port_t *apx_node_getProvidePort(apx_node_t *self, int32_t portIndex);
 int32_t apx_node_getNumRequirePorts(apx_node_t *self);
 int32_t apx_node_getNumProvidePorts(apx_node_t *self);
+int32_t apx_node_calcOutPortDataLen(apx_node_t *self);
+int32_t apx_node_calcInPortDataLen(apx_node_t *self);
 adt_bytearray_t *apx_node_createPortInitData(apx_node_t *self, apx_port_t *port);
 apx_error_t apx_node_fillPortInitData(apx_node_t *self, apx_port_t *port, adt_bytearray_t *output);
 

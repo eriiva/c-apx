@@ -5,6 +5,7 @@
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
+#include "apx_cfg.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
@@ -43,6 +44,11 @@ typedef struct apx_dataWriteCmd_tag
 #define APX_OUTDATA_FILE_EXT      ".out"
 #define APX_INDATA_FILE_EXT       ".in"
 #define APX_DEFINITION_FILE_EXT   ".apx"
+
+#define APX_CHECKSUM_NONE         0u
+#define APX_CHECKSUM_SHA256       1u
+
+#define APX_CHECKSUMLEN_SHA256    32u
 
 #if defined(_MSC_PLATFORM_TOOLSET) && (_MSC_PLATFORM_TOOLSET<=110)
 #include "msc_bool.h"

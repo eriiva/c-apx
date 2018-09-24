@@ -42,7 +42,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-
+static void apx_nodeDataManager_mapDestructor(void *arg);
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -67,6 +67,7 @@ void apx_nodeDataManager_create(apx_nodeDataManager_t *self)
       apx_istream_handler.parse_error = apx_parser_vparse_error;
       apx_istream_create(&self->apx_istream, &apx_istream_handler);
       apx_parser_create(&self->parser);
+      adt_hash_create(&self->nodeDataMap, apx_nodeDataManager_mapDestructor);
       MUTEX_INIT(self->mutex);
    }
 }
@@ -77,6 +78,7 @@ void apx_nodeDataManager_destroy(apx_nodeDataManager_t *self)
    {
       apx_parser_destroy(&self->parser);
       apx_istream_destroy(&self->apx_istream);
+      adt_hash_destroy(&self->nodeDataMap);
       MUTEX_DESTROY(self->mutex);
    }
 }
@@ -118,35 +120,53 @@ int32_t apx_nodeDataManager_getErrorLine(apx_nodeDataManager_t *self)
    return -1;
 }
 
-apx_nodeData_t *apx_nodeDataManager_newNodeData(apx_nodeDataManager_t *self, const char *name)
+
+/**
+ * Used to create dynamic nodeData objects by both server and client
+ *
+ */
+apx_nodeData_t *apx_nodeDataManager_createNodeData(apx_nodeDataManager_t *self, const char *name, uint32_t definitionLen)
 {
    if ( self != 0)
    {
-      return apx_nodeData_new(name, false);
+      return apx_nodeData_new(definitionLen);
    }
    return (apx_nodeData_t*) 0;
 }
 
-apx_error_t apx_nodeDataManager_parseDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData, const uint8_t *definitionBuf, uint32_t definitionLen)
+apx_error_t apx_nodeDataManager_parseNodeDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData)
 {
-   if (self != 0)
+   if ( (self != 0) && (nodeData != 0) )
    {
-
       apx_error_t lastError;
+      if ( (nodeData->definitionDataBuf == 0) || (nodeData->definitionDataLen == 0) )
+      {
+         return APX_MISSING_BUFFER_ERROR;
+      }
       apx_istream_reset(&self->apx_istream);
       apx_istream_open(&self->apx_istream);
-      apx_istream_write(&self->apx_istream, definitionBuf, definitionLen);
+      apx_istream_write(&self->apx_istream, nodeData->definitionDataBuf, nodeData->definitionDataLen);
       apx_istream_close(&self->apx_istream);
       lastError = apx_parser_getLastError(&self->parser);
       if (lastError == APX_NO_ERROR)
       {
          int32_t numNodes;
          numNodes = apx_parser_getNumNodes(&self->parser);
-         if (numNodes > 0)
+         if (numNodes > 1)
          {
-            apx_node_t *node = apx_parser_getNode(&self->parser, -1);
+            apx_parser_clearNodes(&self->parser);
+            return APX_TOO_MANY_NODES_ERROR;
+         }
+         else if (numNodes == 1)
+         {
+            apx_node_t *node = apx_parser_getNode(&self->parser, 0);
             apx_nodeData_setNode(nodeData, node);
             apx_parser_clearNodes(&self->parser);
+            return APX_NO_ERROR;
+         }
+         else
+         {
+            return APX_NODE_MISSING_ERROR;
          }
       }
       return lastError;
@@ -154,9 +174,32 @@ apx_error_t apx_nodeDataManager_parseDefinition(apx_nodeDataManager_t *self, apx
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
+#if 0
+apx_error_t apx_nodeDataManager_attachStaticNodeData(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData)
+{
+   if ( (self != 0) && (nodeData != 0) )
+   {
+      const char *name = apx_nodeData_getName(nodeData);
+      return APX_NO_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-
+static void apx_nodeDataManager_mapDestructor(void *arg)
+{
+   apx_nodeData_t *nodeData = (apx_nodeData_t*) arg;
+   if (nodeData->isWeakref == false)
+   {
+      apx_nodeData_delete(nodeData);
+   }
+   else
+   {
+      apx_nodeData_destroy(nodeData);
+   }
+}
 

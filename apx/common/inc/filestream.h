@@ -25,6 +25,7 @@ void ifstream_delete(ifstream_t *self);
 void ifstream_open(ifstream_t *self);
 void ifstream_write(ifstream_t *self, const uint8_t *pChunk, uint32_t chunkLen);
 void ifstream_close(ifstream_t *self);
+int ifstream_readBinaryFile(ifstream_t *self,const char *filename);
 int ifstream_readTextFile(ifstream_t *self,const char *filename);
 
 

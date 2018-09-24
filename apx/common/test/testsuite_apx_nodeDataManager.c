@@ -31,6 +31,8 @@
 #include <string.h>
 #include "CuTest.h"
 #include "apx_nodeDataManager.h"
+#include "ApxNode_TestNode1.h"
+#include "ApxNode_TestNode2.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -43,10 +45,13 @@
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_nodeDataManager_create(CuTest *tc);
-static void test_apx_nodeDataManager_fromValidString(CuTest *tc);
+static void test_apx_nodeDataManager_fromValidString1(CuTest *tc);
+
+static void test_apx_nodeDataManager_fromValidString2(CuTest *tc);
 static void test_apx_nodeDataManager_fromInvalidString1(CuTest *tc);
 static void test_apx_nodeDataManager_fromInvalidString2(CuTest *tc);
-static void test_apx_nodeDataManager_createWithoutInitialName(CuTest *tc);
+static void test_apx_nodeDataManager_verifyStaticNode(CuTest *tc);
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -60,11 +65,11 @@ CuSuite* testSuite_apx_nodeDataManager(void)
    CuSuite* suite = CuSuiteNew();
 
    SUITE_ADD_TEST(suite, test_apx_nodeDataManager_create);
-   SUITE_ADD_TEST(suite, test_apx_nodeDataManager_fromValidString);
+   SUITE_ADD_TEST(suite, test_apx_nodeDataManager_fromValidString1);
+   SUITE_ADD_TEST(suite, test_apx_nodeDataManager_fromValidString2);
    SUITE_ADD_TEST(suite, test_apx_nodeDataManager_fromInvalidString1);
    SUITE_ADD_TEST(suite, test_apx_nodeDataManager_fromInvalidString2);
-   SUITE_ADD_TEST(suite, test_apx_nodeDataManager_createWithoutInitialName);
-
+   SUITE_ADD_TEST(suite, test_apx_nodeDataManager_verifyStaticNode);
 
    return suite;
 }
@@ -81,42 +86,90 @@ static void test_apx_nodeDataManager_create(CuTest* tc)
    apx_nodeDataManager_destroy(&factory);
 }
 
-static void test_apx_nodeDataManager_fromValidString(CuTest *tc)
+static void test_apx_nodeDataManager_fromValidString1(CuTest *tc)
 {
    apx_nodeDataManager_t manager;
    apx_nodeData_t *nodeData;
-   apx_error_t lastError;
-   const char *test_definition=
+   uint32_t definitionLen;
+   const char *testDefinition=
          "APX/1.2\n"
          "N\"TestNode\"\n"
          "P\"OutPort1\"C(0,1):=0\n";
+   definitionLen = (uint32_t) strlen(testDefinition);
    apx_nodeDataManager_create(&manager);
-   nodeData = apx_nodeDataManager_newNodeData(&manager, "TestNode");
+   nodeData = apx_nodeDataManager_createNodeData(&manager, NULL, definitionLen);
+   CuAssertPtrNotNull(tc, nodeData);
+   CuAssertPtrNotNull(tc, nodeData->definitionDataBuf);
+   CuAssertUIntEquals(tc, definitionLen, nodeData->definitionDataLen);
+   CuAssertPtrEquals(tc, NULL, nodeData->outPortDataBuf);
+   CuAssertUIntEquals(tc, 0, nodeData->outPortDataLen);
+   CuAssertPtrEquals(tc, NULL, nodeData->inPortDataBuf);
+   CuAssertUIntEquals(tc, 0, nodeData->inPortDataLen);
+   CuAssertIntEquals(tc, 0, apx_nodeData_writeDefinitionData(nodeData, (const uint8_t*) testDefinition, 0, definitionLen));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeDataManager_parseNodeDefinition(&manager, nodeData));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_createPortDataBuffers(nodeData));
+   CuAssertPtrNotNull(tc, nodeData->outPortDataBuf);
+   CuAssertUIntEquals(tc, 1, nodeData->outPortDataLen);
+   CuAssertPtrEquals(tc, NULL, nodeData->inPortDataBuf);
+   CuAssertUIntEquals(tc, 0, nodeData->inPortDataLen);
 
-   lastError = apx_nodeDataManager_parseDefinition(&manager, nodeData, (uint8_t*) test_definition, (uint32_t) strlen(test_definition) );
-   CuAssertIntEquals(tc, APX_NO_ERROR, lastError);
+   apx_nodeData_delete(nodeData);
+   apx_nodeDataManager_destroy(&manager);
+}
+
+
+static void test_apx_nodeDataManager_fromValidString2(CuTest *tc)
+{
+   apx_nodeDataManager_t manager;
+   apx_nodeData_t *nodeData;
+   uint32_t definitionLen;
+   const char *testDefinition=
+         "APX/1.2\n"
+         "N\"TestNode\"\n"
+         "R\"InPort1\"C(0,1):=0\n";
+   definitionLen = (uint32_t) strlen(testDefinition);
+   apx_nodeDataManager_create(&manager);
+
+   nodeData = apx_nodeDataManager_createNodeData(&manager, NULL, definitionLen);
+   CuAssertPtrNotNull(tc, nodeData);
+   CuAssertPtrNotNull(tc, nodeData->definitionDataBuf);
+   CuAssertUIntEquals(tc, definitionLen, nodeData->definitionDataLen);
+   CuAssertPtrEquals(tc, NULL, nodeData->outPortDataBuf);
+   CuAssertUIntEquals(tc, 0, nodeData->outPortDataLen);
+   CuAssertPtrEquals(tc, NULL, nodeData->inPortDataBuf);
+   CuAssertUIntEquals(tc, 0, nodeData->inPortDataLen);
+   CuAssertIntEquals(tc, 0, apx_nodeData_writeDefinitionData(nodeData, (const uint8_t*) testDefinition, 0, definitionLen));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeDataManager_parseNodeDefinition(&manager, nodeData));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_createPortDataBuffers(nodeData));
+   CuAssertPtrEquals(tc, 0, nodeData->outPortDataBuf);
+   CuAssertUIntEquals(tc, 0, nodeData->outPortDataLen);
+   CuAssertPtrNotNull(tc, nodeData->inPortDataBuf);
+   CuAssertUIntEquals(tc, 1, nodeData->inPortDataLen);
 
    CuAssertPtrNotNull(tc, nodeData);
    apx_nodeData_delete(nodeData);
    apx_nodeDataManager_destroy(&manager);
 }
 
+
 static void test_apx_nodeDataManager_fromInvalidString1(CuTest *tc)
 {
    apx_nodeDataManager_t manager;
    apx_nodeData_t *nodeData;
-   apx_error_t lastError;
-   const char *test_definition=
+   uint32_t definitionLen;
+   const char *testDefinition=
          "APX/1.2\n"
          "N\"TestNode\"" //missing the new-line character here
          "P\"OutPort1\"C(0,1):=0\n";
+   definitionLen = (uint32_t) strlen(testDefinition);
    apx_nodeDataManager_create(&manager);
 
-   nodeData = apx_nodeDataManager_newNodeData(&manager, "TestNode");
-   lastError = apx_nodeDataManager_parseDefinition(&manager, nodeData, (uint8_t*) test_definition, (uint32_t) strlen(test_definition) );
-   CuAssertIntEquals(tc, APX_PARSE_ERROR, lastError);
-
+   nodeData = apx_nodeDataManager_createNodeData(&manager, NULL, definitionLen);
+   CuAssertPtrNotNull(tc, nodeData);
+   CuAssertIntEquals(tc, 0, apx_nodeData_writeDefinitionData(nodeData, (const uint8_t*) testDefinition, 0, definitionLen));
+   CuAssertIntEquals(tc, APX_PARSE_ERROR, apx_nodeDataManager_parseNodeDefinition(&manager, nodeData));
    CuAssertIntEquals(tc, 2, apx_nodeDataManager_getErrorLine(&manager));
+
    apx_nodeData_delete(nodeData);
    apx_nodeDataManager_destroy(&manager);
 
@@ -126,41 +179,43 @@ static void test_apx_nodeDataManager_fromInvalidString2(CuTest *tc)
 {
    apx_nodeDataManager_t manager;
    apx_nodeData_t *nodeData;
-   apx_error_t lastError;
-   const char *test_definition=
+   uint32_t definitionLen;
+   const char *testDefinition=
          "APX/1.2\n"
          "N\"TestNode\"" //missing the new-line character here
          "R\"OutPort1\"a[10]:\n";
+   definitionLen = (uint32_t) strlen(testDefinition);
    apx_nodeDataManager_create(&manager);
 
-   nodeData = apx_nodeDataManager_newNodeData(&manager, "TestNode");
-   lastError = apx_nodeDataManager_parseDefinition(&manager, nodeData, (uint8_t*) test_definition, (uint32_t) strlen(test_definition) );
-   CuAssertIntEquals(tc, APX_PARSE_ERROR, lastError);
-
+   nodeData = apx_nodeDataManager_createNodeData(&manager, NULL, definitionLen);
+   CuAssertPtrNotNull(tc, nodeData);
+   CuAssertIntEquals(tc, 0, apx_nodeData_writeDefinitionData(nodeData, (const uint8_t*) testDefinition, 0, definitionLen));
+   CuAssertIntEquals(tc, APX_PARSE_ERROR, apx_nodeDataManager_parseNodeDefinition(&manager, nodeData));
    CuAssertIntEquals(tc, 2, apx_nodeDataManager_getErrorLine(&manager));
+
    apx_nodeData_delete(nodeData);
    apx_nodeDataManager_destroy(&manager);
 
 }
 
-static void test_apx_nodeDataManager_createWithoutInitialName(CuTest *tc)
+static void test_apx_nodeDataManager_verifyStaticNode(CuTest *tc)
 {
    apx_nodeDataManager_t manager;
    apx_nodeData_t *nodeData;
-   apx_error_t lastError;
-   const char *test_definition=
-         "APX/1.2\n"
-         "N\"TestNode\"\n"
-         "P\"OutPort1\"C(0,1):=0\n";
+
    apx_nodeDataManager_create(&manager);
-   nodeData = apx_nodeDataManager_newNodeData(&manager, NULL);
+
+   ApxNode_Init_TestNode1();
+   nodeData = ApxNode_GetNodeData_TestNode1();
 
    CuAssertPtrNotNull(tc, nodeData);
-   CuAssertPtrEquals(tc, NULL, (char*) apx_nodeData_getName(nodeData));
-   lastError = apx_nodeDataManager_parseDefinition(&manager, nodeData, (uint8_t*) test_definition, (uint32_t) strlen(test_definition) );
-   CuAssertIntEquals(tc, APX_NO_ERROR, lastError);
+   CuAssertTrue(tc, nodeData->isWeakref);
+   CuAssertPtrNotNull(tc, nodeData->definitionDataBuf);
+   CuAssertUIntEquals(tc, 126u, nodeData->definitionDataLen);
 
-   CuAssertStrEquals(tc, "TestNode", apx_nodeData_getName(nodeData));
-   apx_nodeData_delete(nodeData);
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeDataManager_parseNodeDefinition(&manager, nodeData));
+
+   apx_nodeData_destroy(nodeData);
    apx_nodeDataManager_destroy(&manager);
 }
+
