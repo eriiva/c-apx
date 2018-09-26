@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_nodeDataManager.h
+* \file      apx_srvBaseConnection.h
 * \author    Conny Gustafsson
-* \date      2018-09-03
-* \brief     Dynamically create new apx_nodeData objects
+* \date      2018-09-26
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,50 +23,42 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_NODE_DATA_MANAGER_H
-#define APX_NODE_DATA_MANAGER_H
+#ifndef APX_SERVER_BASE_CONNECTION_H
+#define APX_SERVER_BASE_CONNECTION_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_nodeData.h"
-#include "adt_list.h"
-#include "apx_parser.h"
-#include "apx_stream.h"
+#include "apx_types.h"
 #include "apx_error.h"
-#include "adt_hash.h"
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <pthread.h>
-#endif
-#include "osmacro.h"
+#include "apx_fileManager.h"
+#include "apx_nodeDataManager.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define APX_NODE_DATA_FACTORY_NO_ERROR 0u
+struct apx_server_tag;
 
-typedef struct apx_nodeDataManager_tag
+typedef struct apx_serverBaseConnection_tag
 {
-   apx_parser_t parser;
-   apx_istream_t apx_istream; //helper structure for parser
-   adt_hash_t nodeDataMap; //references to apx_nodeData_t
-   MUTEX_T mutex; //locking mechanism
-}apx_nodeDataManager_t;
+   apx_fileManager_t fileManager;
+   apx_nodeDataManager_t nodeDataManager;
+   uint32_t connectionId;
+   struct apx_server_tag *server;
+   bool isGreetingParsed;
+   uint8_t numHeaderLen; //0, 2 or 4
+   void (*destructor)(void *arg);
+}apx_serverBaseConnection_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_nodeDataManager_create(apx_nodeDataManager_t *self);
-void apx_nodeDataManager_destroy(apx_nodeDataManager_t *self);
-apx_nodeDataManager_t *apx_nodeDataManager_new(void);
-void apx_nodeDataManager_delete(apx_nodeDataManager_t *self);
-apx_error_t apx_nodeDataManager_getLastError(apx_nodeDataManager_t *self);
-int32_t apx_nodeDataManager_getErrorLine(apx_nodeDataManager_t *self);
+apx_error_t apx_serverBaseConnection_create(apx_serverBaseConnection_t *self, uint32_t connectionId, struct apx_server_tag *server, void (*destructor)(void *arg));
+void apx_serverBaseConnection_destroy(apx_serverBaseConnection_t *self);
+//apx_serverBaseConnection_t *apx_serverBaseConnection_new(void);
+void apx_serverBaseConnection_delete(apx_serverBaseConnection_t *self);
+void apx_serverBaseConnection_vdelete(void *arg);
 
-apx_error_t apx_nodeDataManager_parseDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData);
-apx_error_t apx_nodeDataManager_attach(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData);
-apx_nodeData_t *apx_nodeDataManager_find(apx_nodeDataManager_t *self, const char *name);
+apx_fileManager_t *apx_serverBaseConnection_getFileManager(apx_serverBaseConnection_t *self);
 
-#endif //APX_NODE_DATA_MANAGER_H
+#endif //APX_SERVER_BASE_CONNECTION_H

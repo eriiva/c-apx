@@ -8,6 +8,7 @@
 #include <string.h>
 #include "CuTest.h"
 #include "apx_server.h"
+#include "apx_serverSocketConnection.h"
 #include "apx_eventFile.h"
 #include "rmf.h"
 #ifdef _WIN32
@@ -121,7 +122,7 @@ static void test_apx_server_eachConnectionGetNewId(CuTest* tc)
    apx_server_t server;
    testsocket_t *sockets[10];
    testsocket_t *lastSocket;
-   apx_serverConnection_t *conn;
+   apx_serverSocketConnection_t *conn;
    uint32_t connectionIdExpected = 0;
    int i;
    apx_server_create(&server);
@@ -130,18 +131,18 @@ static void test_apx_server_eachConnectionGetNewId(CuTest* tc)
       char msg[15];
       sockets[i] = testsocket_new();
       apx_server_acceptTestSocket(&server, sockets[i]);
-      conn = apx_server_getLastConnection(&server);
+      conn = (apx_serverSocketConnection_t*) apx_server_getLastConnection(&server);
       CuAssertPtrNotNull(tc, conn);
       sprintf(msg, "i=%d",i);
-      CuAssertUIntEquals_Msg(tc, &msg[0], connectionIdExpected++, conn->connectionId);
+      CuAssertUIntEquals_Msg(tc, &msg[0], connectionIdExpected++, conn->base.connectionId);
    }
    //resetting internal variable nextConnectionId to 0 shall still yield next generated ID to be unique
    server.nextConnectionId=0;
    lastSocket = testsocket_new();
    apx_server_acceptTestSocket(&server, lastSocket);
-   conn = apx_server_getLastConnection(&server);
+   conn = (apx_serverSocketConnection_t*) apx_server_getLastConnection(&server);
    CuAssertPtrNotNull(tc, conn);
-   CuAssertUIntEquals(tc, 10, conn->connectionId);
+   CuAssertUIntEquals(tc, 10, conn->base.connectionId);
    apx_server_destroy(&server);
 
 }

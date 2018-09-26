@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_nodeDataManager.h
+* \file      apx_serverSocketConnection.h
 * \author    Conny Gustafsson
-* \date      2018-09-03
-* \brief     Dynamically create new apx_nodeData objects
+* \date      2018-09-26
+* \brief     Server socket connection. Inherits from apx_serverSocketConnection_t
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,50 +23,42 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_NODE_DATA_MANAGER_H
-#define APX_NODE_DATA_MANAGER_H
+#ifndef APX_SRV_SOCKET_CONNECTION_H
+#define APX_SRV_SOCKET_CONNECTION_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_nodeData.h"
-#include "adt_list.h"
-#include "apx_parser.h"
-#include "apx_stream.h"
-#include "apx_error.h"
-#include "adt_hash.h"
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <pthread.h>
-#endif
-#include "osmacro.h"
+#include "apx_serverBaseConnection.h"
+#include "adt_bytearray.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define APX_NODE_DATA_FACTORY_NO_ERROR 0u
+#ifdef UNIT_TEST
+#define SOCKET_TYPE struct testsocket_tag
+#else
+#define SOCKET_TYPE struct msocket_t
+#endif
+SOCKET_TYPE; //this is a forward declaration of the declared type just above
 
-typedef struct apx_nodeDataManager_tag
+typedef struct apx_serverSocketConnection_tag
 {
-   apx_parser_t parser;
-   apx_istream_t apx_istream; //helper structure for parser
-   adt_hash_t nodeDataMap; //references to apx_nodeData_t
-   MUTEX_T mutex; //locking mechanism
-}apx_nodeDataManager_t;
+   apx_serverBaseConnection_t base;
+   adt_bytearray_t sendBuffer;
+   SOCKET_TYPE *socketObject;
+}apx_serverSocketConnection_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_nodeDataManager_create(apx_nodeDataManager_t *self);
-void apx_nodeDataManager_destroy(apx_nodeDataManager_t *self);
-apx_nodeDataManager_t *apx_nodeDataManager_new(void);
-void apx_nodeDataManager_delete(apx_nodeDataManager_t *self);
-apx_error_t apx_nodeDataManager_getLastError(apx_nodeDataManager_t *self);
-int32_t apx_nodeDataManager_getErrorLine(apx_nodeDataManager_t *self);
+int8_t apx_serverSocketConnection_create(apx_serverSocketConnection_t *self, uint32_t connectionId, SOCKET_TYPE *socketObject, struct apx_server_tag *server);
+void apx_serverSocketConnection_destroy(apx_serverSocketConnection_t *self);
+void apx_serverSocketConnection_vdestroy(void *arg);
+apx_serverSocketConnection_t *apx_serverSocketConnection_new(uint32_t connectionId, SOCKET_TYPE *socketObject, struct apx_server_tag *server);
+void apx_serverSocketConnection_delete(apx_serverSocketConnection_t *self);
+void apx_serverSocketConnection_vdelete(void *arg);
+void apx_serverSocketConnection_start(apx_serverSocketConnection_t *self);
 
-apx_error_t apx_nodeDataManager_parseDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData);
-apx_error_t apx_nodeDataManager_attach(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData);
-apx_nodeData_t *apx_nodeDataManager_find(apx_nodeDataManager_t *self, const char *name);
-
-#endif //APX_NODE_DATA_MANAGER_H
+#undef SOCKET_TYPE
+#endif //APX_SRV_SOCKET_CONNECTION_H

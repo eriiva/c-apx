@@ -7,6 +7,7 @@
 #include "apx_fileManager.h"
 #include "apx_eventListener.h"
 #include "apx_eventRecorderSrvRmf.h"
+#include "apx_serverSocketConnection.h"
 #include <assert.h>
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
@@ -40,10 +41,10 @@ struct msocket_server_tag;
 static void apx_server_create_socket_servers(apx_server_t *self, uint16_t tcpPort);
 static void apx_server_destroy_socket_servers(apx_server_t *self);
 static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_TYPE *sock);
-static apx_serverConnection_t *apx_server_create_new_connection(apx_server_t *self, SOCKET_TYPE *sock);
-static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
-static void apx_server_disconnected(void *arg);
-static void apx_server_cleanup_connection(apx_serverConnection_t *connection);
+static apx_serverSocketConnection_t *apx_server_create_new_connection(apx_server_t *self, SOCKET_TYPE *sock);
+//static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
+//static void apx_server_disconnected(void *arg);
+static void apx_server_cleanup_connection(apx_serverBaseConnection_t *connection);
 static uint32_t apx_server_generate_connection_id(apx_server_t *self);
 static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_fileManager_t *fileManager);
 
@@ -72,12 +73,10 @@ void apx_server_create(apx_server_t *self, uint16_t port)
 #else
       apx_server_create_socket_servers(self, 0);
 #endif
-      adt_list_create(&self->connections,apx_serverConnection_vdelete);
+      adt_list_create(&self->connections, apx_serverBaseConnection_vdelete);
       adt_list_create(&self->connectionEventListeners, (void (*)(void*)) 0);
       self->debugMode = APX_DEBUG_NONE;
-      apx_nodeManager_create(&self->nodeManager);
       apx_router_create(&self->router);
-      apx_nodeManager_setRouter(&self->nodeManager, &self->router);
       MUTEX_INIT(self->lock);
       adt_u32Set_create(&self->connectionIdSet);
       self->nextConnectionId = 0u;
@@ -105,7 +104,6 @@ void apx_server_destroy(apx_server_t *self)
       adt_list_destroy(&self->connectionEventListeners);
       adt_u32Set_destroy(&self->connectionIdSet);
       apx_server_destroy_socket_servers(self);
-      apx_nodeManager_destroy(&self->nodeManager);
       apx_router_destroy(&self->router);
       MUTEX_DESTROY(self->lock);
    }
@@ -116,7 +114,6 @@ void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode)
    if (self != 0)
    {
       self->debugMode = debugMode;
-      apx_nodeManager_setDebugMode(&self->nodeManager, debugMode);
       apx_router_setDebugMode(&self->router, debugMode);
    }
 }
@@ -135,16 +132,16 @@ void apx_server_acceptTestSocket(apx_server_t *self, testsocket_t *socket)
    apx_server_accept((void*) self, (struct msocket_server_tag*) 0, socket);
 }
 
-apx_serverConnection_t *apx_server_getLastConnection(apx_server_t *self)
+apx_serverBaseConnection_t *apx_server_getLastConnection(apx_server_t *self)
 {
    if (self != 0)
    {
       if (adt_list_is_empty(&self->connections) == false)
       {
-         return (apx_serverConnection_t*) adt_list_last(&self->connections);
+         return (apx_serverBaseConnection_t*) adt_list_last(&self->connections);
       }
    }
-   return (apx_serverConnection_t*) 0;
+   return (apx_serverBaseConnection_t*) 0;
 }
 #endif
 
@@ -159,12 +156,12 @@ static void apx_server_create_socket_servers(apx_server_t *self, uint16_t tcpPor
    msocket_handler_t serverHandler;
    self->tcpPort = tcpPort;
    memset(&serverHandler,0,sizeof(serverHandler));
-   msocket_server_create(&self->tcpServer,AF_INET, apx_serverConnection_vdelete);
+   msocket_server_create(&self->tcpServer, AF_INET, apx_serverConnection_vdelete);
 # ifndef _MSC_VER
-   msocket_server_create(&self->localServer,AF_LOCAL, apx_serverConnection_vdelete);
+   msocket_server_create(&self->localServer, AF_LOCAL, apx_serverConnection_vdelete);
 # endif
    serverHandler.tcp_accept = apx_server_accept;
-   msocket_server_sethandler(&self->tcpServer,&serverHandler,self);
+   msocket_server_sethandler(&self->tcpServer, &serverHandler, self);
 #endif
 }
 
@@ -187,7 +184,7 @@ static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_
    {
       if (self->numConnections < APX_SERVER_MAX_CONCURRENT_CONNECTIONS)
       {
-         apx_serverConnection_t *newConnection = apx_server_create_new_connection(self, sock);
+         apx_serverSocketConnection_t *newConnection = apx_server_create_new_connection(self, sock);
          if (newConnection != 0)
          {
             apx_fileManager_t *fileManager;
@@ -205,11 +202,10 @@ static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_
                apx_serverConnection_setDebugMode(newConnection, self->debugMode);
             }
    #endif
-            fileManager = apx_serverConnection_getFileManager(newConnection);
-            apx_nodeManager_attachFileManager(&self->nodeManager, fileManager);
+            fileManager = apx_serverBaseConnection_getFileManager(&newConnection->base);
             apx_server_trigger_connected_event_on_listeners(self, fileManager);
-            apx_serverConnection_start(newConnection);
-            SOCKET_START_IO(sock);
+            apx_serverSocketConnection_start(newConnection);
+
          }
          else
          {
@@ -222,11 +218,11 @@ static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_
 }
 
 
-static apx_serverConnection_t *apx_server_create_new_connection(apx_server_t *self, SOCKET_TYPE *sock)
+static apx_serverSocketConnection_t *apx_server_create_new_connection(apx_server_t *self, SOCKET_TYPE *sock)
 {
-
+#if 0
    uint32_t connectionId;
-   apx_serverConnection_t *newConnection;
+   apx_serverSocketConnection *newConnection;
 
    connectionId = apx_server_generate_connection_id(self);
 
@@ -244,9 +240,11 @@ static apx_serverConnection_t *apx_server_create_new_connection(apx_server_t *se
       SOCKET_SET_HANDLER(sock, &handlerTable, newConnection);
    }
    return newConnection;
+#endif
+   return 0;
 }
 
-
+#if 0
 static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
 {
    apx_serverConnection_t *clientConnection = (apx_serverConnection_t*) arg;
@@ -272,8 +270,9 @@ static void apx_server_disconnected(void *arg)
       MUTEX_UNLOCK(server->lock);
    }
 }
+#endif
 
-static void apx_server_cleanup_connection(apx_serverConnection_t *connection)
+static void apx_server_cleanup_connection(apx_serverBaseConnection_t *connection)
 {
 #ifndef UNIT_TEST
    switch (connection->socketObject->addressFamily)

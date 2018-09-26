@@ -134,7 +134,7 @@ apx_nodeData_t *apx_nodeDataManager_createNodeData(apx_nodeDataManager_t *self, 
    return (apx_nodeData_t*) 0;
 }
 
-apx_error_t apx_nodeDataManager_parseNodeDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData)
+apx_error_t apx_nodeDataManager_parseDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData)
 {
    if ( (self != 0) && (nodeData != 0) )
    {
@@ -174,18 +174,39 @@ apx_error_t apx_nodeDataManager_parseNodeDefinition(apx_nodeDataManager_t *self,
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
-#if 0
-apx_error_t apx_nodeDataManager_attachStaticNodeData(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData)
+apx_error_t apx_nodeDataManager_attach(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData)
 {
    if ( (self != 0) && (nodeData != 0) )
    {
+      apx_nodeData_t *result;
       const char *name = apx_nodeData_getName(nodeData);
+      if (name == 0)
+      {
+         return APX_NAME_ERROR;
+      }
+      result = apx_nodeDataManager_find(self, name);
+      if (result != 0)
+      {
+         return APX_NODE_ALREADY_EXISTS_ERROR;
+      }
+      adt_hash_set(&self->nodeDataMap, name, 0, nodeData);
       return APX_NO_ERROR;
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }
-#endif
 
+apx_nodeData_t *apx_nodeDataManager_find(apx_nodeDataManager_t *self, const char *name)
+{
+   if ( (self != 0 ) && (name != 0) )
+   {
+      void **result = adt_hash_get(&self->nodeDataMap, name, 0);
+      if (result != 0)
+      {
+         return (apx_nodeData_t*) *result;
+      }
+   }
+   return (apx_nodeData_t*) 0;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS

@@ -21,7 +21,7 @@ CuSuite* testsuite_apx_attributesParser(void);
 CuSuite* testSuite_apx_dataElement(void);
 CuSuite* testSuite_remotefile(void);
 CuSuite* testSuite_apx_server(void);
-CuSuite* testSuite_apx_serverConnection(void);
+CuSuite* testSuite_apx_serverSocketConnection(void);
 CuSuite* testSuite_apx_clientSession(void);
 CuSuite* testSuite_apx_sessionCmd(void);
 CuSuite* testSuite_apx_fileManagerShared(void);
@@ -69,8 +69,8 @@ void RunAllTests(void)
 
    CuSuiteAddSuite(suite, testsuite_apx_attributesParser());
 
-   CuSuiteAddSuite(suite, testSuite_apx_serverConnection());
-   CuSuiteAddSuite(suite, testSuite_apx_server());
+   CuSuiteAddSuite(suite, testSuite_apx_serverSocketConnection());
+//   CuSuiteAddSuite(suite, testSuite_apx_server());
    CuSuiteAddSuite(suite, testSuite_apx_clientSession());
    CuSuiteAddSuite(suite, testSuite_apx_sessionCmd());
 

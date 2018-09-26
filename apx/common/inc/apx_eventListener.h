@@ -51,7 +51,7 @@ typedef struct apx_fileManagerEventListener_tag
    void (*fileOpen)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file2_tag *file);
    void (*fileClose)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file2_tag *file);
    void (*fileWrite)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file2_tag *file, uint32_t offset, int32_t length);
-   void (*sendFileInfo)(void *arg, struct apx_fileManager_tag *fleManager, const struct rmf_fileInfo_tag *fileInfo);
+   void (*sendFileInfo)(void *arg, struct apx_fileManager_tag *fileManager, const struct rmf_fileInfo_tag *fileInfo);
 } apx_fileManagerEventListener_t;
 
 //This is a base class and must be placed as the first element in a struct definition

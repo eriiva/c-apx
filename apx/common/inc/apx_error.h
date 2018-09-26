@@ -30,6 +30,7 @@
 #define APX_NODE_MISSING_ERROR        18
 #define APX_NODE_ALREADY_EXISTS_ERROR 19
 #define APX_MISSING_BUFFER_ERROR      20
+#define APX_NAME_ERROR                21
 
 
 typedef int32_t apx_error_t;
