@@ -60,5 +60,7 @@ void apx_serverBaseConnection_delete(apx_serverBaseConnection_t *self);
 void apx_serverBaseConnection_vdelete(void *arg);
 
 apx_fileManager_t *apx_serverBaseConnection_getFileManager(apx_serverBaseConnection_t *self);
+int8_t apx_serverBaseConnection_dataReceived(apx_serverBaseConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
+void apx_serverBaseConnection_start(apx_serverBaseConnection_t *self);
 
 #endif //APX_SERVER_BASE_CONNECTION_H

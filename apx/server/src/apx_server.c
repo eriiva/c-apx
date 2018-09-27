@@ -220,28 +220,19 @@ static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_
 
 static apx_serverSocketConnection_t *apx_server_create_new_connection(apx_server_t *self, SOCKET_TYPE *sock)
 {
-#if 0
+
    uint32_t connectionId;
-   apx_serverSocketConnection *newConnection;
+   apx_serverSocketConnection_t *newConnection;
 
    connectionId = apx_server_generate_connection_id(self);
 
-   newConnection = apx_serverConnection_new(connectionId, sock, self);
+   newConnection = apx_serverSocketConnection_new(connectionId, sock, self);
 
    if (newConnection != 0)
    {
-      msocket_handler_t handlerTable;
-      self->numConnections++;
-      //add it to our list of connections. The linked list is used to keep track of all open connections
       adt_list_insert(&self->connections, newConnection);
-      memset(&handlerTable,0,sizeof(handlerTable));
-      handlerTable.tcp_data = apx_server_data;
-      handlerTable.tcp_disconnected = apx_server_disconnected;
-      SOCKET_SET_HANDLER(sock, &handlerTable, newConnection);
    }
    return newConnection;
-#endif
-   return 0;
 }
 
 #if 0

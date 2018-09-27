@@ -70,7 +70,7 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testsuite_apx_attributesParser());
 
    CuSuiteAddSuite(suite, testSuite_apx_serverSocketConnection());
-//   CuSuiteAddSuite(suite, testSuite_apx_server());
+   CuSuiteAddSuite(suite, testSuite_apx_server());
    CuSuiteAddSuite(suite, testSuite_apx_clientSession());
    CuSuiteAddSuite(suite, testSuite_apx_sessionCmd());
 

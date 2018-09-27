@@ -51,7 +51,7 @@ CuSuite* testSuite_apx_serverSocketConnection(void)
    CuSuite* suite = CuSuiteNew();
    SUITE_ADD_TEST(suite, test_apx_serverSocketConnection_create);
    SUITE_ADD_TEST(suite, test_apx_serverSocketConnection_transmitHandlerSetup);
-   //SUITE_ADD_TEST(suite, test_apx_serverSocketConnection_sendAckAfterReceivingHeader);
+   SUITE_ADD_TEST(suite, test_apx_serverSocketConnection_sendAckAfterReceivingHeader);
    return suite;
 }
 
