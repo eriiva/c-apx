@@ -1,13 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_file.h"
+#include "apx_es_file.h"
 #include "apx_logging.h"
 #include <errno.h>
-#ifndef APX_EMBEDDED
-#include <malloc.h>
-#include "bstr.h"
-#endif
 #include <string.h>
 #include <assert.h>
 #include <stdio.h>
@@ -24,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static uint8_t apx_file_deriveFileType(apx_file_t *self);
+static uint8_t apx_es_file_deriveFileType(apx_es_file_t *self);
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL VARIABLES
@@ -34,7 +30,7 @@ static uint8_t apx_file_deriveFileType(apx_file_t *self);
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-int8_t apx_file_createLocalFileFromNodeData(apx_file_t *self, uint8_t fileType, apx_nodeData_t *nodeData)
+int8_t apx_es_file_createLocalFileFromNodeData(apx_es_file_t *self, uint8_t fileType, apx_nodeData_t *nodeData)
 {
    if ( (self != 0) && (nodeData != 0) )
    {
@@ -79,7 +75,7 @@ int8_t apx_file_createLocalFileFromNodeData(apx_file_t *self, uint8_t fileType, 
    return -1;
 }
 
-int8_t apx_file_create(apx_file_t *self, uint8_t fileType, const rmf_fileInfo_t *fileInfo)
+int8_t apx_es_file_create(apx_es_file_t *self, uint8_t fileType, const rmf_fileInfo_t *fileInfo)
 {
    if ( (self != 0) && (fileType<=APX_EVENT_FILE) && (fileInfo != 0) )
    {
@@ -94,7 +90,7 @@ int8_t apx_file_create(apx_file_t *self, uint8_t fileType, const rmf_fileInfo_t 
          rmf_fileInfo_setDigestData(&self->fileInfo, fileInfo->digestType, fileInfo->digestData, 0);
          if (fileType == APX_UNKNOWN_FILE)
          {
-            self->fileType = apx_file_deriveFileType(self);
+            self->fileType = apx_es_file_deriveFileType(self);
          }
          else
          {
@@ -107,7 +103,7 @@ int8_t apx_file_create(apx_file_t *self, uint8_t fileType, const rmf_fileInfo_t 
    return -1;
 }
 
-void apx_file_destroy(apx_file_t *self)
+void apx_es_file_destroy(apx_es_file_t *self)
 {
    if (self != 0)
    {
@@ -115,109 +111,7 @@ void apx_file_destroy(apx_file_t *self)
    }
 }
 
-#ifndef APX_EMBEDDED
-apx_file_t *apx_file_newLocalFileFromNodeData(uint8_t fileType, apx_nodeData_t *nodeData)
-{
-   apx_file_t *self = (apx_file_t*) malloc(sizeof(apx_file_t));
-   if(self != 0)
-   {
-      int8_t result = apx_file_createLocalFileFromNodeData(self, fileType, nodeData);
-      if (result<0)
-      {
-         free(self);
-         self=0;
-      }
-   }
-   else
-   {
-      errno = ENOMEM;
-   }
-   return self;
-}
-
-apx_file_t *apx_file_newLocalDefinitionFile(apx_nodeData_t *nodeData)
-{
-   return apx_file_newLocalFileFromNodeData(APX_DEFINITION_FILE, nodeData);
-}
-
-apx_file_t *apx_file_newLocalOutPortDataFile(apx_nodeData_t *nodeData)
-{
-   return apx_file_newLocalFileFromNodeData(APX_OUTDATA_FILE, nodeData);
-}
-
-apx_file_t *apx_file_newLocalInPortDataFile(apx_nodeData_t *nodeData)
-{
-   return apx_file_newLocalFileFromNodeData(APX_INDATA_FILE, nodeData);
-}
-
-apx_file_t *apx_file_new(uint8_t fileType, const rmf_fileInfo_t *fileInfo)
-{
-   apx_file_t *self = (apx_file_t*) malloc(sizeof(apx_file_t));
-   if(self != 0)
-   {
-      int8_t result = apx_file_create(self, fileType, fileInfo);
-      if (result<0)
-      {
-         free(self);
-         self=0;
-      }
-   }
-   else
-   {
-      errno = ENOMEM;
-   }
-   return self;
-}
-
-void apx_file_delete(apx_file_t *self)
-{
-   if (self != 0)
-   {
-      apx_file_destroy(self);
-      free(self);
-   }
-}
-
-void apx_file_vdelete(void *arg)
-{
-   apx_file_delete((apx_file_t*) arg);
-}
-/**
- * creates a new string containing the file name with the file extension removed.
- * the returned object (char*) needs to be freed by the user once returned
- */
-char *apx_file_basename(const apx_file_t *self)
-{
-   if (self != 0)
-   {
-      const char *pBegin;
-      const char *pEnd;
-      size_t len = strlen(self->fileInfo.name);
-      pBegin = self->fileInfo.name;
-      pEnd = self->fileInfo.name+len;
-      if (len >= APX_MAX_FILE_EXT_LEN ) //there is room for file extension of at least 3 characters (plus the '.')
-      {
-         const char *p = pEnd-1;
-         //search in string backwards to find a '.' character
-         while(p>=pBegin)
-         {
-            if (*p == '.')
-            {
-               return (char*) bstr_make((const uint8_t*) pBegin, (const uint8_t*) p);
-            }
-            --p;
-         }
-         //no '.' character was found, continue out of the if-statement to return entire string
-      }
-      //return entire string
-      return (char*) bstr_make((const uint8_t*) pBegin, (const uint8_t*) pEnd);
-   }
-   errno = EINVAL;
-   return 0;
-}
-#endif
-
-void apx_file_open(apx_file_t *self)
+void apx_es_file_open(apx_es_file_t *self)
 {
    if (self != 0)
    {
@@ -225,7 +119,7 @@ void apx_file_open(apx_file_t *self)
    }
 }
 
-void apx_file_close(apx_file_t *self)
+void apx_es_file_close(apx_es_file_t *self)
 {
    if (self != 0)
    {
@@ -233,7 +127,7 @@ void apx_file_close(apx_file_t *self)
    }
 }
 
-int8_t apx_file_read(apx_file_t *self, uint8_t *pDest, uint32_t offset, uint32_t length)
+int8_t apx_es_file_read(apx_es_file_t *self, uint8_t *pDest, uint32_t offset, uint32_t length)
 {
    if ( (self != 0) && (pDest != 0) && (length > 0) )
    {
@@ -273,7 +167,7 @@ int8_t apx_file_read(apx_file_t *self, uint8_t *pDest, uint32_t offset, uint32_t
    return -1;
 }
 
-int8_t apx_file_write(apx_file_t *self, const uint8_t *pSrc, uint32_t offset, uint32_t length)
+int8_t apx_es_file_write(apx_es_file_t *self, const uint8_t *pSrc, uint32_t offset, uint32_t length)
 {
 
    if ( (self != 0) && (pSrc != 0) && (self->nodeData != 0) )
@@ -321,7 +215,7 @@ int8_t apx_file_write(apx_file_t *self, const uint8_t *pSrc, uint32_t offset, ui
 /**
  * gets file extension from file name and uses that to set fileType property
  */
-static uint8_t apx_file_deriveFileType(apx_file_t *self)
+static uint8_t apx_es_file_deriveFileType(apx_es_file_t *self)
 {
    if (self != 0)
    {
