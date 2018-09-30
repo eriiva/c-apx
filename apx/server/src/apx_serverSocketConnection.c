@@ -269,7 +269,7 @@ static int32_t apx_serverSocketConnection_send(void *arg, int32_t offset, int32_
 static int8_t apx_serverSocketConnection_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
 {
    apx_serverSocketConnection_t *self = (apx_serverSocketConnection_t*) arg;
-   return apx_serverBaseConnection_dataReceived(self, dataBuf, dataLen, parseLen);
+   return apx_serverBaseConnection_dataReceived(&self->base, dataBuf, dataLen, parseLen);
 }
 
 static void apx_serverSocketConnection_disconnected(void *arg)

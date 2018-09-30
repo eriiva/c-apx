@@ -37,8 +37,10 @@
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef int8_t (apx_file_read_func)(void *arg, const rmf_fileInfo_t *fileInfo, uint8_t *dest, uint32_t offset, uint32_t len);
-typedef int8_t (apx_file_write_func)(void *arg, const rmf_fileInfo_t *fileInfo, const uint8_t *src, uint32_t offset, uint32_t len);
+struct apx_file2_tag;
+
+typedef int8_t (apx_file_read_func)(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len);
+typedef int8_t (apx_file_write_func)(void *arg, struct apx_file2_tag *file, const uint8_t *src, uint32_t offset, uint32_t len);
 typedef const char* (apx_file_basename_func)(void *arg);
 
 #define APX_FILE_RESULT_FAIL -1
@@ -49,7 +51,6 @@ typedef struct apx_file_handler_tag
    void *arg;
    apx_file_read_func *read;
    apx_file_write_func *write;
-   apx_file_basename_func *basename;
 }apx_file_handler_t;
 
 typedef struct apx_file2_tag
@@ -59,6 +60,10 @@ typedef struct apx_file2_tag
    uint8_t fileType;
    rmf_fileInfo_t fileInfo;
    apx_file_handler_t handler;
+#ifndef APX_EMBEDDED
+   char *basename;
+   char *extension;
+#endif
 }apx_file2_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -79,12 +84,14 @@ void apx_file2_delete(apx_file2_t *self);
 void apx_file2_vdelete(void *arg);
 #endif
 const char *apx_file2_basename(const apx_file2_t *self);
+const char *apx_file2_extension(const apx_file2_t *self);
 void apx_file2_open(apx_file2_t *self);
 void apx_file2_close(apx_file2_t *self);
 int8_t apx_file2_read(apx_file2_t *self, uint8_t *pDest, uint32_t offset, uint32_t length); //returns APX_FILE_RESULT_XXX
 int8_t apx_file2_write(apx_file2_t *self, const uint8_t *pSrc, uint32_t offset, uint32_t length); //returns APX_FILE_RESULT_XXX
 bool apx_file2_hasReadHandler(apx_file2_t *self);
 bool apx_file2_hasWriteHandler(apx_file2_t *self);
+void apx_file2_setHandler(apx_file2_t *self, const apx_file_handler_t *handler);
 
 #endif //APX_FILE2_H
 

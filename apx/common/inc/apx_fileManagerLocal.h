@@ -67,5 +67,6 @@ int32_t apx_fileManagerLocal_getNumFiles(apx_fileManagerLocal_t *self);
 int32_t apx_fileManagerLocal_serializeFileInfo(apx_fileManagerLocal_t *self, uint8_t *bufData, int32_t bufLen, uint8_t headerSize);
 void apx_fileManagerLocal_sendFileInfo(apx_fileManagerLocal_t *self);
 struct apx_file2_tag *apx_fileManagerLocal_find(apx_fileManagerLocal_t *self, uint32_t address);
+struct apx_file2_tag *apx_fileManagerLocal_findByName(apx_fileManagerLocal_t *self, const char *name);
 
 #endif //APX_FILE_MANAGER_LOCAL_H

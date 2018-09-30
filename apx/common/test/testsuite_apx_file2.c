@@ -87,7 +87,7 @@ static void test_apx_file2_create_local(CuTest* tc)
    CuAssertPtrEquals(tc, 0, file1.handler.arg);
    CuAssertPtrEquals(tc, 0, file1.handler.read);
    CuAssertPtrEquals(tc, 0, file1.handler.write);
-   CuAssertPtrEquals(tc, 0, file1.handler.basename);
+   apx_file2_destroy(&file1);
 }
 
 static void test_apx_file2_create_remote(CuTest* tc)
@@ -100,6 +100,9 @@ static void test_apx_file2_create_remote(CuTest* tc)
 
    CuAssertTrue(tc, file1.isOpen==false);
    CuAssertTrue(tc, file1.isRemoteFile==true);
+   CuAssertStrEquals(tc, "test", apx_file2_basename(&file1));
+   CuAssertStrEquals(tc, ".apx", apx_file2_extension(&file1));
+   apx_file2_destroy(&file1);
 }
 
 static void test_apx_file2_newLocal(CuTest* tc)

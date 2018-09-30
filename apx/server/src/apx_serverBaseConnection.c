@@ -33,6 +33,8 @@
 #include "bstr.h"
 #include "headerutil.h"
 #include "apx_fileManager.h"
+#include "apx_eventListener.h"
+#include "apx_logging.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -42,12 +44,15 @@
 // PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 #define MAX_HEADER_LEN 128
+#define APX_EXTENSION ".apx"
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void apx_serverBaseConnection_parseGreeting(apx_serverBaseConnection_t *self, const uint8_t *msgBuf, int32_t msgLen);
 static uint8_t apx_serverBaseConnection_parseMessage(apx_serverBaseConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
+static void apx_serverBaseConnection_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file);
+static void apx_serverBaseConnection_processNewApxFile(apx_serverBaseConnection_t *self, struct apx_file2_tag *file);
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -61,11 +66,18 @@ apx_error_t apx_serverBaseConnection_create(apx_serverBaseConnection_t *self, ui
 {
    if (self != 0)
    {
+      int8_t result;
       self->connectionId = connectionId;
       self->server = server;
-      self->destructor = destructor;
+      self->vtable.destructor = destructor;
       self->numHeaderLen = (int8_t) sizeof(uint32_t);
-      return apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE, connectionId);
+      apx_nodeDataManager_create(&self->nodeDataManager);
+      result = apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE, connectionId);
+      if (result != 0)
+      {
+         apx_nodeDataManager_destroy(&self->nodeDataManager);
+      }
+      return result;
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }
@@ -75,6 +87,7 @@ void apx_serverBaseConnection_destroy(apx_serverBaseConnection_t *self)
    if (self != 0)
    {
       apx_fileManager_destroy(&self->fileManager);
+      apx_nodeDataManager_destroy(&self->nodeDataManager);
    }
 }
 
@@ -82,9 +95,9 @@ void apx_serverBaseConnection_delete(apx_serverBaseConnection_t *self)
 {
    if(self != 0)
    {
-      if (self->destructor != 0)
+      if (self->vtable.destructor != 0)
       {
-         self->destructor((void*) self);
+         self->vtable.destructor((void*) self);
       }
       free(self);
    }
@@ -146,7 +159,12 @@ void apx_serverBaseConnection_start(apx_serverBaseConnection_t *self)
 {
    if ( self != 0)
    {
+      apx_fileManagerEventListener_t listener;
+      memset(&listener, 0, sizeof(listener));
+      listener.fileCreate = apx_serverBaseConnection_onFileCreate;
+      listener.arg = (void*) self;
       apx_fileManager_start(&self->fileManager);
+      apx_fileManager_registerEventListener(&self->fileManager, &listener);
    }
 }
 
@@ -266,4 +284,37 @@ static uint8_t apx_serverBaseConnection_parseMessage(apx_serverBaseConnection_t 
    return 0;
 }
 
+static void apx_serverBaseConnection_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file)
+{
+   apx_serverBaseConnection_t *self = (apx_serverBaseConnection_t*) arg;
+   if (self != 0)
+   {
+      if ( strcmp(apx_file2_extension(file), APX_EXTENSION) == 0)
+      {
+         apx_serverBaseConnection_processNewApxFile(self,  file);
+      }
+   }
+}
 
+#include <stdio.h>
+static void apx_serverBaseConnection_processNewApxFile(apx_serverBaseConnection_t *self, struct apx_file2_tag *file)
+{
+   if (file->fileInfo.fileType == RMF_FILE_TYPE_FIXED)
+   {
+      if (apx_nodeDataManager_find(&self->nodeDataManager, file->fileInfo.name) != 0)
+      {
+         APX_LOG_WARNING("APX node already exits: %s", file->fileInfo.name);
+         apx_fileManager_sendFileAlreadyExistsError(&self->fileManager, file);
+      }
+      else
+      {
+         apx_nodeData_t *nodeData = apx_nodeData_new(file->fileInfo.length);
+         if (nodeData != 0)
+         {
+            apx_nodeData_setDefinitionFile(nodeData, file);
+            assert(apx_nodeDataManager_attach(&self->nodeDataManager, nodeData) == APX_NO_ERROR);
+            apx_fileManager_openRemoteFile(&self->fileManager, file->fileInfo.address, (void*) self);
+         }
+      }
+   }
+}

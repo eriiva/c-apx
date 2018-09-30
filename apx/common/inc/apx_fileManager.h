@@ -34,6 +34,8 @@
 #include "apx_fileManagerRemote.h"
 #include "apx_fileManagerLocal.h"
 #include "apx_transmitHandler.h"
+#include "apx_error.h"
+#include "apx_file2.h"
 #ifndef ADT_RBFS_ENABLE
 #define ADT_RBFS_ENABLE 1
 #endif
@@ -47,6 +49,7 @@
 //////////////////////////////////////////////////////////////////////////////
 //forward declaration
 struct apx_fileManagerEventListener_tag;
+struct apx_file2_tag;
 
 typedef struct apx_fileManager_tag
 {
@@ -56,7 +59,8 @@ typedef struct apx_fileManager_tag
    adt_list_t eventListeners; //contains strong references to apx_fileManagerEventListener_t
    apx_transmitHandler_t transmitHandler;
    uint8_t mode;
-   MUTEX_T mutex;
+   MUTEX_T mutex; //for locking variables in this object
+   MUTEX_T eventListenerMutex; //Specific lock just for eventListener list
    SPINLOCK_T lock; //used exclusively by workerThread message queue
    THREAD_T workerThread; //local worker thread
    SEMAPHORE_T semaphore; //thread semaphore
@@ -96,6 +100,8 @@ int32_t apx_fileManager_processMessage(apx_fileManager_t *self, const uint8_t *m
 uint32_t fileManager_getID(apx_fileManager_t *self);
 void apx_fileManager_setTransmitHandler(apx_fileManager_t *self, apx_transmitHandler_t *handler);
 int8_t apx_fileManager_openRemoteFile(apx_fileManager_t *self, uint32_t address, void *caller);
+void apx_fileManager_sendFileAlreadyExistsError(apx_fileManager_t *self, apx_file2_t *file);
+struct apx_file2_tag *apx_fileManager_findLocalFileByName(apx_fileManager_t *self, const char *name);
 
 #ifdef UNIT_TEST
 bool apx_fileManager_run(apx_fileManager_t *self);

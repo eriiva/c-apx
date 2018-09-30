@@ -34,6 +34,7 @@
 #include "apx_eventListener.h"
 #include "apx_msg.h"
 #include "apx_logging.h"
+#include "apx_file2.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -64,6 +65,7 @@ static void workerThread_sendAcknowledge(apx_fileManager_t *self);
 static void workerThread_sendFileInfo(apx_fileManager_t *self, apx_msg_t *msg);
 static void workerThread_sendFileOpen(apx_fileManager_t *self, apx_msg_t *msg);
 static void workerThread_sendInvalidReadHandler(apx_fileManager_t *self, apx_msg_t *msg);
+static void workerThread_readFile(apx_fileManager_t *self, apx_msg_t *msg);
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -98,6 +100,7 @@ int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t co
          self->shared.sendFileOpen = apx_fileManager_sendFileOpen;
          self->shared.openFileRequest = apx_fileManager_openFileRequest;
          MUTEX_INIT(self->mutex);
+         MUTEX_INIT(self->eventListenerMutex);
          SPINLOCK_INIT(self->lock);
          SEMAPHORE_CREATE(self->semaphore);
    #ifdef _WIN32
@@ -131,6 +134,7 @@ void apx_fileManager_destroy(apx_fileManager_t *self)
       apx_fileManagerRemote_destroy(&self->remote);
       apx_fileManagerShared_destroy(&self->shared);
       MUTEX_DESTROY(self->mutex);
+      MUTEX_DESTROY(self->eventListenerMutex);
       SPINLOCK_DESTROY(self->lock);
       if (self->ringbufferData != 0)
       {
@@ -146,7 +150,9 @@ void* apx_fileManager_registerEventListener(apx_fileManager_t *self, struct apx_
       void *handle = (void*) apx_fileManagerEventListener_clone(listener);
       if (handle != 0)
       {
+         MUTEX_LOCK(self->eventListenerMutex);
          adt_list_insert(&self->eventListeners, handle);
+         MUTEX_UNLOCK(self->eventListenerMutex);
       }
       return handle;
    }
@@ -157,11 +163,13 @@ void apx_fileManager_unregisterEventListener(apx_fileManager_t *self, void *hand
 {
    if ( (self != 0) && (handle != 0))
    {
+      MUTEX_LOCK(self->eventListenerMutex);
       bool isFound = adt_list_remove(&self->eventListeners, handle);
       if (isFound == true)
       {
          apx_fileManagerEventListener_vdelete(handle);
       }
+      MUTEX_UNLOCK(self->eventListenerMutex);
    }
 }
 
@@ -169,7 +177,11 @@ int32_t apx_fileManager_getNumEventListeners(apx_fileManager_t *self)
 {
    if (self != 0)
    {
-      return adt_list_length(&self->eventListeners);
+      int32_t result;
+      MUTEX_LOCK(self->eventListenerMutex);
+      result = adt_list_length(&self->eventListeners);
+      MUTEX_UNLOCK(self->eventListenerMutex);
+      return result;
    }
    errno = EINVAL;
    return -1;
@@ -290,6 +302,29 @@ int8_t apx_fileManager_openRemoteFile(apx_fileManager_t *self, uint32_t address,
    return -1;
 }
 
+void apx_fileManager_sendFileAlreadyExistsError(apx_fileManager_t *self, apx_file2_t *file)
+{
+   if (self != 0)
+   {
+      apx_msg_t msg = {APX_MSG_ERROR_FILE_ALREADY_EXISTS, 0, 0, 0, 0};
+      msg.msgData1 = file->fileInfo.address;
+      msg.msgData3 = STRDUP(file->fileInfo.name);
+      SPINLOCK_ENTER(self->lock);
+      adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+      SPINLOCK_LEAVE(self->lock);
+      SEMAPHORE_POST(self->semaphore);
+   }
+}
+
+struct apx_file2_tag *apx_fileManager_findLocalFileByName(apx_fileManager_t *self, const char *name)
+{
+   if (self != 0)
+   {
+      return apx_fileManagerLocal_findByName(&self->local, name);
+   }
+   return (struct apx_file2_tag *) 0;
+}
+
 
 #ifdef UNIT_TEST
 bool apx_fileManager_run(apx_fileManager_t *self)
@@ -325,7 +360,7 @@ static void apx_fileManager_triggerHeaderReceivedEvent(apx_fileManager_t *self)
 {
    if (self != 0)
    {
-      MUTEX_LOCK(self->mutex);
+      MUTEX_LOCK(self->eventListenerMutex);
       adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
       while (pIter != 0)
       {
@@ -337,7 +372,7 @@ static void apx_fileManager_triggerHeaderReceivedEvent(apx_fileManager_t *self)
          }
          pIter = adt_list_iter_next(pIter);
       }
-      MUTEX_UNLOCK(self->mutex);
+      MUTEX_UNLOCK(self->eventListenerMutex);
    }
 }
 
@@ -345,7 +380,7 @@ static void apx_fileManager_triggerStoppedEvent(apx_fileManager_t *self)
 {
    if (self != 0)
    {
-      MUTEX_LOCK(self->mutex);
+      MUTEX_LOCK(self->eventListenerMutex);
       adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
       while (pIter != 0)
       {
@@ -357,7 +392,7 @@ static void apx_fileManager_triggerStoppedEvent(apx_fileManager_t *self)
          }
          pIter = adt_list_iter_next(pIter);
       }
-      MUTEX_UNLOCK(self->mutex);
+      MUTEX_UNLOCK(self->eventListenerMutex);
    }
 }
 
@@ -442,7 +477,7 @@ static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file2_tag
    apx_fileManager_t *self = (apx_fileManager_t *) arg;
    if (self != 0)
    {
-      MUTEX_LOCK(self->mutex);
+      MUTEX_LOCK(self->eventListenerMutex);
       adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
       while (pIter != 0)
       {
@@ -454,7 +489,7 @@ static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file2_tag
          }
          pIter = adt_list_iter_next(pIter);
       }
-      MUTEX_UNLOCK(self->mutex);
+      MUTEX_UNLOCK(self->eventListenerMutex);
    }
 }
 
@@ -532,7 +567,7 @@ static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const 
    adt_list_elem_t *pIter;
    MUTEX_LOCK(self->mutex);
    pIter = adt_list_iter_first(&self->eventListeners);
-   MUTEX_UNLOCK(self->mutex);
+   MUTEX_UNLOCK(self->eventListenerMutex);
    while (pIter != 0)
    {
       apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
@@ -541,15 +576,16 @@ static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const 
       {
          listener->fileOpen(listener->arg, self, file);
       }
-      MUTEX_LOCK(self->mutex);
       pIter = adt_list_iter_next(pIter);
-      MUTEX_UNLOCK(self->mutex);
    }
+   MUTEX_UNLOCK(self->eventListenerMutex);
 }
 
 static void apx_fileManager_sendFixedFile(apx_fileManager_t *self, const apx_file2_t *file)
 {
-   apx_msg_t msg = {APX_MSG_SEND_FILE_CONTENT, 0, 0, 0, 0};
+   apx_msg_t msg = {APX_MSG_READ_FILE, 0, 0, 0, 0};
+   msg.msgData1 = 0;
+   msg.msgData2 = file->fileInfo.length;
    msg.msgData3 = (void*) file;
    SPINLOCK_ENTER(self->lock);
    adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
@@ -621,7 +657,8 @@ static bool workerThread_processMessage(apx_fileManager_t *self, apx_msg_t *msg)
       break;
    case APX_MSG_SEND_FILE_CLOSE:
       break;
-   case APX_MSG_SEND_FILE_CONTENT:
+   case APX_MSG_READ_FILE:
+      workerThread_readFile(self, msg);
       break;
    case APX_MSG_ERROR_INVALID_CMD:
       break;
@@ -720,6 +757,40 @@ static void workerThread_sendInvalidReadHandler(apx_fileManager_t *self, apx_msg
          if (result > 0)
          {
             self->transmitHandler.send(self->transmitHandler.arg, 0, msgSize);
+         }
+      }
+   }
+}
+
+static void workerThread_readFile(apx_fileManager_t *self, apx_msg_t *msg)
+{
+   uint32_t offset = msg->msgData1;
+   uint32_t dataLen = msg->msgData2;
+   apx_file2_t *file = (apx_file2_t*) msg->msgData3;
+
+   if (file != 0)
+   {
+      uint32_t startAddress = file->fileInfo.address+offset;
+      uint8_t *msgBuf;
+      int32_t msgLen;
+      int32_t bufLen = (startAddress >= RMF_DATA_HIGH_MIN_ADDR)? RMF_HIGH_ADDRESS_SIZE : RMF_LOW_ADDRESS_SIZE;
+      assert(offset+dataLen<=file->fileInfo.length);
+      bufLen+=dataLen;
+      msgBuf = self->transmitHandler.getSendBuffer(self->transmitHandler.arg, bufLen);
+      if (msgBuf != 0)
+      {
+         msgLen = rmf_packHeader(msgBuf, bufLen, startAddress, false);
+         if (msgLen > 0)
+         {
+            int8_t result = apx_file2_read(file, &msgBuf[msgLen], offset, dataLen);
+            if (result == 0)
+            {
+               self->transmitHandler.send(self->transmitHandler.arg, 0, bufLen);
+            }
+            else
+            {
+               APX_LOG_ERROR("APX File read error\n");
+            }
          }
       }
    }

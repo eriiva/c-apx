@@ -47,7 +47,10 @@ typedef struct apx_serverBaseConnection_tag
    struct apx_server_tag *server;
    bool isGreetingParsed;
    uint8_t numHeaderLen; //0, 2 or 4
-   void (*destructor)(void *arg);
+   struct
+   {
+      void (*destructor)(void *arg);
+   }vtable;
 }apx_serverBaseConnection_t;
 
 //////////////////////////////////////////////////////////////////////////////

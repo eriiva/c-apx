@@ -29,7 +29,9 @@
 #include <malloc.h>
 #include <string.h>
 #include <errno.h>
+#include "apx_error.h"
 #include "apx_file2.h"
+#include "bstr.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -41,7 +43,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_file2_set_handler(apx_file2_t *self, const apx_file_handler_t *handler);
+
+apx_error_t apx_file2_processFileName(apx_file2_t *self);
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -65,8 +68,9 @@ int8_t apx_file2_create(apx_file2_t *self, uint8_t fileType, bool isRemoteFile, 
       result = rmf_fileInfo_create(&self->fileInfo, fileInfo->name, fileInfo->address, fileInfo->length, fileInfo->fileType);
       if (result == 0)
       {
+         (void) apx_file2_processFileName(self);
          rmf_fileInfo_setDigestData(&self->fileInfo, fileInfo->digestType, fileInfo->digestData, 0);
-         apx_file2_set_handler(self, handler);
+         apx_file2_setHandler(self, handler);
       }
       return result;
    }
@@ -74,12 +78,19 @@ int8_t apx_file2_create(apx_file2_t *self, uint8_t fileType, bool isRemoteFile, 
    return -1;
 }
 
-#ifndef APX_EMBEDDED
 void apx_file2_destroy(apx_file2_t *self)
 {
    if (self != 0)
    {
       rmf_fileInfo_destroy(&self->fileInfo);
+      if (self->basename != 0)
+      {
+         free(self->basename);
+      }
+      if (self->extension != 0)
+      {
+         free(self->extension);
+      }
    }
 }
 
@@ -116,15 +127,18 @@ void apx_file2_vdelete(void *arg)
    apx_file2_delete((apx_file2_t*) arg);
 }
 
-#endif
-
 const char *apx_file2_basename(const apx_file2_t *self)
 {
-   if ( (self != 0) && (self->handler.basename !=0) )
+   if ( self != 0 )
    {
-      return self->handler.basename(self->handler.arg);
+      return self->basename;
    }
    return (char*) 0;
+}
+
+const char *apx_file2_extension(const apx_file2_t *self)
+{
+   return self->extension;
 }
 
 void apx_file2_open(apx_file2_t *self)
@@ -147,7 +161,7 @@ int8_t apx_file2_read(apx_file2_t *self, uint8_t *pDest, uint32_t offset, uint32
 {
    if ( apx_file2_hasReadHandler(self) != false)
    {
-      return self->handler.read(self->handler.arg, &self->fileInfo, pDest, offset, length);
+      return self->handler.read(self->handler.arg, self, pDest, offset, length);
    }
    errno = EINVAL;
    return -1;
@@ -157,7 +171,7 @@ int8_t apx_file2_write(apx_file2_t *self, const uint8_t *pSrc, uint32_t offset, 
 {
    if ( apx_file2_hasWriteHandler(self) != false )
    {
-      return self->handler.write(self->handler.arg, &self->fileInfo, pSrc, offset, length);
+      return self->handler.write(self->handler.arg, self, pSrc, offset, length);
    }
    errno = EINVAL;
    return -1;
@@ -181,10 +195,7 @@ bool apx_file2_hasWriteHandler(apx_file2_t *self)
    return false;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// PRIVATE FUNCTIONS
-//////////////////////////////////////////////////////////////////////////////
-void apx_file2_set_handler(apx_file2_t *self, const apx_file_handler_t *handler)
+void apx_file2_setHandler(apx_file2_t *self, const apx_file_handler_t *handler)
 {
    if (handler == 0)
    {
@@ -196,3 +207,38 @@ void apx_file2_set_handler(apx_file2_t *self, const apx_file_handler_t *handler)
    }
 }
 
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+
+
+apx_error_t apx_file2_processFileName(apx_file2_t *self)
+{
+   if (self != 0)
+   {
+      const char *pBegin;
+      const char *pEnd;
+      size_t len = strlen(self->fileInfo.name);
+      pBegin = self->fileInfo.name;
+      pEnd = self->fileInfo.name+len;
+      if (len > 0u )
+      {
+         const char *p = pEnd-1;
+         //search in string backwards to find a '.' character
+         while(p>=pBegin)
+         {
+            if (*p == '.')
+            {
+               self->basename = (char*) bstr_make((const uint8_t*) pBegin, (const uint8_t*) p);
+               self->extension = (char*) bstr_make((const uint8_t*) p, (const uint8_t*) pEnd);
+               return APX_NO_ERROR;
+            }
+            --p;
+         }
+      }
+      self->basename = (char*) bstr_make((const uint8_t*) pBegin, (const uint8_t*) pEnd);
+      return APX_NO_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+
+}

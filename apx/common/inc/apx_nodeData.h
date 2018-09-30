@@ -120,6 +120,7 @@ int8_t apx_nodeData_writeDefinitionData(apx_nodeData_t *self, const uint8_t *src
 void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len);
 void apx_nodeData_setInPortDataFile(apx_nodeData_t *self, struct apx_file2_tag *file);
 void apx_nodeData_setOutPortDataFile(apx_nodeData_t *self, struct apx_file2_tag *file);
+void apx_nodeData_setDefinitionFile(apx_nodeData_t *self, struct apx_file2_tag *file);
 #ifdef APX_EMBEDDED
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_es_fileManager_tag *fileManager);
 #else

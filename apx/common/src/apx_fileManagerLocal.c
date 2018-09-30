@@ -145,6 +145,18 @@ struct apx_file2_tag *apx_fileManagerLocal_find(apx_fileManagerLocal_t *self, ui
    return localFile;
 }
 
+struct apx_file2_tag *apx_fileManagerLocal_findByName(apx_fileManagerLocal_t *self, const char *name)
+{
+   apx_file2_t *localFile = (apx_file2_t *) 0;
+   if (self != 0)
+   {
+      MUTEX_LOCK(self->mutex);
+      localFile = apx_fileMap_findByName(&self->localFileMap, name);
+      MUTEX_UNLOCK(self->mutex);
+   }
+   return localFile;
+}
+
 
 #if 0
 static void apx_fileManager_processOpenFile(apx_fileManager_t *self, const rmf_cmdOpenFile_t *cmdOpenFile)

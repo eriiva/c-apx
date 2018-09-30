@@ -28,11 +28,12 @@ typedef struct apx_msg_tag
 #define APX_MSG_SEND_FILEINFO              2 //msgData3=apx_file_t *file
 #define APX_MSG_SEND_FILE_OPEN             3 //msgData1=startAddress
 #define APX_MSG_SEND_FILE_CLOSE            4 //msgData1=startAddress
-#define APX_MSG_SEND_FILE_CONTENT          5 //msgData3=apx_file_t *file
+#define APX_MSG_READ_FILE                  5 //msgData1=offset, msgData2=length, msgData3=apx_file_t *file
 #define APX_MSG_WRITE_FILE                 6 //msgData1=offset, msgData3=apx_file_t *file, msgData4=data
 #define APX_MSG_ERROR_INVALID_CMD          7 //msgData1=commandId
 #define APX_MSG_ERROR_INVALID_WRITE        8 //msgData1=address, msgData2=length
-#define APX_MSG_ERROR_INVALID_READ_HANDLER 9//msgData1=address
+#define APX_MSG_ERROR_INVALID_READ_HANDLER 9 //msgData1=address
+#define APX_MSG_ERROR_FILE_ALREADY_EXISTS  10 //msgData1=address, msgData3=char* (name of file)
 
 
 

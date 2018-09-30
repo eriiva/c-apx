@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include "CuTest.h"
+#include "pack.h"
 #include "apx_serverSocketConnection.h"
 #include "apx_server.h"
 #include "testsocket_spy.h"
@@ -24,13 +25,18 @@
 //////////////////////////////////////////////////////////////////////////////
 #define DEFAULT_CONNECTION_ID 0
 
+
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_serverSocketConnection_create(CuTest* tc);
 static void test_apx_serverSocketConnection_transmitHandlerSetup(CuTest* tc);
 static void test_apx_serverSocketConnection_sendAckAfterReceivingHeader(CuTest* tc);
+static void test_apx_serverSocketConnection_sendFileOpenAfterPresentedApxDefinition(CuTest *tc);
 static void sendHeader(testsocket_t *sock);
+static void sendFileInfoNoCheckSum(CuTest* tc, testsocket_t *sock, const char *name, uint32_t startAddress, uint32_t length, uint16_t fileType);
+static void verifyAcknowledge(CuTest* tc, testsocket_t *sock);
+static void verifyFileOpenRequest(CuTest* tc, testsocket_t *sock, uint32_t address);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -52,6 +58,7 @@ CuSuite* testSuite_apx_serverSocketConnection(void)
    SUITE_ADD_TEST(suite, test_apx_serverSocketConnection_create);
    SUITE_ADD_TEST(suite, test_apx_serverSocketConnection_transmitHandlerSetup);
    SUITE_ADD_TEST(suite, test_apx_serverSocketConnection_sendAckAfterReceivingHeader);
+   SUITE_ADD_TEST(suite, test_apx_serverSocketConnection_sendFileOpenAfterPresentedApxDefinition);
    return suite;
 }
 
@@ -93,10 +100,6 @@ static void test_apx_serverSocketConnection_sendAckAfterReceivingHeader(CuTest* 
 {
    apx_server_t server;
    testsocket_t *sock;
-   uint32_t len;
-   const uint8_t *data;
-   const uint8_t expected[9] = {8, 0xBF, 0xFF, 0xFC, 0x00, 0, 0, 0, 0};
-   int32_t i;
    testsocket_spy_create();
    sock = testsocket_spy_client();
    apx_server_create(&server);
@@ -107,14 +110,31 @@ static void test_apx_serverSocketConnection_sendAckAfterReceivingHeader(CuTest* 
    testsocket_run(sock);
    SLEEP(50);
    testsocket_run(sock);
-   data = testsocket_spy_getReceivedData(&len);
-   CuAssertUIntEquals(tc, RMF_CMD_TYPE_LEN+RMF_CMD_ACK_LEN+1, len);
-   for(i=0;i<(int32_t) sizeof(expected);i++)
-   {
-      char msg[14];
-      sprintf(msg, "i=%d",i);
-      CuAssertIntEquals_Msg(tc, msg, expected[i], data[i]);
-   }
+   verifyAcknowledge(tc, sock);
+   apx_server_destroy(&server);
+   testsocket_spy_destroy();
+}
+
+static void test_apx_serverSocketConnection_sendFileOpenAfterPresentedApxDefinition(CuTest *tc)
+{
+   apx_server_t server;
+   testsocket_t *sock;
+   testsocket_spy_create();
+   sock = testsocket_spy_client();
+   apx_server_create(&server);
+   apx_server_start(&server);
+   apx_server_acceptTestSocket(&server, sock);
+   testsocket_onConnect(sock);
+   sendHeader(sock);
+   testsocket_run(sock);
+   SLEEP(50);
+   testsocket_run(sock);
+   verifyAcknowledge(tc, sock);
+   sendFileInfoNoCheckSum(tc, sock, "test1.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
+   testsocket_run(sock);
+   SLEEP(50);
+   testsocket_run(sock);
+   verifyFileOpenRequest(tc, sock, 0x10000);
    apx_server_destroy(&server);
    testsocket_spy_destroy();
 }
@@ -130,3 +150,50 @@ static void sendHeader(testsocket_t *sock)
    testsocket_clientSend(sock, &msg[0], 1+msgLen);
 }
 
+static void sendFileInfoNoCheckSum(CuTest* tc, testsocket_t *sock, const char *name, uint32_t startAddress, uint32_t length, uint16_t fileType)
+{
+   rmf_fileInfo_t info;
+   int32_t msgLen = 0;
+   uint8_t buf[RMF_MAX_CMD_BUF_SIZE];
+   CuAssertIntEquals(tc, 0, rmf_fileInfo_create(&info, name, startAddress, length, fileType));
+   msgLen += rmf_packHeader(&buf[1+msgLen], sizeof(buf)-msgLen, RMF_CMD_START_ADDR, false);
+   msgLen += rmf_serialize_cmdFileInfo(&buf[1+msgLen], sizeof(buf)-msgLen, &info);
+   CuAssertIntEquals(tc, 62, msgLen);
+   buf[0]=(uint8_t) msgLen;
+   testsocket_clientSend(sock, &buf[0], 1+msgLen);
+}
+
+static void verifyAcknowledge(CuTest* tc, testsocket_t *sock)
+{
+   uint32_t len;
+   int32_t i;
+   const uint8_t expected[9] = {8, 0xBF, 0xFF, 0xFC, 0x00, 0, 0, 0, 0};
+   const uint8_t *data;
+   data = testsocket_spy_getReceivedData(&len);
+   CuAssertUIntEquals(tc, RMF_CMD_ADDRESS_LEN+RMF_CMD_ACK_LEN+1, len);
+   for(i=0;i<(int32_t) sizeof(expected);i++)
+   {
+      char msg[14];
+      sprintf(msg, "i=%d",i);
+      CuAssertIntEquals_Msg(tc, msg, expected[i], data[i]);
+   }
+   testsocket_spy_clearReceivedData();
+}
+
+static void verifyFileOpenRequest(CuTest* tc, testsocket_t *sock, uint32_t address)
+{
+   uint32_t len;
+   int32_t i;
+   uint8_t expected[12+1] = {12, 0xBF, 0xFF, 0xFC, 0x00, RMF_CMD_FILE_OPEN, 0, 0, 0, 0, 0, 0, 0};
+   const uint8_t *data;
+   packLE(&expected[9], 0x10000, 4);
+   data = testsocket_spy_getReceivedData(&len);
+   CuAssertUIntEquals(tc, RMF_CMD_ADDRESS_LEN+RMF_CMD_FILE_OPEN_LEN+1, len);
+   for(i=0;i<(int32_t) sizeof(expected);i++)
+   {
+      char msg[14];
+      sprintf(msg, "i=%d",i);
+      CuAssertIntEquals_Msg(tc, msg, expected[i], data[i]);
+   }
+   testsocket_spy_clearReceivedData();
+}

@@ -62,6 +62,7 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       apx_nodeData_setHandlerTable(self, NULL);
       self->outPortDataFile = (apx_file2_t*) 0;
       self->inPortDataFile = (apx_file2_t*) 0;
+      self->definitionFile = (apx_file2_t*) 0;
       self->checksumType = APX_CHECKSUM_NONE;
       memset(&self->checksumData[0], 0, sizeof(self->checksumData));
 #ifdef APX_EMBEDDED
@@ -261,10 +262,6 @@ int8_t apx_nodeData_readInPortData(apx_nodeData_t *self, uint8_t *dest, uint32_t
    return -1;
 }
 
-
-
-
-
 void apx_nodeData_lockOutPortData(apx_nodeData_t *self)
 {
 #ifndef APX_EMBEDDED
@@ -387,6 +384,13 @@ void apx_nodeData_setOutPortDataFile(apx_nodeData_t *self, struct apx_file2_tag 
    }
 }
 
+void apx_nodeData_setDefinitionFile(apx_nodeData_t *self, struct apx_file2_tag *file)
+{
+   if (self != 0)
+   {
+      self->definitionFile = file;
+   }
+}
 
 #ifndef APX_EMBEDDED
 apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
@@ -475,17 +479,19 @@ const char *apx_nodeData_getName(apx_nodeData_t *self)
 {
    if (self != 0)
    {
+      const char *name = self->name;
 #ifdef APX_EMBEDDED
       return self->name;
 #else
-      if (self->node != 0)
+      if ( (name == 0) && (self->node != 0) )
       {
-         return apx_node_getName(self->node);
+         name = apx_node_getName(self->node);
       }
-      else
+      if ( (name == 0) && (self->definitionFile != 0) )
       {
-         return self->name;
+         name = self->definitionFile->fileInfo.name;
       }
+      return name;
 #endif
    }
    return (const char*) 0;
