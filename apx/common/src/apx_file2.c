@@ -32,6 +32,8 @@
 #include "apx_error.h"
 #include "apx_file2.h"
 #include "bstr.h"
+#include "apx_eventListener.h"
+#include "apx_nodeData.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -61,9 +63,10 @@ int8_t apx_file2_create(apx_file2_t *self, uint8_t fileType, bool isRemoteFile, 
    if (self != 0)
    {
       int8_t result;
-      self->fileType = fileType;
       self->isRemoteFile = isRemoteFile;
       self->isOpen = false;
+      self->nodeData = (apx_nodeData_t*) 0;
+      self->fileType = fileType;
 
       result = rmf_fileInfo_create(&self->fileInfo, fileInfo->name, fileInfo->address, fileInfo->length, fileInfo->fileType);
       if (result == 0)
@@ -157,24 +160,36 @@ void apx_file2_close(apx_file2_t *self)
    }
 }
 
-int8_t apx_file2_read(apx_file2_t *self, uint8_t *pDest, uint32_t offset, uint32_t length)
+apx_error_t apx_file2_read(apx_file2_t *self, uint8_t *pDest, uint32_t offset, uint32_t length)
 {
-   if ( apx_file2_hasReadHandler(self) != false)
+   if (self != 0)
    {
-      return self->handler.read(self->handler.arg, self, pDest, offset, length);
+      if ( apx_file2_hasReadHandler(self) != false)
+      {
+         return self->handler.read(self->handler.arg, self, pDest, offset, length);
+      }
+      else
+      {
+         return APX_UNSUPPORTED_ERROR;
+      }
    }
-   errno = EINVAL;
-   return -1;
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 
-int8_t apx_file2_write(apx_file2_t *self, const uint8_t *pSrc, uint32_t offset, uint32_t length)
+apx_error_t apx_file2_write(apx_file2_t *self, const uint8_t *pSrc, uint32_t offset, uint32_t length, bool more)
 {
-   if ( apx_file2_hasWriteHandler(self) != false )
+   if (self != 0)
    {
-      return self->handler.write(self->handler.arg, self, pSrc, offset, length);
+      if ( apx_file2_hasWriteHandler(self) != false )
+      {
+         return self->handler.write(self->handler.arg, self, pSrc, offset, length, more);
+      }
+      else
+      {
+         return APX_UNSUPPORTED_ERROR;
+      }
    }
-   errno = EINVAL;
-   return -1;
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 
 bool apx_file2_hasReadHandler(apx_file2_t *self)
