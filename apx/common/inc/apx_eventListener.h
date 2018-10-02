@@ -63,9 +63,10 @@ typedef struct apx_connectionEventListener_tag
 typedef struct apx_nodeDataEventListener_tag
 {
    void *arg; //user argument
-   void (*definitionValid)(void *arg, struct apx_nodeData_tag *nodeData);
-   void (*nodeComplete)(void *arg, struct apx_nodeData_tag *nodeData);
+   void (*definitionDataWritten)(void *arg, struct apx_nodeData_tag *nodeData, uint32_t offset, uint32_t len);
    void (*inPortDataWritten)(void *arg, struct apx_nodeData_tag *nodeData, uint32_t offset, uint32_t len);
+   void (*outPortDataWritten)(void *arg, struct apx_nodeData_tag *nodeData, uint32_t offset, uint32_t len);
+   void (*nodeComplete)(void *arg, struct apx_nodeData_tag *nodeData);
 }apx_nodeDataEventListener_t;
 
 

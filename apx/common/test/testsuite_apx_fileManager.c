@@ -42,7 +42,7 @@ static void attachSpyAsTransmitHandler(apx_fileManager_t *manager, apx_transmitH
 static void attachApxClientFiles(CuTest* tc, apx_fileManager_t *manager, uint32_t definitionFileAddress);
 static void receiveFileOpenRequest(CuTest *tc, apx_fileManager_t *manager, uint32_t fileAddress);
 static void verifyInvalidReadHandler(CuTest *tc, apx_fileManager_t *manager, apx_transmitHandlerSpy_t *spy, uint32_t fileAddress);
-static int8_t readDefinitionData(void* arg, apx_file2_t *file, uint8_t *dest, uint32_t offset, uint32_t len);
+static apx_error_t readDefinitionData(void* arg, apx_file2_t *file, uint8_t *dest, uint32_t offset, uint32_t len);
 static void verifyWriteDefinitionFile(CuTest *tc, apx_fileManager_t *manager, apx_transmitHandlerSpy_t *spy, uint32_t fileAddress);
 
 //////////////////////////////////////////////////////////////////////////////
@@ -358,7 +358,7 @@ static void verifyInvalidReadHandler(CuTest *tc, apx_fileManager_t *manager, apx
    adt_bytearray_delete(array);
 }
 
-static int8_t readDefinitionData(void* arg, apx_file2_t *file, uint8_t *dest, uint32_t offset, uint32_t len)
+static apx_error_t readDefinitionData(void* arg, apx_file2_t *file, uint8_t *dest, uint32_t offset, uint32_t len)
 {
    if ( (strcmp(file->fileInfo.name, "TestNode.apx") == 0) && (offset == 0) )
    {

@@ -235,7 +235,8 @@ DYN_STATIC void apx_fileManagerRemote_processDataMsg(apx_fileManagerRemote_t *se
       apx_file2_t *curFile = apx_fileMap_findByAddress(&self->remoteFileMap,address);
       if (curFile != 0)
       {
-         apx_file2_write(curFile, msgBuf, msgLen, msgLen, more_bit);
+         uint32_t offset = address - curFile->fileInfo.address;
+         apx_file2_write(curFile, msgBuf, offset, msgLen, more_bit);
       }
    }
 }

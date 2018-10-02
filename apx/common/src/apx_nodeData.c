@@ -23,6 +23,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+#define APX_NODE_INVALID_OFFSET 0xFFFFFFFFu
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
@@ -33,9 +36,12 @@ static uint32_t apx_nodeData_getFileLengthFromType(apx_nodeData_t *self, uint8_t
 static apx_error_t apx_nodeData_writeDefinitionFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more);
 static apx_error_t apx_nodeData_writeInPortDataFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more);
 static apx_error_t apx_nodeData_writeOutPortDataFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more);
-static apx_error_t apx_nodeData_ReadDefinitionFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len);
+static apx_error_t apx_nodeData_readDefinitionFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len);
 static apx_error_t apx_nodeData_readInPortDataFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len);
 static apx_error_t apx_nodeData_readOutPortDataFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len);
+static void apx_nodeData_triggerDefinitionDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len);
+static void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len);
+static void apx_nodeData_triggerOutPortDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len);
 
 #ifndef APX_EMBEDDED
 static void apx_nodeData_clearPortBuffers(apx_nodeData_t *self);
@@ -54,7 +60,7 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
    if (self != 0)
    {
       self->isRemote = false; //default false, used by nodeManager to determine whether this belongs to a remote or a local node
-      self->isWeakref = true; //default true, all pointers in this object are weak referencens (will not be automatically deleted when this object is destroyed)
+      self->isWeakref = true; //default true, all pointers in this object are weak references (will not be automatically deleted when this object is destroyed)
       self->name=name;
       self->definitionDataBuf = definitionBuf;
       self->definitionDataLen = definitionDataLen;
@@ -67,8 +73,11 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       self->outPortDataFile = (apx_file2_t*) 0;
       self->inPortDataFile = (apx_file2_t*) 0;
       self->definitionFile = (apx_file2_t*) 0;
-      self->apxNodeWriteCbk = (apx_nodeData_inDataWriteFunc*) 0;
+      self->apxNodeWriteCbk = (apx_nodeData_nodeCbkFunc*) 0;
       self->checksumType = APX_CHECKSUM_NONE;
+      self->definitionStartOffset = APX_NODE_INVALID_OFFSET;
+      self->inPortDataStartOffset = APX_NODE_INVALID_OFFSET;
+      self->outPortDataStartOffset = APX_NODE_INVALID_OFFSET;
       memset(&self->checksumData[0], 0, sizeof(self->checksumData));
       apx_nodeData_setEventListener(self, (apx_nodeDataEventListener_t*) 0);
 #ifdef APX_EMBEDDED
@@ -184,7 +193,7 @@ void apx_nodeData_setEventListener(apx_nodeData_t *self, apx_nodeDataEventListen
    }
 }
 
-void apx_nodeData_setInDataWriteCallback(apx_nodeData_t *self, apx_nodeData_inDataWriteFunc* cbk)
+void apx_nodeData_setApxNodeCallback(apx_nodeData_t *self, apx_nodeData_nodeCbkFunc* cbk)
 {
    if (self != 0)
    {
@@ -226,55 +235,87 @@ apx_error_t apx_nodeData_setChecksumData(apx_nodeData_t *self, uint8_t checksumT
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
-int8_t apx_nodeData_readDefinitionData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len)
+apx_error_t apx_nodeData_readDefinitionData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len)
 {
-   int8_t retval = 0;
-#ifndef APX_EMBEDDED
-   SPINLOCK_ENTER(self->definitionDataLock);
-#endif
-   if ( (offset+len) > self->definitionDataLen) //attempted read outside bounds
+   apx_error_t retval = APX_NO_ERROR;
+   if( (self != 0) && (dest != 0) )
    {
-      retval = -1;
+#ifndef APX_EMBEDDED
+      SPINLOCK_ENTER(self->definitionDataLock);
+#endif
+      if ( (offset+len) > self->definitionDataLen)
+      {
+         retval = APX_INVALID_ARGUMENT_ERROR;
+      }
+      else
+      {
+         memcpy(dest, &self->definitionDataBuf[offset], len);
+      }
+#ifndef APX_EMBEDDED
+      SPINLOCK_LEAVE(self->definitionDataLock);
+#endif
    }
    else
    {
-      memcpy(dest, &self->definitionDataBuf[offset], len);
+      retval = APX_INVALID_ARGUMENT_ERROR;
    }
-#ifndef APX_EMBEDDED
-   SPINLOCK_LEAVE(self->definitionDataLock);
-#endif
    return retval;
 }
 
-int8_t apx_nodeData_readOutPortData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len)
+apx_error_t apx_nodeData_readOutPortData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len)
 {
+   apx_error_t retval = APX_NO_ERROR;
+   if( (self != 0) && (dest != 0) )
+   {
 #ifndef APX_EMBEDDED
-   SPINLOCK_ENTER(self->outPortDataLock);
+      SPINLOCK_ENTER(self->outPortDataLock);
 #endif
-   memcpy(dest, &self->outPortDataBuf[offset], len);
-   self->outPortDirtyFlags[offset]=0;
+      if ( (offset+len) > self->outPortDataLen)
+      {
+         retval = APX_INVALID_ARGUMENT_ERROR;
+      }
+      else
+      {
+         memcpy(dest, &self->outPortDataBuf[offset], len);
+         self->outPortDirtyFlags[offset]=0;
+      }
 #ifndef APX_EMBEDDED
-   SPINLOCK_LEAVE(self->outPortDataLock);
+      SPINLOCK_LEAVE(self->outPortDataLock);
 #endif
-   return 0;
+   }
+   else
+   {
+      retval = APX_INVALID_ARGUMENT_ERROR;
+   }
+   return retval;
 }
 
-int8_t apx_nodeData_readInPortData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len)
+apx_error_t apx_nodeData_readInPortData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len)
 {
-   if( (self != 0) && (self->inPortDataBuf != 0) && (self->inPortDirtyFlags != 0) )
+   apx_error_t retval = APX_NO_ERROR;
+   if( (self != 0) && (dest != 0) )
    {
 #ifndef APX_EMBEDDED
       SPINLOCK_ENTER(self->inPortDataLock);
 #endif
-      memcpy(dest, &self->inPortDataBuf[offset], len);
-      self->inPortDirtyFlags[offset]=0;
+      if ( (offset+len) > self->outPortDataLen)
+      {
+         retval = APX_INVALID_ARGUMENT_ERROR;
+      }
+      else
+      {
+         memcpy(dest, &self->inPortDataBuf[offset], len);
+         self->inPortDirtyFlags[offset]=0;
+      }
 #ifndef APX_EMBEDDED
       SPINLOCK_LEAVE(self->inPortDataLock);
 #endif
-      return 0;
    }
-   errno = EINVAL;
-   return -1;
+   else
+   {
+      retval = APX_INVALID_ARGUMENT_ERROR;
+   }
+   return retval;
 }
 
 void apx_nodeData_lockOutPortData(apx_nodeData_t *self)
@@ -322,15 +363,15 @@ void apx_nodeData_outPortDataNotify(apx_nodeData_t *self, apx_offset_t offset, a
    }
 }
 
-int8_t apx_nodeData_writeInPortData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len)
+apx_error_t apx_nodeData_writeInPortData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len)
 {
-   int8_t retval = 0;
+   apx_error_t retval = APX_NO_ERROR;
 #ifndef APX_EMBEDDED
    SPINLOCK_ENTER(self->inPortDataLock);
 #endif
    if ( (offset+len) > self->inPortDataLen) //attempted write outside bounds
    {
-      retval = -1;
+      retval = APX_INVALID_ARGUMENT_ERROR;
    }
    else
    {
@@ -343,15 +384,15 @@ int8_t apx_nodeData_writeInPortData(apx_nodeData_t *self, const uint8_t *src, ui
 
 }
 
-int8_t apx_nodeData_writeOutPortData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len)
+apx_error_t apx_nodeData_writeOutPortData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len)
 {
-   int8_t retval = 0;
+   apx_error_t retval = APX_NO_ERROR;
 #ifndef APX_EMBEDDED
    SPINLOCK_ENTER(self->outPortDataLock);
 #endif
    if ( (offset+len) > self->outPortDataLen)
    {
-      retval = -1;
+      retval = APX_INVALID_ARGUMENT_ERROR;
    }
    else
    {
@@ -363,15 +404,15 @@ int8_t apx_nodeData_writeOutPortData(apx_nodeData_t *self, const uint8_t *src, u
    return retval;
 }
 
-int8_t apx_nodeData_writeDefinitionData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len)
+apx_error_t apx_nodeData_writeDefinitionData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len)
 {
-   int8_t retval = 0;
+   apx_error_t retval = APX_NO_ERROR;
 #ifndef APX_EMBEDDED
    SPINLOCK_ENTER(self->definitionDataLock);
 #endif
    if ( (offset+len) > self->definitionDataLen)
    {
-      retval = -1;
+      retval = APX_INVALID_ARGUMENT_ERROR;
    }
    else
    {
@@ -387,6 +428,11 @@ void apx_nodeData_setInPortDataFile(apx_nodeData_t *self, struct apx_file2_tag *
 {
    if (self != 0)
    {
+      apx_file_handler_t handler;
+      handler.arg = (void*) self;
+      handler.read = apx_nodeData_readInPortDataFile;
+      handler.write = apx_nodeData_writeInPortDataFile;
+      apx_file2_setHandler(file, &handler);
       self->inPortDataFile = file;
    }
 }
@@ -395,14 +441,24 @@ void apx_nodeData_setOutPortDataFile(apx_nodeData_t *self, struct apx_file2_tag 
 {
    if (self != 0)
    {
+      apx_file_handler_t handler;
+      handler.arg = (void*) self;
+      handler.read = apx_nodeData_readOutPortDataFile;
+      handler.write = apx_nodeData_writeOutPortDataFile;
+      apx_file2_setHandler(file, &handler);
       self->outPortDataFile = file;
    }
 }
 
 void apx_nodeData_setDefinitionFile(apx_nodeData_t *self, struct apx_file2_tag *file)
 {
-   if (self != 0)
+   if ( (self != 0) && (file != 0) )
    {
+      apx_file_handler_t handler;
+      handler.arg = (void*) self;
+      handler.read = apx_nodeData_readDefinitionFile;
+      handler.write = apx_nodeData_writeDefinitionFile;
+      apx_file2_setHandler(file, &handler);
       self->definitionFile = file;
    }
 }
@@ -526,7 +582,7 @@ void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_fileManager_ta
    }
 }
 
-
+#if 0
 void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len)
 {   
    if ( (self != 0) && (self->apxNodeWriteCbk != 0) )
@@ -534,6 +590,7 @@ void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset
       self->apxNodeWriteCbk(offset, len);
    }
 }
+#endif
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
@@ -608,32 +665,155 @@ static uint32_t apx_nodeData_getFileLengthFromType(apx_nodeData_t *self, uint8_t
 
 static apx_error_t apx_nodeData_writeDefinitionFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more)
 {
-   return APX_NO_ERROR;
+   apx_error_t retval = APX_NO_ERROR;
+   apx_nodeData_t *self = (apx_nodeData_t*) arg;
+   if ( (self != 0) && (self->definitionFile == file) && (offset != APX_NODE_INVALID_OFFSET ) )
+   {
+      if ( self->definitionStartOffset == APX_NODE_INVALID_OFFSET )
+      {
+         self->definitionStartOffset = offset;
+      }
+      retval = apx_nodeData_writeDefinitionData(self, src, offset, len);
+      if (more == false)
+      {
+         if ( retval == APX_NO_ERROR )
+         {
+            uint32_t totalWriteLength = offset + len - self->definitionStartOffset;
+            apx_nodeData_triggerDefinitionDataWritten(self, self->definitionStartOffset, totalWriteLength);
+         }
+         self->definitionStartOffset = APX_NODE_INVALID_OFFSET;
+      }
+   }
+   else
+   {
+      retval = APX_INVALID_ARGUMENT_ERROR;
+   }
+   return retval;
 }
 
 static apx_error_t apx_nodeData_writeInPortDataFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more)
 {
-   return APX_NO_ERROR;
+   apx_error_t retval = APX_NO_ERROR;
+   apx_nodeData_t *self = (apx_nodeData_t*) arg;
+   if ( (self != 0) && (self->inPortDataFile == file) && (offset != APX_NODE_INVALID_OFFSET ) )
+   {
+      if ( self->inPortDataStartOffset == APX_NODE_INVALID_OFFSET )
+      {
+         self->inPortDataStartOffset = offset;
+      }
+      retval = apx_nodeData_writeDefinitionData(self, src, offset, len);
+      if (more == false)
+      {
+         if ( retval == APX_NO_ERROR )
+         {
+            uint32_t totalWriteLength = offset + len - self->inPortDataStartOffset;
+            apx_nodeData_triggerInPortDataWritten(self, self->inPortDataStartOffset, totalWriteLength);
+         }
+         self->inPortDataStartOffset = APX_NODE_INVALID_OFFSET;
+      }
+   }
+   else
+   {
+      retval = APX_INVALID_ARGUMENT_ERROR;
+   }
+   return retval;
 }
 
 static apx_error_t apx_nodeData_writeOutPortDataFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more)
 {
-   return APX_NO_ERROR;
+   apx_error_t retval = APX_NO_ERROR;
+   apx_nodeData_t *self = (apx_nodeData_t*) arg;
+   if ( (self != 0) && (self->outPortDataFile == file) && (offset != APX_NODE_INVALID_OFFSET ) )
+   {
+      if ( self->outPortDataStartOffset == APX_NODE_INVALID_OFFSET )
+      {
+         self->outPortDataStartOffset = offset;
+      }
+      retval = apx_nodeData_writeDefinitionData(self, src, offset, len);
+      if (more == false)
+      {
+         if ( retval == APX_NO_ERROR )
+         {
+            uint32_t totalWriteLength = offset + len - self->outPortDataStartOffset;
+            apx_nodeData_triggerOutPortDataWritten(self, self->outPortDataStartOffset, totalWriteLength);
+         }
+         self->outPortDataStartOffset = APX_NODE_INVALID_OFFSET;
+      }
+   }
+   else
+   {
+      retval = APX_INVALID_ARGUMENT_ERROR;
+   }
+   return retval;
 }
 
-static apx_error_t apx_nodeData_ReadDefinitionFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len)
+static apx_error_t apx_nodeData_readDefinitionFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len)
 {
-   return APX_NO_ERROR;
+   apx_error_t retval = APX_NO_ERROR;
+   apx_nodeData_t *self = (apx_nodeData_t*) arg;
+   if ( (self != 0) && (self->definitionFile == file) )
+   {
+      retval = apx_nodeData_readDefinitionData(self, dest, offset, len);
+   }
+   else
+   {
+      retval = APX_INVALID_ARGUMENT_ERROR;
+   }
+   return retval;
 }
 
 static apx_error_t apx_nodeData_readInPortDataFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len)
 {
-   return APX_NO_ERROR;
+   apx_error_t retval = APX_NO_ERROR;
+   apx_nodeData_t *self = (apx_nodeData_t*) arg;
+   if ( (self != 0) && (self->inPortDataFile == file) )
+   {
+      retval = apx_nodeData_readInPortData(self, dest, offset, len);
+   }
+   else
+   {
+      retval = APX_INVALID_ARGUMENT_ERROR;
+   }
+   return retval;
 }
 
 static apx_error_t apx_nodeData_readOutPortDataFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len)
 {
-   return APX_NO_ERROR;
+   apx_error_t retval = APX_NO_ERROR;
+   apx_nodeData_t *self = (apx_nodeData_t*) arg;
+   if ( (self != 0) && (self->outPortDataFile == file) )
+   {
+      retval = apx_nodeData_readOutPortData(self, dest, offset, len);
+   }
+   else
+   {
+      retval = APX_INVALID_ARGUMENT_ERROR;
+   }
+   return retval;
+}
+
+static void apx_nodeData_triggerDefinitionDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len)
+{
+   if (self->eventListener.definitionDataWritten != 0)
+   {
+      self->eventListener.definitionDataWritten(self->eventListener.arg, self, offset, len);
+   }
+}
+
+static void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len)
+{
+   if (self->eventListener.inPortDataWritten != 0)
+   {
+      self->eventListener.inPortDataWritten(self->eventListener.arg, self, offset, len);
+   }
+}
+
+static void apx_nodeData_triggerOutPortDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len)
+{
+   if (self->eventListener.outPortDataWritten != 0)
+   {
+      self->eventListener.outPortDataWritten(self->eventListener.arg, self, offset, len);
+   }
 }
 
 

@@ -54,7 +54,8 @@ static void apx_serverBaseConnection_parseGreeting(apx_serverBaseConnection_t *s
 static uint8_t apx_serverBaseConnection_parseMessage(apx_serverBaseConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 static void apx_serverBaseConnection_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file);
 static void apx_serverBaseConnection_processNewApxFile(apx_serverBaseConnection_t *self, struct apx_file2_tag *file);
-static apx_error_t apx_serverBaseConnection_writeDefinitionFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more);
+static void apx_serverBaseConnection_onDefinitionDataWritten(void *arg, apx_nodeData_t *nodeData, uint32_t offset, uint32_t len);
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -313,11 +314,11 @@ static void apx_serverBaseConnection_processNewApxFile(apx_serverBaseConnection_
          apx_nodeData_t *nodeData = apx_nodeData_new(file->fileInfo.length);
          if (nodeData != 0)
          {
-            apx_file_handler_t fileHandler;
-            memset(&fileHandler, 0, sizeof(fileHandler));
-            fileHandler.arg = self;
-            fileHandler.write = apx_serverBaseConnection_writeDefinitionFile;
-            apx_file2_setHandler(file, &fileHandler);
+            apx_nodeDataEventListener_t eventListener;
+            memset(&eventListener, 0, sizeof(eventListener));
+            eventListener.arg = (void*) self;
+            eventListener.definitionDataWritten = apx_serverBaseConnection_onDefinitionDataWritten;
+            apx_nodeData_setEventListener(nodeData, &eventListener);
             apx_nodeData_setDefinitionFile(nodeData, file);
             assert(apx_nodeDataManager_attach(&self->nodeDataManager, nodeData) == APX_NO_ERROR);
             apx_fileManager_openRemoteFile(&self->fileManager, file->fileInfo.address, (void*) self);
@@ -326,8 +327,7 @@ static void apx_serverBaseConnection_processNewApxFile(apx_serverBaseConnection_
    }
 }
 
-static apx_error_t apx_serverBaseConnection_writeDefinitionFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more)
+static void apx_serverBaseConnection_onDefinitionDataWritten(void *arg, apx_nodeData_t *nodeData, uint32_t offset, uint32_t len)
 {
-   //printf("address=%d\n", file->fileInfo.address);
-   return APX_NO_ERROR;
+   printf("offset: %d, len=%d\n", (int) offset, (int) len);
 }
