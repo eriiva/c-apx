@@ -119,7 +119,14 @@ int8_t apx_dataElement_create(apx_dataElement_t *self, int8_t baseType, const ch
       self->min.s32 = 0;
       self->max.s32 = 0;
       self->packLen = 0;
-      self->typeRef.id = 0;
+      if (baseType == APX_BASE_TYPE_REF_NAME)
+      {
+         self->typeRef.name = 0;
+      }
+      else
+      {
+         self->typeRef.id = 0;
+      }
    }
    return 0;
 }
