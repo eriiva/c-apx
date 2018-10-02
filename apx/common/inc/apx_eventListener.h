@@ -35,6 +35,7 @@
 struct apx_file2_tag;
 struct rmf_fileInfo_tag;
 struct apx_fileManager_tag;
+struct apx_nodeData_tag;
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -58,6 +59,15 @@ typedef struct apx_connectionEventListener_tag
    void (*connected)(void *arg, struct apx_fileManager_tag *fileManager);
    void (*disconnected)(void *arg, struct apx_fileManager_tag *fileManager);
 } apx_connectionEventListener_t;
+
+typedef struct apx_nodeDataEventListener_tag
+{
+   void *arg; //user argument
+   void (*definitionValid)(void *arg, struct apx_nodeData_tag *nodeData);
+   void (*nodeComplete)(void *arg, struct apx_nodeData_tag *nodeData);
+   void (*inPortDataWritten)(void *arg, struct apx_nodeData_tag *nodeData, uint32_t offset, uint32_t len);
+}apx_nodeDataEventListener_t;
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES

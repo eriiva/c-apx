@@ -20,9 +20,6 @@
 #include "CMemLeak.h"
 #endif
 
-
-
-
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
@@ -33,9 +30,17 @@
 static int8_t apx_nodeData_createFileInfo(apx_nodeData_t *self, rmf_fileInfo_t *fileInfo, uint8_t fileType);
 static const char *apx_nodeData_getFileExtenstionFromType(uint8_t fileType);
 static uint32_t apx_nodeData_getFileLengthFromType(apx_nodeData_t *self, uint8_t fileType);
+static apx_error_t apx_nodeData_writeDefinitionFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more);
+static apx_error_t apx_nodeData_writeInPortDataFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more);
+static apx_error_t apx_nodeData_writeOutPortDataFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more);
+static apx_error_t apx_nodeData_ReadDefinitionFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len);
+static apx_error_t apx_nodeData_readInPortDataFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len);
+static apx_error_t apx_nodeData_readOutPortDataFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len);
+
 #ifndef APX_EMBEDDED
 static void apx_nodeData_clearPortBuffers(apx_nodeData_t *self);
 #endif
+
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -59,12 +64,13 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       self->outPortDataBuf = outPortDataBuf;
       self->outPortDataLen = outPortDataLen;
       self->outPortDirtyFlags = outPortDirtyFlags;
-      apx_nodeData_setHandlerTable(self, NULL);
       self->outPortDataFile = (apx_file2_t*) 0;
       self->inPortDataFile = (apx_file2_t*) 0;
       self->definitionFile = (apx_file2_t*) 0;
+      self->apxNodeWriteCbk = (apx_nodeData_inDataWriteFunc*) 0;
       self->checksumType = APX_CHECKSUM_NONE;
       memset(&self->checksumData[0], 0, sizeof(self->checksumData));
+      apx_nodeData_setEventListener(self, (apx_nodeDataEventListener_t*) 0);
 #ifdef APX_EMBEDDED
       self->fileManager = (apx_es_fileManager_t*) 0;
 #else
@@ -162,18 +168,27 @@ bool apx_nodeData_isOutPortDataOpen(apx_nodeData_t *self)
    return retval;
 }
 
-void apx_nodeData_setHandlerTable(apx_nodeData_t *self, apx_nodeDataHandlerTable_t *handlerTable)
+void apx_nodeData_setEventListener(apx_nodeData_t *self, apx_nodeDataEventListener_t *eventListener)
+
 {
    if (self != 0)
    {
-      if (handlerTable == (apx_nodeDataHandlerTable_t*) 0)
+      if (eventListener == (apx_nodeDataEventListener_t*) 0)
       {
-         memset(&self->handlerTable, 0, sizeof(self->handlerTable));
+         memset(&self->eventListener, 0, sizeof(self->eventListener));
       }
       else
       {
-         memcpy(&self->handlerTable, handlerTable, sizeof(self->handlerTable));
+         memcpy(&self->eventListener, eventListener, sizeof(self->eventListener));
       }
+   }
+}
+
+void apx_nodeData_setInDataWriteCallback(apx_nodeData_t *self, apx_nodeData_inDataWriteFunc* cbk)
+{
+   if (self != 0)
+   {
+      self->apxNodeWriteCbk = cbk;
    }
 }
 
@@ -514,9 +529,9 @@ void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_fileManager_ta
 
 void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len)
 {   
-   if ( (self != 0) && (self->handlerTable.inPortDataWritten != 0) )
+   if ( (self != 0) && (self->apxNodeWriteCbk != 0) )
    {
-      self->handlerTable.inPortDataWritten(self->handlerTable.arg, self, offset, len);
+      self->apxNodeWriteCbk(offset, len);
    }
 }
 //////////////////////////////////////////////////////////////////////////////
@@ -590,6 +605,37 @@ static uint32_t apx_nodeData_getFileLengthFromType(apx_nodeData_t *self, uint8_t
    }
    return retval;
 }
+
+static apx_error_t apx_nodeData_writeDefinitionFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more)
+{
+   return APX_NO_ERROR;
+}
+
+static apx_error_t apx_nodeData_writeInPortDataFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more)
+{
+   return APX_NO_ERROR;
+}
+
+static apx_error_t apx_nodeData_writeOutPortDataFile(void *arg, apx_file2_t *file, const uint8_t *src, uint32_t offset, uint32_t len, bool more)
+{
+   return APX_NO_ERROR;
+}
+
+static apx_error_t apx_nodeData_ReadDefinitionFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len)
+{
+   return APX_NO_ERROR;
+}
+
+static apx_error_t apx_nodeData_readInPortDataFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len)
+{
+   return APX_NO_ERROR;
+}
+
+static apx_error_t apx_nodeData_readOutPortDataFile(void *arg, struct apx_file2_tag *file, uint8_t *dest, uint32_t offset, uint32_t len)
+{
+   return APX_NO_ERROR;
+}
+
 
 #ifndef APX_EMBEDDED
 static void apx_nodeData_clearPortBuffers(apx_nodeData_t *self)
