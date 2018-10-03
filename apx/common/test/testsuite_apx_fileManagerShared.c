@@ -259,7 +259,7 @@ static void test_apx_fileManagerShared_serializeFileInfo(CuTest *tc)
    outDataFile->fileInfo.address = 0;
    definitionFile->fileInfo.address = 0x4000000;
    adt_bytearray_create(&bytearray, ADT_BYTE_ARRAY_DEFAULT_GROW_SIZE);
-   CuAssertIntEquals(tc, 0, adt_bytearray_resize(&bytearray, CMD_FILE_INFO_MAX_SIZE*2+8));
+   CuAssertIntEquals(tc, 0, adt_bytearray_resize(&bytearray, RMF_CMD_FILE_INFO_MAX_SIZE*2+8));
    bufLen = adt_bytearray_length(&bytearray);
    bufData = adt_bytearray_data(&bytearray);
    CuAssertIntEquals(tc, 66, apx_fileManagerShared_serializeFileInfo(bufData, bufLen, &outDataFile->fileInfo));

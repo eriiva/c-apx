@@ -102,6 +102,7 @@ void apx_fileManager_setTransmitHandler(apx_fileManager_t *self, apx_transmitHan
 int8_t apx_fileManager_openRemoteFile(apx_fileManager_t *self, uint32_t address, void *caller);
 void apx_fileManager_sendFileAlreadyExistsError(apx_fileManager_t *self, apx_file2_t *file);
 struct apx_file2_tag *apx_fileManager_findLocalFileByName(apx_fileManager_t *self, const char *name);
+void apx_fileManager_sendApxErrorCode(apx_fileManager_t *self, uint32_t errorCode);
 
 #ifdef UNIT_TEST
 bool apx_fileManager_run(apx_fileManager_t *self);

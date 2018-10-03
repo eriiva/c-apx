@@ -560,7 +560,7 @@ const char *apx_nodeData_getName(apx_nodeData_t *self)
       }
       if ( (name == 0) && (self->definitionFile != 0) )
       {
-         name = self->definitionFile->fileInfo.name;
+         name = apx_file2_basename(self->definitionFile);
       }
       return name;
 #endif

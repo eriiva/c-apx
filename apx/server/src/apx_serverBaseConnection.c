@@ -329,5 +329,21 @@ static void apx_serverBaseConnection_processNewApxFile(apx_serverBaseConnection_
 
 static void apx_serverBaseConnection_onDefinitionDataWritten(void *arg, apx_nodeData_t *nodeData, uint32_t offset, uint32_t len)
 {
-   printf("offset: %d, len=%d\n", (int) offset, (int) len);
+   apx_serverBaseConnection_t *self = (apx_serverBaseConnection_t*) arg;
+   if (self != 0)
+   {
+      apx_error_t result = apx_nodeDataManager_parseDefinition(&self->nodeDataManager, nodeData);
+      if (result == APX_NO_ERROR)
+      {
+         result = apx_nodeData_createPortDataBuffers(nodeData);
+         if (result == APX_NO_ERROR)
+         {
+            printf("Created %s\n", apx_nodeData_getName(nodeData));
+         }
+      }
+      if (result != APX_NO_ERROR)
+      {
+         apx_fileManager_sendApxErrorCode(&self->fileManager, (uint32_t) result);
+      }
+   }
 }

@@ -35,6 +35,7 @@
 #include "apx_msg.h"
 #include "apx_logging.h"
 #include "apx_file2.h"
+#include "pack.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -65,6 +66,7 @@ static void workerThread_sendAcknowledge(apx_fileManager_t *self);
 static void workerThread_sendFileInfo(apx_fileManager_t *self, apx_msg_t *msg);
 static void workerThread_sendFileOpen(apx_fileManager_t *self, apx_msg_t *msg);
 static void workerThread_sendInvalidReadHandler(apx_fileManager_t *self, apx_msg_t *msg);
+static void workerThread_sendApxErrorCode(apx_fileManager_t *self, uint32_t errorCode);
 static void workerThread_readFile(apx_fileManager_t *self, apx_msg_t *msg);
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -323,6 +325,19 @@ struct apx_file2_tag *apx_fileManager_findLocalFileByName(apx_fileManager_t *sel
       return apx_fileManagerLocal_findByName(&self->local, name);
    }
    return (struct apx_file2_tag *) 0;
+}
+
+void apx_fileManager_sendApxErrorCode(apx_fileManager_t *self, uint32_t errorCode)
+{
+   if ( (self != 0) && (errorCode > RMF_USER_ERROR_BEGIN) )
+   {
+      apx_msg_t msg = {APX_MSG_ERROR_CODE, 0, 0, 0, 0};
+      msg.msgData1 = errorCode;
+      SPINLOCK_ENTER(self->lock);
+      adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+      SPINLOCK_LEAVE(self->lock);
+      SEMAPHORE_POST(self->semaphore);
+   }
 }
 
 
@@ -660,6 +675,9 @@ static bool workerThread_processMessage(apx_fileManager_t *self, apx_msg_t *msg)
    case APX_MSG_READ_FILE:
       workerThread_readFile(self, msg);
       break;
+   case APX_MSG_ERROR_CODE:
+      workerThread_sendApxErrorCode(self, msg->msgData1);
+      break;
    case APX_MSG_ERROR_INVALID_CMD:
       break;
    case APX_MSG_ERROR_INVALID_WRITE:
@@ -754,6 +772,28 @@ static void workerThread_sendInvalidReadHandler(apx_fileManager_t *self, apx_msg
       {
          msgBuf+=result;
          result = rmf_serialize_errorInvalidReadHandler(msgBuf, msgSize-result, msg->msgData1);
+         if (result > 0)
+         {
+            self->transmitHandler.send(self->transmitHandler.arg, 0, msgSize);
+         }
+      }
+   }
+}
+
+static void workerThread_sendApxErrorCode(apx_fileManager_t *self, uint32_t errorCode)
+{
+   int32_t msgSize = RMF_CMD_HEADER_LEN+RMF_ERROR_CODE_BASE_LEN;
+   uint8_t *msgBuf;
+   assert(self->transmitHandler.getSendBuffer != 0);
+   assert(self->transmitHandler.send != 0);
+   msgBuf = self->transmitHandler.getSendBuffer(self->transmitHandler.arg, msgSize);
+   if (msgBuf != 0)
+   {
+      int32_t result = rmf_packHeader(msgBuf, msgSize, RMF_CMD_START_ADDR, false);
+      if (result > 0)
+      {
+         msgBuf+=result;
+         packLE(&msgBuf[0], errorCode, (uint8_t) sizeof(errorCode));
          if (result > 0)
          {
             self->transmitHandler.send(self->transmitHandler.arg, 0, msgSize);

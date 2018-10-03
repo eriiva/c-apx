@@ -143,7 +143,7 @@ int32_t rmf_serialize_cmdFileInfo(uint8_t *buf, int32_t bufLen, const rmf_fileIn
    {
       uint8_t *p;
       uint32_t totalLen;
-      uint32_t baseSize = (uint32_t) CMD_FILE_INFO_BASE_SIZE;
+      uint32_t baseSize = (uint32_t) RMF_CMD_FILE_INFO_BASE_SIZE;
       uint32_t nameLen = (uint32_t) strlen(fileInfo->name);
 
       totalLen = baseSize+nameLen+1; //add 1 for null terminator
@@ -178,7 +178,7 @@ int32_t rmf_deserialize_cmdFileInfo(const uint8_t *buf, int32_t bufLen, rmf_file
       char *pStrNext;
       char *pStrEnd;
       uint32_t totalLen;
-      uint32_t baseSize = (uint32_t) CMD_FILE_INFO_BASE_SIZE;
+      uint32_t baseSize = (uint32_t) RMF_CMD_FILE_INFO_BASE_SIZE;
       uint32_t cmdType;
       pEnd = buf+bufLen;
       pStrNext = &fileInfo->name[0];
