@@ -150,7 +150,7 @@ static void test_apx_fileMap_manualInsert(CuTest* tc)
    apx_file2_t *pFile;
 
    rmf_fileInfo_create(&info, "file1.out", 10000, 10, RMF_FILE_TYPE_FIXED);
-   file1 = apx_file2_newLocal(APX_OUTDATA_FILE, &info, NULL);
+   file1 = apx_file2_newLocal(&info, NULL);
    apx_fileMap_create(&fileMap);
    apx_fileMap_insertFile(&fileMap, file1);
    iter = adt_list_iter_first(&fileMap.fileList);
@@ -161,7 +161,7 @@ static void test_apx_fileMap_manualInsert(CuTest* tc)
    CuAssertPtrEquals(tc, 0, iter);
 
    rmf_fileInfo_create(&info, "file2.out", 2000, 50, RMF_FILE_TYPE_FIXED);
-   file2 = apx_file2_newLocal(APX_OUTDATA_FILE, &info, NULL);
+   file2 = apx_file2_newLocal(&info, NULL);
    apx_fileMap_insertFile(&fileMap, file2);
    iter = adt_list_iter_first(&fileMap.fileList);
    CuAssertPtrNotNull(tc, iter);

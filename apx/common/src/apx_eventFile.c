@@ -54,7 +54,7 @@ apx_file2_t *apx_eventFile_new(void)
 {
    rmf_fileInfo_t info;
    rmf_fileInfo_create(&info, APX_EVENT_LOG_FILE_NAME, APX_EVENT_LOG_FILE_ADDRESS, APX_EVENT_LOG_FILE_LEN, RMF_FILE_TYPE_STREAM);
-   return apx_file2_newLocal(APX_EVENT_FILE, &info, NULL);
+   return apx_file2_newLocal(&info, NULL);
 }
 
 //////////////////////////////////////////////////////////////////////////////

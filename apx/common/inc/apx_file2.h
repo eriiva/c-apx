@@ -72,12 +72,12 @@ typedef struct apx_file2_tag
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-int8_t apx_file2_create(apx_file2_t *self, uint8_t fileType, bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler);
+int8_t apx_file2_create(apx_file2_t *self, bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler);
 #ifndef APX_EMBEDDED
 void apx_file2_destroy(apx_file2_t *self);
-apx_file2_t *apx_file2_new(uint8_t fileType, bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler);
-# define apx_file2_newLocal(fileType, fileInfo, handler) apx_file2_new(fileType, false, fileInfo, handler);
-# define apx_file2_newRemote(fileType, fileInfo, handler) apx_file2_new(fileType, true, fileInfo, handler);
+apx_file2_t *apx_file2_new(bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler);
+# define apx_file2_newLocal(fileInfo, handler) apx_file2_new(false, fileInfo, handler);
+# define apx_file2_newRemote(fileInfo, handler) apx_file2_new(true, fileInfo, handler);
 void apx_file2_delete(apx_file2_t *self);
 void apx_file2_vdelete(void *arg);
 #endif

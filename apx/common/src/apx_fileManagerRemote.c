@@ -245,7 +245,7 @@ static void apx_fileManagerRemote_processFileInfo(apx_fileManagerRemote_t *self,
 {
    if ( (self != 0) && (cmdFileInfo != 0) )
    {
-      apx_file2_t *remoteFile = apx_file2_newRemote(APX_UNKNOWN_FILE, cmdFileInfo, NULL);
+      apx_file2_t *remoteFile = apx_file2_newRemote(cmdFileInfo, NULL);
       if (remoteFile != 0)
       {
          MUTEX_LOCK(self->mutex);

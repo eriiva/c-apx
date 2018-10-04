@@ -126,7 +126,9 @@ void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nod
 void apx_nodeData_setNode(apx_nodeData_t *self, struct apx_node_tag *node);
 const char *apx_nodeData_getName(apx_nodeData_t *self);
 
+#ifdef UNIT_TEST
 struct apx_file2_tag *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self);
 struct apx_file2_tag *apx_nodeData_newLocalOutPortDataFile(apx_nodeData_t *self);
+#endif //UNIT_TEST
 #endif //APX_EMBEDDED
 #endif //APX_NODE_DATA_H

@@ -77,7 +77,7 @@ static void test_apx_file2_create_local(CuTest* tc)
    rmf_fileInfo_t info1;
    rmf_fileInfo_create(&info1, "test.apx", 0, 100, RMF_FILE_TYPE_FIXED);
 
-   apx_file2_create(&file1, APX_DEFINITION_FILE, false, &info1, NULL);
+   apx_file2_create(&file1, false, &info1, NULL);
 
    CuAssertTrue(tc, file1.isOpen==false);
    CuAssertTrue(tc, file1.isRemoteFile==false);
@@ -96,7 +96,7 @@ static void test_apx_file2_create_remote(CuTest* tc)
    rmf_fileInfo_t info1;
    rmf_fileInfo_create(&info1, "test.apx", 0, 100, RMF_FILE_TYPE_FIXED);
 
-   apx_file2_create(&file1, APX_DEFINITION_FILE, true, &info1, NULL);
+   apx_file2_create(&file1, true, &info1, NULL);
 
    CuAssertTrue(tc, file1.isOpen==false);
    CuAssertTrue(tc, file1.isRemoteFile==true);
@@ -111,7 +111,7 @@ static void test_apx_file2_newLocal(CuTest* tc)
    rmf_fileInfo_t info1;
    rmf_fileInfo_create(&info1, "test.apx", 0, 100, RMF_FILE_TYPE_FIXED);
 
-   file1 = apx_file2_newLocal(APX_DEFINITION_FILE, &info1, NULL);
+   file1 = apx_file2_newLocal(&info1, NULL);
 
    CuAssertTrue(tc, file1->isRemoteFile==false);
 
@@ -124,7 +124,7 @@ static void test_apx_file2_newRemote(CuTest* tc)
    rmf_fileInfo_t info1;
    rmf_fileInfo_create(&info1, "test.apx", 0, 100, RMF_FILE_TYPE_FIXED);
 
-   file1 = apx_file2_newRemote(APX_DEFINITION_FILE, &info1, NULL);
+   file1 = apx_file2_newRemote(&info1, NULL);
 
    CuAssertTrue(tc, file1->isRemoteFile==true);
 

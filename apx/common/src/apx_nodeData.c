@@ -42,6 +42,7 @@ static apx_error_t apx_nodeData_readOutPortDataFile(void *arg, struct apx_file2_
 static void apx_nodeData_triggerDefinitionDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len);
 static void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len);
 static void apx_nodeData_triggerOutPortDataWritten(apx_nodeData_t *self, uint32_t offset, uint32_t len);
+static apx_error_t apx_nodeData_createInitData(apx_nodeData_t *self);
 
 #ifndef APX_EMBEDDED
 static void apx_nodeData_clearPortBuffers(apx_nodeData_t *self);
@@ -486,12 +487,18 @@ apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
       }
       if (self->inPortDataLen > 0)
       {
+         apx_error_t result;
          self->inPortDataBuf = (uint8_t*) malloc(self->inPortDataLen);
          self->inPortDirtyFlags = (uint8_t*) malloc(self->inPortDataLen);
          if ( (self->inPortDataBuf == 0) || (self->inPortDirtyFlags == 0))
          {
             apx_nodeData_clearPortBuffers(self);
             return APX_MEM_ERROR;
+         }
+         result = apx_nodeData_createInitData(self);
+         if (result != APX_NO_ERROR)
+         {
+            return result;
          }
       }
       return APX_NO_ERROR;
@@ -506,37 +513,7 @@ void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nod
       self->nodeInfo = nodeInfo;
    }
 }
-apx_file2_t *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self)
-{
-   if (self != 0)
-   {
-      const uint8_t fileType = APX_DEFINITION_FILE;
-      rmf_fileInfo_t fileInfo;
-      int8_t result;
-      result = apx_nodeData_createFileInfo(self, &fileInfo, fileType);
-      if (result == 0)
-      {
-         return apx_file2_newLocal(fileType, &fileInfo, NULL);
-      }
-   }
-   return (apx_file2_t*) 0;
-}
 
-struct apx_file2_tag *apx_nodeData_newLocalOutPortDataFile(apx_nodeData_t *self)
-{
-   if (self != 0)
-   {
-      const uint8_t fileType = APX_OUTDATA_FILE;
-      rmf_fileInfo_t fileInfo;
-      int8_t result;
-      result = apx_nodeData_createFileInfo(self, &fileInfo, fileType);
-      if (result == 0)
-      {
-         return apx_file2_newLocal(fileType, &fileInfo, NULL);
-      }
-   }
-   return (apx_file2_t*) 0;
-}
 
 void apx_nodeData_setNode(apx_nodeData_t *self, struct apx_node_tag *node)
 {
@@ -591,6 +568,40 @@ void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset
    }
 }
 #endif
+
+#ifdef UNIT_TEST
+apx_file2_t *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      const uint8_t fileType = APX_DEFINITION_FILE;
+      rmf_fileInfo_t fileInfo;
+      int8_t result;
+      result = apx_nodeData_createFileInfo(self, &fileInfo, fileType);
+      if (result == 0)
+      {
+         return apx_file2_newLocal(&fileInfo, NULL);
+      }
+   }
+   return (apx_file2_t*) 0;
+}
+
+struct apx_file2_tag *apx_nodeData_newLocalOutPortDataFile(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      const uint8_t fileType = APX_OUTDATA_FILE;
+      rmf_fileInfo_t fileInfo;
+      int8_t result;
+      result = apx_nodeData_createFileInfo(self, &fileInfo, fileType);
+      if (result == 0)
+      {
+         return apx_file2_newLocal(&fileInfo, NULL);
+      }
+   }
+   return (apx_file2_t*) 0;
+}
+#endif
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
@@ -598,19 +609,19 @@ static int8_t apx_nodeData_createFileInfo(apx_nodeData_t *self, rmf_fileInfo_t *
 {
    if ( (self != 0) && (fileInfo != 0) && (fileType >= APX_OUTDATA_FILE ) && (fileType <= APX_DEFINITION_FILE))
    {
-      size_t baseNameLen;
+      size_t nameLen;
       const char *fileExtName;
       uint32_t fileLen;
       char name[RMF_MAX_FILE_NAME+1];
-      baseNameLen = strlen(self->name);
+      nameLen = strlen(apx_nodeData_getName(self));
 
       errno = 0;
       fileExtName = apx_nodeData_getFileExtenstionFromType(fileType);
       fileLen = apx_nodeData_getFileLengthFromType(self, fileType);
-      if ( (baseNameLen+APX_MAX_FILE_EXT_LEN <= RMF_MAX_FILE_NAME) && (errno == 0) )
+      if ( ( (nameLen+APX_MAX_FILE_EXT_LEN) <= RMF_MAX_FILE_NAME) && (errno == 0) )
       {
-         memcpy(name, self->name, baseNameLen);
-         strcpy(name+baseNameLen, fileExtName);
+         memcpy(name, self->name, nameLen);
+         strcpy(name+nameLen, fileExtName);
          rmf_fileInfo_create(fileInfo, name, RMF_INVALID_ADDRESS, fileLen, RMF_FILE_TYPE_FIXED);
          return 0;
       }
@@ -814,6 +825,39 @@ static void apx_nodeData_triggerOutPortDataWritten(apx_nodeData_t *self, uint32_
    {
       self->eventListener.outPortDataWritten(self->eventListener.arg, self, offset, len);
    }
+}
+
+static apx_error_t apx_nodeData_createInitData(apx_nodeData_t *self)
+{
+   if ( (self != 0) && (self->node != 0) && (self->inPortDataBuf != 0) && (self->inPortDataLen > 0) )
+   {
+      int32_t numRequirePorts;
+      adt_bytearray_t *portData;
+      uint8_t *pNext = self->inPortDataBuf;
+      uint8_t *pEnd = self->inPortDataBuf+self->inPortDataLen;
+      int32_t i;
+      apx_node_t *node = self->node;
+      portData = adt_bytearray_new(0);
+      numRequirePorts = apx_node_getNumRequirePorts(node);
+      for(i=0; i<numRequirePorts; i++)
+      {
+         int32_t packLen;
+         int32_t dataLen;
+         apx_port_t *port = apx_node_getRequirePort(node, i);
+         assert(port != 0);
+         packLen = apx_port_getPackLen(port);
+         apx_node_fillPortInitData(node, port, portData);
+         dataLen = adt_bytearray_length(portData);
+         assert(packLen == dataLen);
+         memcpy(pNext, adt_bytearray_data(portData), packLen);
+         pNext+=packLen;
+         assert(pNext<=pEnd);
+      }
+      assert(pNext==pEnd);
+      adt_bytearray_delete(portData);
+      return APX_NO_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 
 

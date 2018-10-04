@@ -44,6 +44,7 @@ typedef struct apx_dataWriteCmd_tag
 #define APX_OUTDATA_FILE_EXT      ".out"
 #define APX_INDATA_FILE_EXT       ".in"
 #define APX_DEFINITION_FILE_EXT   ".apx"
+#define APX_EVENT_FILE_EXT        ".event"
 
 #define APX_CHECKSUM_NONE         0u
 #define APX_CHECKSUM_SHA256       1u

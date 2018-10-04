@@ -46,7 +46,8 @@
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 
-apx_error_t apx_file2_processFileName(apx_file2_t *self);
+static apx_error_t apx_file2_processFileName(apx_file2_t *self);
+static void apx_file2_calcFileType(apx_file2_t *self);
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -58,7 +59,8 @@ apx_error_t apx_file2_processFileName(apx_file2_t *self);
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-int8_t apx_file2_create(apx_file2_t *self, uint8_t fileType, bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler)
+#include <stdio.h>
+int8_t apx_file2_create(apx_file2_t *self, bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler)
 {
    if (self != 0)
    {
@@ -66,7 +68,7 @@ int8_t apx_file2_create(apx_file2_t *self, uint8_t fileType, bool isRemoteFile, 
       self->isRemoteFile = isRemoteFile;
       self->isOpen = false;
       self->nodeData = (apx_nodeData_t*) 0;
-      self->fileType = fileType;
+      self->fileType = APX_UNKNOWN_FILE;
 
       result = rmf_fileInfo_create(&self->fileInfo, fileInfo->name, fileInfo->address, fileInfo->length, fileInfo->fileType);
       if (result == 0)
@@ -74,6 +76,10 @@ int8_t apx_file2_create(apx_file2_t *self, uint8_t fileType, bool isRemoteFile, 
          (void) apx_file2_processFileName(self);
          rmf_fileInfo_setDigestData(&self->fileInfo, fileInfo->digestType, fileInfo->digestData, 0);
          apx_file2_setHandler(self, handler);
+         if (self->fileType == APX_UNKNOWN_FILE)
+         {
+            apx_file2_calcFileType(self);
+         }
       }
       return result;
    }
@@ -97,12 +103,12 @@ void apx_file2_destroy(apx_file2_t *self)
    }
 }
 
-apx_file2_t *apx_file2_new(uint8_t fileType, bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler)
+apx_file2_t *apx_file2_new(bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler)
 {
    apx_file2_t *self = (apx_file2_t*) malloc(sizeof(apx_file2_t));
    if (self != 0)
    {
-      int8_t result = apx_file2_create(self, fileType, isRemoteFile, fileInfo, handler);
+      int8_t result = apx_file2_create(self, isRemoteFile, fileInfo, handler);
       if (result != 0)
       {
          free(self);
@@ -227,7 +233,7 @@ void apx_file2_setHandler(apx_file2_t *self, const apx_file_handler_t *handler)
 //////////////////////////////////////////////////////////////////////////////
 
 
-apx_error_t apx_file2_processFileName(apx_file2_t *self)
+static apx_error_t apx_file2_processFileName(apx_file2_t *self)
 {
    if (self != 0)
    {
@@ -256,4 +262,23 @@ apx_error_t apx_file2_processFileName(apx_file2_t *self)
    }
    return APX_INVALID_ARGUMENT_ERROR;
 
+}
+
+static void apx_file2_calcFileType(apx_file2_t *self)
+{
+   if (self->extension != 0)
+   {
+      if (strcmp(self->extension, APX_OUTDATA_FILE_EXT)==0)
+      {
+         self->fileType = APX_OUTDATA_FILE;
+      }
+      else if (strcmp(self->extension, APX_INDATA_FILE_EXT)==0)
+      {
+         self->fileType = APX_INDATA_FILE;
+      }
+      else if (strcmp(self->extension, APX_DEFINITION_FILE_EXT)==0)
+      {
+         self->fileType = APX_DEFINITION_FILE;
+      }
+   }
 }

@@ -321,7 +321,7 @@ static void attachApxClientFiles(CuTest* tc, apx_fileManager_t *manager, uint32_
    uint32_t len = (uint32_t)strlen(m_TestNodeDefinition);
 
    rmf_fileInfo_create(&info, "TestNode.apx", definitionFileAddress, len, RMF_FILE_TYPE_FIXED);
-   localFile = apx_file2_newLocal(APX_DEFINITION_FILE, &info, NULL);
+   localFile = apx_file2_newLocal(&info, NULL);
    apx_fileManager_attachLocalFile(manager, localFile);
 }
 
