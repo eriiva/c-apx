@@ -30,7 +30,9 @@
 #define APX_NODE_MISSING_ERROR        18 //RMF code: 518
 #define APX_NODE_ALREADY_EXISTS_ERROR 19 //RMF code: 519
 #define APX_MISSING_BUFFER_ERROR      20 //RMF code: 520
-#define APX_NAME_ERROR                21 //RMF code: 521
+#define APX_MISSING_FILE_ERROR        21 //RMF code: 521
+#define APX_NAME_ERROR                22 //RMF code: 522 //should this be changed to APX_MISSING_NAME_ERROR?
+#define APX_NAME_TOO_LONG_ERROR       23 //RMF code: 523
 
 #define RMF_APX_NO_ERROR                  500
 #define RMF_APX_INVALID_ARGUMENT_ERROR    501
@@ -53,7 +55,9 @@
 #define RMF_APX_NODE_MISSING_ERROR        518
 #define RMF_APX_NODE_ALREADY_EXISTS_ERROR 519
 #define RMF_APX_MISSING_BUFFER_ERROR      520
-#define RMF_APX_NAME_ERROR                521
+#define RMF_APX_MISSING_FILE_ERROR        521
+#define RMF_APX_NAME_ERROR                522
+#define RMF_APX_NAME_TOO_LONG_ERROR       523
 
 typedef int32_t apx_error_t;
 

@@ -84,6 +84,7 @@ int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t co
       size_t elemSize = RMF_MSG_SIZE;
       self->ringbufferLen = numItems;
       self->ringbufferData = (uint8_t*) malloc(numItems*elemSize);
+
       if (self->ringbufferData == 0)
       {
          return -1;
@@ -246,6 +247,7 @@ void apx_fileManager_onHeaderReceived(apx_fileManager_t *self)
    if (self != 0)
    {
       assert(self->mode == APX_FILEMANAGER_SERVER_MODE);
+      self->shared.isConnected = true;
       apx_fileManager_triggerHeaderReceivedEvent(self);
       apx_fileManager_triggerSendAcknowledge(self);
       apx_fileManagerLocal_sendFileInfo(&self->local);
@@ -260,6 +262,7 @@ void apx_fileManager_onHeaderAccepted(apx_fileManager_t *self)
    if (self != 0)
    {
       assert(self->mode == APX_FILEMANAGER_CLIENT_MODE);
+      self->shared.isConnected = true;
       apx_fileManagerLocal_sendFileInfo(&self->local);
    }
 }
@@ -323,6 +326,15 @@ struct apx_file2_tag *apx_fileManager_findLocalFileByName(apx_fileManager_t *sel
    if (self != 0)
    {
       return apx_fileManagerLocal_findByName(&self->local, name);
+   }
+   return (struct apx_file2_tag *) 0;
+}
+
+struct apx_file2_tag *apx_fileManager_findRemoteFileByName(apx_fileManager_t *self, const char *name)
+{
+   if (self != 0)
+   {
+      return apx_fileManagerRemote_findByName(&self->remote, name);
    }
    return (struct apx_file2_tag *) 0;
 }

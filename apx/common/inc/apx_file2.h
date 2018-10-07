@@ -92,5 +92,6 @@ bool apx_file2_hasWriteHandler(apx_file2_t *self);
 void apx_file2_setHandler(apx_file2_t *self, const apx_file_handler_t *handler);
 
 
+
 #endif //APX_FILE2_H
 

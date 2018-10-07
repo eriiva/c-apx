@@ -117,6 +117,9 @@ apx_error_t apx_nodeData_writeDefinitionData(apx_nodeData_t *self, const uint8_t
 void apx_nodeData_setInPortDataFile(apx_nodeData_t *self, struct apx_file2_tag *file);
 void apx_nodeData_setOutPortDataFile(apx_nodeData_t *self, struct apx_file2_tag *file);
 void apx_nodeData_setDefinitionFile(apx_nodeData_t *self, struct apx_file2_tag *file);
+struct apx_file2_tag *apx_nodeData_getDefinitionFile(apx_nodeData_t *self);
+struct apx_file2_tag *apx_nodeData_getInPortDataFile(apx_nodeData_t *self);
+struct apx_file2_tag *apx_nodeData_getOutPortDataFile(apx_nodeData_t *self);
 #ifdef APX_EMBEDDED
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_es_fileManager_tag *fileManager);
 #else
@@ -125,6 +128,8 @@ apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self);
 void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nodeInfo);
 void apx_nodeData_setNode(apx_nodeData_t *self, struct apx_node_tag *node);
 const char *apx_nodeData_getName(apx_nodeData_t *self);
+uint32_t apx_nodeData_getInPortDataLen(apx_nodeData_t *self);
+uint32_t apx_nodeData_getOutPortDataLen(apx_nodeData_t *self);
 
 #ifdef UNIT_TEST
 struct apx_file2_tag *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self);

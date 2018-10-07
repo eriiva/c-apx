@@ -59,7 +59,7 @@ static void apx_file2_calcFileType(apx_file2_t *self);
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-#include <stdio.h>
+
 int8_t apx_file2_create(apx_file2_t *self, bool isRemoteFile, const rmf_fileInfo_t *fileInfo, const apx_file_handler_t *handler)
 {
    if (self != 0)

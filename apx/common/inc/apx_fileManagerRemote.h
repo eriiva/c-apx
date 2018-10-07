@@ -58,6 +58,7 @@ void apx_fileManagerRemote_create(apx_fileManagerRemote_t *self, apx_fileManager
 void apx_fileManagerRemote_destroy(apx_fileManagerRemote_t *self);
 int32_t apx_fileManagerRemote_processMessage(apx_fileManagerRemote_t *self, const uint8_t *msgBuf, int32_t msgLen);
 int8_t apx_fileManageRemote_openFile(apx_fileManagerRemote_t *self, uint32_t address, void *caller);
+struct apx_file2_tag *apx_fileManagerRemote_findByName(apx_fileManagerRemote_t *self, const char *name);
 
 #ifdef UNIT_TEST
 void apx_fileManagerRemote_processCmdMsg(apx_fileManagerRemote_t *self, const uint8_t *msgBuf, int32_t msgLen);

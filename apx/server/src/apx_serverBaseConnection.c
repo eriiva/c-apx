@@ -36,6 +36,7 @@
 #include "apx_eventListener.h"
 #include "apx_logging.h"
 #include "apx_file2.h"
+#include "rmf.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -55,7 +56,7 @@ static uint8_t apx_serverBaseConnection_parseMessage(apx_serverBaseConnection_t 
 static void apx_serverBaseConnection_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file);
 static void apx_serverBaseConnection_processNewApxFile(apx_serverBaseConnection_t *self, struct apx_file2_tag *file);
 static void apx_serverBaseConnection_onDefinitionDataWritten(void *arg, apx_nodeData_t *nodeData, uint32_t offset, uint32_t len);
-
+static apx_error_t apx_serverBaseConnection_createInPortDataFile(apx_serverBaseConnection_t *self, apx_nodeData_t *nodeData, apx_file2_t *definitionFile);
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -338,7 +339,44 @@ static void apx_serverBaseConnection_onDefinitionDataWritten(void *arg, apx_node
          result = apx_nodeData_createPortDataBuffers(nodeData);
          if (result == APX_NO_ERROR)
          {
-            printf("Created %s\n", apx_nodeData_getName(nodeData));
+            apx_file2_t *definitionFile;
+            definitionFile = apx_nodeData_getDefinitionFile(nodeData);
+            if ( definitionFile != 0 )
+            {
+               if (strlen(definitionFile->fileInfo.name)<=RMF_MAX_FILE_NAME)
+               {
+                  uint32_t inPortDataLen = apx_nodeData_getInPortDataLen(nodeData);
+                  if (inPortDataLen > 0)
+                  {
+                     //collect inPortData here
+                     result = apx_serverBaseConnection_createInPortDataFile(self, nodeData, definitionFile);
+                  }
+                  if (result == APX_NO_ERROR)
+                  {
+
+                     uint32_t outPortDataLen = apx_nodeData_getOutPortDataLen(nodeData);
+                     if (outPortDataLen > 0)
+                     {
+                        char fileName[RMF_MAX_FILE_NAME+1];
+                        strcpy(fileName, apx_file2_basename(definitionFile));
+                        strcat(fileName, APX_OUTDATA_FILE_EXT);
+                        apx_file2_t *outPortDataFile = apx_fileManager_findRemoteFileByName(&self->fileManager, fileName);
+                        if (outPortDataFile != 0)
+                        {
+                           apx_fileManager_openRemoteFile(&self->fileManager, outPortDataFile->fileInfo.address, self);
+                        }
+                     }
+                  }
+               }
+               else
+               {
+                  result = APX_NAME_TOO_LONG_ERROR;
+               }
+            }
+            else
+            {
+               result = APX_MISSING_FILE_ERROR;
+            }
          }
       }
       if (result != APX_NO_ERROR)
@@ -346,4 +384,28 @@ static void apx_serverBaseConnection_onDefinitionDataWritten(void *arg, apx_node
          apx_fileManager_sendApxErrorCode(&self->fileManager, (uint32_t) result);
       }
    }
+}
+
+static apx_error_t apx_serverBaseConnection_createInPortDataFile(apx_serverBaseConnection_t *self, apx_nodeData_t *nodeData, apx_file2_t *definitionFile)
+{
+   apx_error_t retval = APX_NO_ERROR;
+   rmf_fileInfo_t info;
+   apx_file2_t *inPortDataFile;
+   char fileName[RMF_MAX_FILE_NAME+1];
+   uint32_t inPortDataLen = apx_nodeData_getInPortDataLen(nodeData);
+
+   strcpy(fileName, apx_file2_basename(definitionFile));
+   strcat(fileName, APX_INDATA_FILE_EXT);
+   rmf_fileInfo_create(&info, fileName, RMF_INVALID_ADDRESS, inPortDataLen, RMF_FILE_TYPE_FIXED);
+   inPortDataFile = apx_file2_newLocal(&info, NULL);
+   if (inPortDataFile != 0)
+   {
+      apx_nodeData_setInPortDataFile(nodeData, inPortDataFile);
+      apx_fileManager_attachLocalFile(&self->fileManager, inPortDataFile);
+   }
+   else
+   {
+      retval = APX_MEM_ERROR;
+   }
+   return retval;
 }

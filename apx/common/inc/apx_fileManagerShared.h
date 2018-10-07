@@ -4,7 +4,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <stdint.h>
+#include "apx_types.h"
 #include "apx_allocator.h"
 #include "apx_fileMap.h"
 #include "apx_fileManagerDefs.h"
@@ -23,6 +23,7 @@ typedef struct apx_fileManagerShared_tag
    apx_allocator_t allocator;
    apx_fileMap_t localFileMap;
    uint32_t fmid; //a.k.a channel ID
+   bool isConnected;
    void (*fileCreated)(void *arg, const struct apx_file2_tag *pFile);
    void (*sendFileInfo)(void *arg, const struct apx_file2_tag *pFile);
    void (*sendFileOpen)(void *arg, const struct apx_file2_tag *pFile, void *caller);

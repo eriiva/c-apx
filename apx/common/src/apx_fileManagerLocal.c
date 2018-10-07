@@ -100,6 +100,10 @@ void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_fi
       {
          self->shared->fileCreated(self->shared->arg, localFile);
       }
+      if ( (self->shared->isConnected) && (self->shared->sendFileInfo != 0) )
+      {
+         self->shared->sendFileInfo(self->shared->arg, localFile);
+      }
    }
 }
 

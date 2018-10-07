@@ -68,7 +68,6 @@ typedef struct apx_fileManager_tag
    bool workerThreadValid;
    uint8_t *ringbufferData; //strong pointer to raw data used by our ringbuffer
    uint32_t ringbufferLen; //number of items in ringbuffer
-   //bool isConnected;
    int8_t headerSize;
 
 #ifdef _WIN32
@@ -102,6 +101,7 @@ void apx_fileManager_setTransmitHandler(apx_fileManager_t *self, apx_transmitHan
 int8_t apx_fileManager_openRemoteFile(apx_fileManager_t *self, uint32_t address, void *caller);
 void apx_fileManager_sendFileAlreadyExistsError(apx_fileManager_t *self, apx_file2_t *file);
 struct apx_file2_tag *apx_fileManager_findLocalFileByName(apx_fileManager_t *self, const char *name);
+struct apx_file2_tag *apx_fileManager_findRemoteFileByName(apx_fileManager_t *self, const char *name);
 void apx_fileManager_sendApxErrorCode(apx_fileManager_t *self, uint32_t errorCode);
 
 #ifdef UNIT_TEST

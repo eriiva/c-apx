@@ -157,6 +157,18 @@ int8_t apx_fileManageRemote_openFile(apx_fileManagerRemote_t *self, uint32_t add
    return retval;
 }
 
+struct apx_file2_tag *apx_fileManagerRemote_findByName(apx_fileManagerRemote_t *self, const char *name)
+{
+   apx_file2_t *remoteFile = (apx_file2_t *) 0;
+   if (self != 0)
+   {
+      MUTEX_LOCK(self->mutex);
+      remoteFile = apx_fileMap_findByName(&self->remoteFileMap, name);
+      MUTEX_UNLOCK(self->mutex);
+   }
+   return remoteFile;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////

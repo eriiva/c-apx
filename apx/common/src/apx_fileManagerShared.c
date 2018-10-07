@@ -54,6 +54,7 @@ int8_t apx_fileManagerShared_create(apx_fileManagerShared_t *self, uint32_t fmid
       if (result == 0)
       {
          self->fmid = fmid;
+         self->isConnected = false;
          self->arg = (void*) 0;
          self->fileCreated = (void (*)(void *, const struct apx_file2_tag*)) 0;
          self->sendFileInfo = (void (*)(void *arg, const struct apx_file2_tag *pFile)) 0;

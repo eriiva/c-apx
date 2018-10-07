@@ -464,6 +464,35 @@ void apx_nodeData_setDefinitionFile(apx_nodeData_t *self, struct apx_file2_tag *
    }
 }
 
+struct apx_file2_tag *apx_nodeData_getDefinitionFile(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      return self->definitionFile;
+   }
+   return (struct apx_file2_tag *) 0;
+}
+
+struct apx_file2_tag *apx_nodeData_getInPortDataFile(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      return self->inPortDataFile;
+   }
+   return (struct apx_file2_tag *) 0;
+}
+
+struct apx_file2_tag *apx_nodeData_getOutPortDataFile(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      return self->outPortDataFile;
+   }
+   return (struct apx_file2_tag *) 0;
+}
+
+
+
 #ifndef APX_EMBEDDED
 apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
 {
@@ -546,6 +575,25 @@ const char *apx_nodeData_getName(apx_nodeData_t *self)
 }
 
 #endif
+
+uint32_t apx_nodeData_getInPortDataLen(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      return self->inPortDataLen;
+   }
+   return 0;
+}
+
+uint32_t apx_nodeData_getOutPortDataLen(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      return self->outPortDataLen;
+   }
+   return 0;
+}
+
 
 #ifdef APX_EMBEDDED
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_es_fileManager_tag *fileManager)
