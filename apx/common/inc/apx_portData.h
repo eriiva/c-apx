@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_portDataMap.c
+* \file      apx_portData.h
 * \author    Conny Gustafsson
 * \date      2018-10-08
-* \brief     Global map of all port data elements
+* \brief     A port data element contains lists of all provide-ports and require-ports currently associated with a port signature
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,55 +23,34 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
+#ifndef APX_PORT_DATA_H
+#define APX_PORT_DATA_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_portDataMap.h"
-#include "apx_portData.h"
+#include "adt_ary.h"
+#include "apx_types.h"
 
 //////////////////////////////////////////////////////////////////////////////
-// CONSTANTS AND DATA TYPES
+// PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////
-// LOCAL VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTIONS
-//////////////////////////////////////////////////////////////////////////////
-void apx_portDataMap_create(apx_portDataMap_t *self)
+typedef struct apx_portData_tag
 {
-   if (self != 0)
-   {
-      adt_hash_create(&self->internalMap, apx_portData_vdelete);
-      MUTEX_INIT(self->mutex);
-   }
-}
+   const char *portSignature; //weak reference to string
+   int32_t dataSize;
+   adt_ary_t requirePorts; //weak references to apx_portInfo_t
+   adt_ary_t providePorts; //weak references to apx_portInfo_t
+}apx_portData_t;
 
-void apx_portDataMap_destroy(apx_portDataMap_t *self)
-{
-   if (self != 0)
-   {
-      MUTEX_LOCK(self->mutex);
-      adt_hash_destroy(&self->internalMap);
-      MUTEX_UNLOCK(self->mutex);
-      MUTEX_DESTROY(self->mutex);
-   }
-
-}
 
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTIONS
+// PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+void apx_portData_create(apx_portData_t *self, const char *portSignature, int32_t dataSize);
+void apx_portData_destroy(apx_portData_t *self);
+apx_portData_t *apx_portData_new(const char *portSignature, int32_t dataSize);
+void apx_portData_delete(apx_portData_t *self);
+void apx_portData_vdelete(void *arg);
 
-
-
+#endif //APX_PORT_DATA_H

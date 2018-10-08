@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_router.c
+* \file      apx_portInfo.c
 * \author    Conny Gustafsson
 * \date      2018-10-08
-* \brief     New APX router
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,53 +23,72 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_router2.h"
+#include <malloc.h>
+#include "apx_error.h"
+#include "apx_portInfo.h"
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
-// CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 
-
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////
-// LOCAL VARIABLES
+// PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE VARIABLES
+//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTIONS
+// PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_router2_create(apx_router2_t *self)
+void apx_portInfo_create(apx_portInfo_t *self, struct apx_nodeData_tag *nodedata, struct apx_port_tag *port, struct apx_portData_tag *portData, struct apx_file2_tag *file, int32_t offset)
 {
-
+   if (self != 0)
+   {
+      self->nodedata = nodedata;
+      self->port = port;
+      self->portData = portData;
+      self->file = file;
+      self->offset = offset;
+   }
 }
 
-void apx_router2_destroy(apx_router2_t *self)
+apx_portInfo_t *apx_portInfo_new(struct apx_nodeData_tag *nodedata, struct apx_port_tag *port, struct apx_portData_tag *portData, struct apx_file2_tag *file, int32_t offset)
 {
-
+   apx_portInfo_t *self = (apx_portInfo_t*) malloc(sizeof(apx_portInfo_t));
+   if(self != 0)
+   {
+      apx_portInfo_create(self, nodedata, port, portData, file, offset);
+   }
+   else
+   {
+      apx_setError(APX_MEM_ERROR);
+   }
+   return self;
 }
 
-apx_router2_t *apx_router2_new(void)
+void apx_portInfo_delete(apx_portInfo_t *self)
 {
-   return NULL;
+   if (self != 0)
+   {
+      free(self);
+   }
 }
 
-void apx_router2_delete(apx_router2_t *self)
+void apx_portInfo_vdelete(void *arg)
 {
-
+   apx_portInfo_delete((apx_portInfo_t*) arg);
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTIONS
+// PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-
 
 

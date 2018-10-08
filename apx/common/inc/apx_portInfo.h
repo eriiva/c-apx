@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_nodeMap.h
+* \file      apx_portInfo.h
 * \author    Conny Gustafsson
 * \date      2018-10-08
-* \brief     APX node map
+* \brief     Collects all useful information about a specific port into a single container
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,34 +23,42 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_NODE_MAP_H
-#define APX_NODE_MAP_H
+#ifndef APX_PORT_INFO_H
+#define APX_PORT_INFO_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_types.h"
-#include "adt_ary.h"
-#include "apx_nodeData.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_nodeMap_tag
-{
-   apx_nodeData_t *parent; //the nodeData object this item belongs to
-   adt_ary_t requirePortRefs; //strong references to apx_requirePortInfo_t
-   adt_ary_t providePortRefs; //strong references to apx_providePortInfo_t
+struct apx_nodeData_tag;
+struct apx_portData_tag;
+struct apx_port_tag;
+struct apx_file2_tag;
 
-}apx_nodeMap_t;
+typedef struct apx_portInfo_tag
+{
+   struct apx_nodeData_tag *nodedata;
+   struct apx_port_tag *port;
+   struct apx_portData_tag *portData;
+   struct apx_file2_tag *file;
+   int32_t offset; //offset in file
+}apx_portInfo_t;
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC VARIABLES
+//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_nodeMap_create(apx_nodeMap_t *self);
-void apx_nodeMap_destroy(apx_nodeMap_t *self);
-apx_nodeMap_t *apx_nodeMap_new(void);
-void apx_nodeMap_delete(apx_nodeMap_t *self);
+void apx_portInfo_create(apx_portInfo_t *self, struct apx_nodeData_tag *nodedata, struct apx_port_tag *port, struct apx_portData_tag *portData, struct apx_file2_tag *file, int32_t offset);
+apx_portInfo_t *apx_portInfo_new(struct apx_nodeData_tag *nodedata, struct apx_port_tag *port, struct apx_portData_tag *portData, struct apx_file2_tag *file, int32_t offset);
+void apx_portInfo_delete(apx_portInfo_t *self);
+void apx_portInfo_vdelete(void *arg);
 
-#endif //APX_NODE_MAP_H
+#endif //APX_PORT_INFO_H

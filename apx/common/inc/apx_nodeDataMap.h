@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_router2.h
+* \file      apx_nodeDataMap.h
 * \author    Conny Gustafsson
 * \date      2018-10-08
-* \brief     New apx router
+* \brief     Memory map of a nodeData_t object
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,40 +23,33 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_ROUTER2_H
-#define APX_ROUTER2_H
+#ifndef APX_NODE_MAP_H
+#define APX_NODE_MAP_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "adt_hash.h"
 #include "apx_types.h"
-#ifdef _WIN32
-# ifndef WIN32_LEAN_AND_MEAN
-# define WIN32_LEAN_AND_MEAN
-# endif
-# include <Windows.h>
-#else
-# include <pthread.h>
-#endif
-#include "osmacro.h"
+#include "adt_ary.h"
+#include "apx_nodeData.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_router2_tag
+typedef struct apx_nodeDataMap_tag
 {
-   adt_hash_t portDataElemMap; //strong references to apx_portDataElem_t
-   MUTEX_T mutex; //modification lock
-}apx_router2_t;
+   apx_nodeData_t *nodeData; //parent object
+   adt_ary_t providePortInfoList; //strong references to apx_portInfo_t
+   adt_ary_t requirePortInfoList; //strong references to apx_portInfo_t
+}apx_nodeDataMap_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_router2_create(apx_router2_t *self);
-void apx_router2_destroy(apx_router2_t *self);
-apx_router2_t *apx_router2_new(void);
-void apx_router2_delete(apx_router2_t *self);
+void apx_nodeDataMap_create(apx_nodeDataMap_t *self, apx_nodeData_t *nodeData);
+void apx_nodeDataMap_destroy(apx_nodeDataMap_t *self);
+apx_nodeDataMap_t *apx_nodeDataMap_new(apx_nodeData_t *nodeData);
+void apx_nodeDataMap_delete(apx_nodeDataMap_t *self);
 
-#endif //APX_ROUTER2_H
+#endif //APX_NODE_MAP_H

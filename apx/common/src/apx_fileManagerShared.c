@@ -30,6 +30,10 @@
 #include <string.h>
 #include "apx_fileManagerShared.h"
 #include "rmf.h"
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES

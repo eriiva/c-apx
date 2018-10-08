@@ -1,58 +1,60 @@
+/*****************************************************************************
+* \file      apx_portDataMap.h
+* \author    Conny Gustafsson
+* \date      2018-10-08
+* \brief     Global map of all port data elements
+*
+* Copyright (c) 2018 Conny Gustafsson
+* Permission is hereby granted, free of charge, to any person obtaining a copy of
+* this software and associated documentation files (the "Software"), to deal in
+* the Software without restriction, including without limitation the rights to
+* use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+* the Software, and to permit persons to whom the Software is furnished to do so,
+* subject to the following conditions:
+
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+* FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+* IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+* CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*
+******************************************************************************/
 #ifndef APX_PORT_DATA_MAP_H
 #define APX_PORT_DATA_MAP_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_port.h"
-#include "apx_node.h"
-#include "adt_ary.h"
+#include "adt_hash.h"
+#include "apx_types.h"
+#ifdef _WIN32
+# ifndef WIN32_LEAN_AND_MEAN
+# define WIN32_LEAN_AND_MEAN
+# endif
+# include <Windows.h>
+#else
+# include <pthread.h>
+#endif
+#include "osmacro.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
-// CONSTANTS AND DATA TYPES
+// PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-
-/**
- * metadata describing what is in this port (data offset, and length)
- */
-typedef struct apx_portDataMapEntry_tag
-{
-   apx_port_t *port; //pointer to the port
-   int32_t offset; //data offset
-   int32_t length; //data length
-}apx_portDataMapEntry_t;
-
 typedef struct apx_portDataMap_tag
 {
-   adt_ary_t elements; //list of apx_portDataMapEntry_t object
-   apx_node_t *node; //pointer to parent node
-   int8_t mapType; //APX_REQUIRE_DATA_MAP or APX_PROVIDE_DATA_MAP
-   int32_t totalLen; //totalLen=sum([x.length for x in elements]
+   adt_hash_t internalMap; //strong references to apx_portData_t
+   MUTEX_T mutex; //modification lock
 }apx_portDataMap_t;
 
 //////////////////////////////////////////////////////////////////////////////
-// GLOBAL VARIABLES
+// PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
-void apx_portDataMapEntry_create(apx_portDataMapEntry_t *self, apx_port_t *port, int32_t offset, int32_t length);
-void apx_portDataMapEntry_destroy(apx_portDataMapEntry_t *self);
-apx_portDataMapEntry_t *apx_portDataMapEntry_new(apx_port_t *port,int32_t offset, int32_t length);
-void apx_portDataMapEntry_delete(apx_portDataMapEntry_t *self);
-void apx_portDataMapEntry_vdelete(void *arg);
-
 void apx_portDataMap_create(apx_portDataMap_t *self);
 void apx_portDataMap_destroy(apx_portDataMap_t *self);
-apx_portDataMap_t *apx_portDataMap_new(void);
-void apx_portDataMap_delete(apx_portDataMap_t *self);
-void apx_portDataMap_vdelete(void *arg);
-int8_t apx_portDataMap_build(apx_portDataMap_t *self, apx_node_t *node, uint8_t portType);
-int32_t apx_portDataMap_getDataLen(apx_portDataMap_t *self);
-
-apx_portDataMapEntry_t *apx_portDataMap_getEntry(apx_portDataMap_t *self, int32_t portIndex);
 
 #endif //APX_PORT_DATA_MAP_H

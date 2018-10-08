@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_portDataMap.c
+* \file      apx_nodeDataMap.c
 * \author    Conny Gustafsson
 * \date      2018-10-08
-* \brief     Global map of all port data elements
+* \brief     memory map of a nodeData_t object
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,55 +23,78 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_portDataMap.h"
-#include "apx_portData.h"
-
-//////////////////////////////////////////////////////////////////////////////
-// CONSTANTS AND DATA TYPES
-//////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
+#include <malloc.h>
+#include "apx_nodeDataMap.h"
+#include "apx_error.h"
+#include "apx_portInfo.h"
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL VARIABLES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTIONS
+// PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
-void apx_portDataMap_create(apx_portDataMap_t *self)
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+void apx_nodeDataMap_create(apx_nodeDataMap_t *self, apx_nodeData_t *nodeData)
 {
    if (self != 0)
    {
-      adt_hash_create(&self->internalMap, apx_portData_vdelete);
-      MUTEX_INIT(self->mutex);
+      self->nodeData = nodeData;
+      adt_ary_create(&self->providePortInfoList, apx_portInfo_vdelete);
+      adt_ary_create(&self->requirePortInfoList, apx_portInfo_vdelete);
    }
 }
 
-void apx_portDataMap_destroy(apx_portDataMap_t *self)
+void apx_nodeDataMap_destroy(apx_nodeDataMap_t *self)
 {
    if (self != 0)
    {
-      MUTEX_LOCK(self->mutex);
-      adt_hash_destroy(&self->internalMap);
-      MUTEX_UNLOCK(self->mutex);
-      MUTEX_DESTROY(self->mutex);
+      adt_ary_destroy(&self->providePortInfoList);
+      adt_ary_destroy(&self->requirePortInfoList);
    }
+}
+
+apx_nodeDataMap_t *apx_nodeDataMap_new(apx_nodeData_t *nodeData)
+{
+   apx_nodeDataMap_t *self = (apx_nodeDataMap_t*) malloc(sizeof(apx_nodeDataMap_t));
+   if(self != 0)
+   {
+      apx_nodeDataMap_create(self, nodeData);
+   }
+   else
+   {
+      apx_setError(APX_MEM_ERROR);
+   }
+   return self;
 
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTIONS
-//////////////////////////////////////////////////////////////////////////////
+void apx_nodeDataMap_delete(apx_nodeDataMap_t *self)
+{
+   if (self != 0)
+   {
+      apx_nodeDataMap_destroy(self);
+      free(self);
+   }
+}
 
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
 
 

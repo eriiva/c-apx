@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include "bstr.h"
 #include "apx_node.h"
-#include "apx_nodeInfo.h"
 #include "apx_logging.h"
 #include "apx_error.h"
 #include "apx_types.h"

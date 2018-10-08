@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_portDataMap.c
+* \file      testsuite_apx_nodeDataMap.c
 * \author    Conny Gustafsson
 * \date      2018-10-08
-* \brief     Global map of all port data elements
+* \brief     Unit tests for apx_nodeDataMap_t
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,55 +23,52 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_portDataMap.h"
-#include "apx_portData.h"
+#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stddef.h>
+#include <string.h>
+#include "CuTest.h"
+#include "apx_nodeDataMap.h"
+#include "apx_error.h"
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
-// CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+static void test_apx_nodeDataMap_create(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTION PROTOTYPES
+// PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
 
-
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL VARIABLES
+// PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTIONS
-//////////////////////////////////////////////////////////////////////////////
-void apx_portDataMap_create(apx_portDataMap_t *self)
+CuSuite* testSuite_apx_nodeDataMap(void)
 {
-   if (self != 0)
-   {
-      adt_hash_create(&self->internalMap, apx_portData_vdelete);
-      MUTEX_INIT(self->mutex);
-   }
-}
+   CuSuite* suite = CuSuiteNew();
 
-void apx_portDataMap_destroy(apx_portDataMap_t *self)
-{
-   if (self != 0)
-   {
-      MUTEX_LOCK(self->mutex);
-      adt_hash_destroy(&self->internalMap);
-      MUTEX_UNLOCK(self->mutex);
-      MUTEX_DESTROY(self->mutex);
-   }
+   SUITE_ADD_TEST(suite, test_apx_nodeDataMap_create);
 
+
+   return suite;
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTIONS
+// PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+static void test_apx_nodeDataMap_create(CuTest* tc)
+{
 
-
+}
 

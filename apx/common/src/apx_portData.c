@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_portDataMap.c
+* \file      apx_portData.h
 * \author    Conny Gustafsson
 * \date      2018-10-08
-* \brief     Global map of all port data elements
+* \brief     A port data element contains lists of all provide-ports and require-ports currently associated with a port signature
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,55 +23,82 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_portDataMap.h"
+#include <malloc.h>
+#include "apx_error.h"
 #include "apx_portData.h"
-
-//////////////////////////////////////////////////////////////////////////////
-// CONSTANTS AND DATA TYPES
-//////////////////////////////////////////////////////////////////////////////
-
-
-//////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL VARIABLES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-// GLOBAL FUNCTIONS
+// PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
-void apx_portDataMap_create(apx_portDataMap_t *self)
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+void apx_portData_create(apx_portData_t *self, const char *portSignature, int32_t dataSize)
 {
    if (self != 0)
    {
-      adt_hash_create(&self->internalMap, apx_portData_vdelete);
-      MUTEX_INIT(self->mutex);
+      self->portSignature = portSignature;
+      self->dataSize = dataSize;
+      adt_ary_create(&self->requirePorts, (void (*)(void*)) 0);
+      adt_ary_create(&self->providePorts, (void (*)(void*)) 0);
    }
 }
 
-void apx_portDataMap_destroy(apx_portDataMap_t *self)
+void apx_portData_destroy(apx_portData_t *self)
 {
    if (self != 0)
    {
-      MUTEX_LOCK(self->mutex);
-      adt_hash_destroy(&self->internalMap);
-      MUTEX_UNLOCK(self->mutex);
-      MUTEX_DESTROY(self->mutex);
+      adt_ary_destroy(&self->requirePorts);
+      adt_ary_destroy(&self->providePorts);
    }
+}
 
+apx_portData_t *apx_portData_new(const char *portSignature, int32_t dataSize)
+{
+   apx_portData_t *self = (apx_portData_t*) malloc(sizeof(apx_portData_t));
+   if(self != 0)
+   {
+      apx_portData_create(self, portSignature, dataSize);
+   }
+   else
+   {
+      apx_setError(APX_MEM_ERROR);
+   }
+   return self;
+}
+
+void apx_portData_delete(apx_portData_t *self)
+{
+   if (self != 0)
+   {
+      apx_portData_destroy(self);
+      free(self);
+   }
+}
+
+void apx_portData_vdelete(void *arg)
+{
+   apx_portData_delete((apx_portData_t*) arg);
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// LOCAL FUNCTIONS
+// PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-
 
 

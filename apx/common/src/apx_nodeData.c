@@ -13,7 +13,6 @@
 #include <malloc.h>
 #include <assert.h>
 #include "apx_fileManager.h"
-#include "apx_nodeInfo.h"
 #include "apx_node.h"
 #endif
 #ifdef MEM_LEAK_CHECK
@@ -89,7 +88,6 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       SPINLOCK_INIT(self->definitionDataLock);
       SPINLOCK_INIT(self->internalLock);
       self->fileManager = (apx_fileManager_t*) 0;
-      self->nodeInfo = (apx_nodeInfo_t*) 0;
       self->node = (apx_node_t*) 0;
 #endif
    }

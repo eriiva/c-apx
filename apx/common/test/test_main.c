@@ -30,11 +30,12 @@ CuSuite* testSuite_apx_fileManagerLocal(void);
 CuSuite* testSuite_apx_fileManager(void);
 CuSuite* testSuite_apx_client(void);
 CuSuite* testSuite_apx_clientConnection(void);
-CuSuite* testSuite_apx_nodeManager(void);
-CuSuite* testSuite_apx_eventRecorderSrvRmf(void);
+//CuSuite* testSuite_apx_nodeManager(void);
+//CuSuite* testSuite_apx_eventRecorderSrvRmf(void);
 CuSuite* testSuite_apx_file2(void);
 CuSuite* testSuite_apx_nodeDataManager(void);
 CuSuite* testsuite_apx_datatype(void);
+CuSuite* testSuite_apx_nodeDataMap(void);
 
 //util
 CuSuite* testsuite_headerutil(void);
@@ -82,8 +83,10 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testSuite_apx_client());
 
 //   CuSuiteAddSuite(suite, testSuite_apx_nodeManager());
-   CuSuiteAddSuite(suite, testSuite_apx_eventRecorderSrvRmf());
+//   CuSuiteAddSuite(suite, testSuite_apx_eventRecorderSrvRmf());
    CuSuiteAddSuite(suite, testSuite_apx_nodeDataManager());
+   CuSuiteAddSuite(suite, testSuite_apx_nodeDataMap());
+
 
    CuSuiteAddSuite(suite, testsuite_sha256());
 
