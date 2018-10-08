@@ -76,7 +76,7 @@ void apx_server_create(apx_server_t *self, uint16_t port)
       adt_list_create(&self->connections, apx_serverBaseConnection_vdelete);
       adt_list_create(&self->connectionEventListeners, (void (*)(void*)) 0);
       self->debugMode = APX_DEBUG_NONE;
-      apx_router_create(&self->router);
+      apx_router2_create(&self->router);
       MUTEX_INIT(self->lock);
       adt_u32Set_create(&self->connectionIdSet);
       self->nextConnectionId = 0u;
@@ -104,7 +104,7 @@ void apx_server_destroy(apx_server_t *self)
       adt_list_destroy(&self->connectionEventListeners);
       adt_u32Set_destroy(&self->connectionIdSet);
       apx_server_destroy_socket_servers(self);
-      apx_router_destroy(&self->router);
+      apx_router2_destroy(&self->router);
       MUTEX_DESTROY(self->lock);
    }
 }
@@ -114,7 +114,7 @@ void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode)
    if (self != 0)
    {
       self->debugMode = debugMode;
-      apx_router_setDebugMode(&self->router, debugMode);
+      //apx_router_setDebugMode(&self->router, debugMode);
    }
 }
 

@@ -78,7 +78,7 @@ static void test_apx_client_create(CuTest* tc)
 {
    apx_client_t *client = apx_client_new();
    CuAssertPtrNotNull(tc, client);
-   CuAssertPtrNotNull(tc, client->nodeManager);
+   CuAssertPtrNotNull(tc, client->nodeDataManager);
    apx_client_delete(client);
 }
 

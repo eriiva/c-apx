@@ -11,7 +11,7 @@
 #include "msocket_server.h"
 #endif
 #include "apx_nodeManager.h"
-#include "apx_router.h"
+#include "apx_router2.h"
 #include "apx_eventListener.h"
 #include "apx_eventRecorderSrvRmfMgr.h"
 #include "adt_list.h"
@@ -37,7 +37,7 @@ typedef struct apx_server_tag
    MUTEX_T lock;
    adt_list_t connections; //linked list of strong references to apx_serverBaseConnection_t
    adt_list_t connectionEventListeners; //weak references to apx_connectionEventListener_t
-   apx_router_t router; //this component handles all routing tables within the server
+   apx_router2_t router; //this component handles all routing tables within the server
    int8_t debugMode;
    adt_u32Set_t connectionIdSet;
    uint32_t nextConnectionId;

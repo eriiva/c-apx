@@ -13,7 +13,7 @@
 //////////////////////////////////////////////////////////////////////////////
 //forward declarations
 struct apx_clientConnection_tag;
-struct apx_nodeManager_tag;
+struct apx_nodeDataManager_tag;
 struct apx_nodeData_tag;
 struct adt_list_tag;
 struct apx_connectionEventListener_tag;
@@ -25,7 +25,7 @@ struct testsocket_tag;
 typedef struct apx_client_tag
 {
    struct apx_clientConnection_tag *connection;
-   struct apx_nodeManager_tag *nodeManager;
+   struct apx_nodeDataManager_tag *nodeDataManager;
    struct adt_list_tag *eventListeners; //weak references to apx_eventListenerBase_t
 }apx_client_t;
 

@@ -272,7 +272,7 @@ void apx_clientConnection_start(apx_clientConnection_t *self)
       transmitHandler.sendRaw = apx_clientConnection_sendRaw;
       apx_fileManager_setTransmitHandler(&self->fileManager, &transmitHandler);
       //register connection with the server nodeManager
-      apx_nodeManager_attachFileManager(self->client->nodeManager, &self->fileManager);
+      //apx_nodeManager_attachFileManager(self->client->nodeManager, &self->fileManager);
       apx_fileManager_start(&self->fileManager);
       apx_clientConnection_sendGreeting(self);
 }

@@ -66,7 +66,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="apx/common/src/apx_fileManager_old.c|apx/common/src/apx_fileManagerSender.c|apx/common/src/apx_fileManagerReceiver.c|apx/server/src/server_main.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="apx/common/test/testsuite_dataTrigger.c|apx/common/test/testsuite_apx_router.c|apx/common/test/testsuite_apx_portMapEntry.c|apx/common/test/testsuite_apx_portDataMap.c|apx/common/test/testsuite_apx_nodeManager.c|apx/common/test/testsuite_apx_nodeInfo.c|apx/common/src/apx_routerPortMapEntry.c|apx/common/src/apx_router.c|apx/common/src/apx_portref.c|apx/common/src/apx_portDataMap.c|apx/common/src/apx_portDataBuffer.c|apx/common/src/apx_nodeManager.c|apx/common/src/apx_nodeInfo.c|apx/common/src/apx_dataTrigger.c|apx/common/src/apx_fileManager_old.c|apx/common/src/apx_fileManagerSender.c|apx/common/src/apx_fileManagerReceiver.c|apx/server/src/server_main.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -113,7 +113,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="apx/common/src/apx_fileManager_old.c|apx/common/src/apx_fileManagerSender.c|apx/common/src/apx_fileManagerReceiver.c|apx/server/src/server_main.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="apx/common/test/testsuite_dataTrigger.c|apx/common/test/testsuite_apx_router.c|apx/common/test/testsuite_apx_portMapEntry.c|apx/common/test/testsuite_apx_portDataMap.c|apx/common/test/testsuite_apx_nodeManager.c|apx/common/test/testsuite_apx_nodeInfo.c|apx/common/src/apx_routerPortMapEntry.c|apx/common/src/apx_router.c|apx/common/src/apx_portref.c|apx/common/src/apx_portDataMap.c|apx/common/src/apx_portDataBuffer.c|apx/common/src/apx_nodeManager.c|apx/common/src/apx_nodeInfo.c|apx/common/src/apx_dataTrigger.c|apx/common/src/apx_fileManager_old.c|apx/common/src/apx_fileManagerSender.c|apx/common/src/apx_fileManagerReceiver.c|apx/server/src/server_main.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
