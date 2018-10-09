@@ -51,6 +51,9 @@ typedef struct apx_dataWriteCmd_tag
 #define APX_CHECKSUM_NONE         0u
 #define APX_CHECKSUM_SHA256       1u
 
+#define APX_CLIENT_MODE           0u
+#define APX_SERVER_MODE           1u
+
 #define APX_CHECKSUMLEN_SHA256    32u
 
 #if defined(_MSC_PLATFORM_TOOLSET) && (_MSC_PLATFORM_TOOLSET<=110)

@@ -32,6 +32,7 @@
 #include "apx_types.h"
 #include "adt_ary.h"
 #include "apx_nodeData.h"
+#include "apx_bytePortMap.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -42,15 +43,16 @@ typedef struct apx_nodeDataMap_tag
    apx_nodeData_t *nodeData; //parent object
    adt_ary_t providePortInfoList; //strong references to apx_portInfo_t
    adt_ary_t requirePortInfoList; //strong references to apx_portInfo_t
-
+   apx_bytePortMap_t *requireBytePortMap; //used only in client mode
+   apx_bytePortMap_t *provideBytePortMap; //used only in server mode
 }apx_nodeDataMap_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_nodeDataMap_create(apx_nodeDataMap_t *self, apx_nodeData_t *nodeData);
+void apx_nodeDataMap_create(apx_nodeDataMap_t *self, apx_nodeData_t *nodeData, uint8_t mode);
 void apx_nodeDataMap_destroy(apx_nodeDataMap_t *self);
-apx_nodeDataMap_t *apx_nodeDataMap_new(apx_nodeData_t *nodeData);
+apx_nodeDataMap_t *apx_nodeDataMap_new(apx_nodeData_t *nodeData, uint8_t mode);
 void apx_nodeDataMap_delete(apx_nodeDataMap_t *self);
 
 #endif //APX_NODE_DATA_MAP_H

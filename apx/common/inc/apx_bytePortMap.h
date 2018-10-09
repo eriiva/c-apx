@@ -2,7 +2,7 @@
 * \file      apx_bytePortMap.h
 * \author    Conny Gustafsson
 * \date      2018-10-09
-* \brief     Byte offset to port id map generator
+* \brief     Byte offset to port id map
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -31,6 +31,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_types.h"
 #include "apx_node.h"
+#include "apx_error.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -45,8 +46,12 @@ typedef struct apx_bytePortMap_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_bytePortMap_create(apx_bytePortMap_t *self, apx_node_t *node, apx_portType_t portType);
+apx_error_t apx_bytePortMap_create(apx_bytePortMap_t *self, apx_node_t *node, apx_portType_t portType);
 void apx_bytePortMap_destroy(apx_bytePortMap_t *self);
+apx_bytePortMap_t *apx_bytePortMap_new(apx_node_t *node, apx_portType_t portType);
+void apx_bytePortMap_delete(apx_bytePortMap_t *self);
+
 apx_portId_t apx_bytePortMap_lookup(apx_bytePortMap_t *self, int32_t offset);
+apx_size_t apx_bytePortMap_length(apx_bytePortMap_t *self);
 
 #endif //APX_BYTE_PORT_MAP_H

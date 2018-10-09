@@ -50,13 +50,23 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_nodeDataMap_create(apx_nodeDataMap_t *self, apx_nodeData_t *nodeData)
+void apx_nodeDataMap_create(apx_nodeDataMap_t *self, apx_nodeData_t *nodeData, uint8_t mode)
 {
-   if (self != 0)
+   if ( (self != 0) && (self->nodeData != 0) && (self->nodeData->node != 0) )
    {
       self->nodeData = nodeData;
       adt_ary_create(&self->providePortInfoList, apx_portInfo_vdelete);
       adt_ary_create(&self->requirePortInfoList, apx_portInfo_vdelete);
+      if (mode == APX_CLIENT_MODE)
+      {
+         self->requireBytePortMap = apx_bytePortMap_new(self->nodeData->node, APX_REQUIRE_PORT);
+         self->provideBytePortMap = (apx_bytePortMap_t*) 0;
+      }
+      else
+      {
+         self->requireBytePortMap = (apx_bytePortMap_t*) 0;
+         self->provideBytePortMap = apx_bytePortMap_new(self->nodeData->node, APX_PROVIDE_PORT);
+      }
    }
 }
 
@@ -66,15 +76,23 @@ void apx_nodeDataMap_destroy(apx_nodeDataMap_t *self)
    {
       adt_ary_destroy(&self->providePortInfoList);
       adt_ary_destroy(&self->requirePortInfoList);
+      if (self->requireBytePortMap != 0)
+      {
+         apx_bytePortMap_delete(self->requireBytePortMap);
+      }
+      if (self->provideBytePortMap != 0)
+      {
+         apx_bytePortMap_delete(self->provideBytePortMap);
+      }
    }
 }
 
-apx_nodeDataMap_t *apx_nodeDataMap_new(apx_nodeData_t *nodeData)
+apx_nodeDataMap_t *apx_nodeDataMap_new(apx_nodeData_t *nodeData, uint8_t mode)
 {
    apx_nodeDataMap_t *self = (apx_nodeDataMap_t*) malloc(sizeof(apx_nodeDataMap_t));
    if(self != 0)
    {
-      apx_nodeDataMap_create(self, nodeData);
+      apx_nodeDataMap_create(self, nodeData, mode);
    }
    else
    {

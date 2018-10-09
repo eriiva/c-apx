@@ -36,6 +36,7 @@ CuSuite* testSuite_apx_file2(void);
 CuSuite* testSuite_apx_nodeDataManager(void);
 CuSuite* testsuite_apx_datatype(void);
 CuSuite* testSuite_apx_nodeDataMap(void);
+CuSuite* testSuite_apx_bytePortMap(void);
 
 //util
 CuSuite* testsuite_headerutil(void);
@@ -86,9 +87,12 @@ void RunAllTests(void)
 //   CuSuiteAddSuite(suite, testSuite_apx_eventRecorderSrvRmf());
    CuSuiteAddSuite(suite, testSuite_apx_nodeDataManager());
    CuSuiteAddSuite(suite, testSuite_apx_nodeDataMap());
+   CuSuiteAddSuite(suite, testSuite_apx_bytePortMap());
+
 
 
    CuSuiteAddSuite(suite, testsuite_sha256());
+
 
 
 

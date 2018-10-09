@@ -215,15 +215,22 @@ void apx_parser_close(apx_parser_t *self)
       if (self->lastErrorType == APX_NO_ERROR)
       {
          int32_t errorLine;
-         apx_node_finalize(self->currentNode, &errorLine);
-         adt_ary_push(&self->nodeList,self->currentNode);
-         self->currentNode=0;
+         apx_error_t errorType = apx_node_finalize(self->currentNode, &errorLine);
+         if (errorType == APX_NO_ERROR)
+         {
+            adt_ary_push(&self->nodeList,self->currentNode);
+         }
+         else
+         {
+            apx_parser_parse_error(self, errorType, errorLine);
+            apx_node_delete(self->currentNode);
+         }
       }
       else
       {
          apx_node_delete(self->currentNode);
-         self->currentNode = 0;
       }
+      self->currentNode = 0;
    }
 }
 
