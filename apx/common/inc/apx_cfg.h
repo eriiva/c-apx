@@ -21,4 +21,8 @@
 # define APX_DEFAULT_THREAD_STACK_SIZE 0x100000 //1MB
 #endif
 
+#ifndef APX_PORT_ID_TYPE
+# define APX_PORT_ID_TYPE int32_t //valid selections are: int8_t, int16_t and int32_t. int32_t is default
+#endif
+
 #endif //APX_CFG_H

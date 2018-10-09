@@ -110,7 +110,7 @@ void apx_nodeData_lockOutPortData(apx_nodeData_t *self);
 void apx_nodeData_unlockOutPortData(apx_nodeData_t *self);
 void apx_nodeData_lockInPortData(apx_nodeData_t *self);
 void apx_nodeData_unlockInPortData(apx_nodeData_t *self);
-void apx_nodeData_outPortDataNotify(apx_nodeData_t *self, uint32_t offset, uint32_t len);
+void apx_nodeData_outPortDataNotify(apx_nodeData_t *self, apx_offset_t offset, apx_size_t length);
 apx_error_t apx_nodeData_writeInPortData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len);
 apx_error_t apx_nodeData_writeOutPortData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len);
 apx_error_t apx_nodeData_writeDefinitionData(apx_nodeData_t *self, const uint8_t *src, uint32_t offset, uint32_t len);

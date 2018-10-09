@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_nodeDataMap.h
+* \file      apx_bytePortMap.h
 * \author    Conny Gustafsson
-* \date      2018-10-08
-* \brief     Memory map of a nodeData_t object. Only used in server mode
+* \date      2018-10-09
+* \brief     Byte offset to port id map generator
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,34 +23,30 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_NODE_DATA_MAP_H
-#define APX_NODE_DATA_MAP_H
+#ifndef APX_BYTE_PORT_MAP_H
+#define APX_BYTE_PORT_MAP_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_types.h"
-#include "adt_ary.h"
-#include "apx_nodeData.h"
+#include "apx_node.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_nodeDataMap_tag
+typedef struct apx_bytePortMap_tag
 {
-   apx_nodeData_t *nodeData; //parent object
-   adt_ary_t providePortInfoList; //strong references to apx_portInfo_t
-   adt_ary_t requirePortInfoList; //strong references to apx_portInfo_t
-
-}apx_nodeDataMap_t;
+   apx_portId_t *mapData;
+   int32_t mapLen;
+}apx_bytePortMap_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_nodeDataMap_create(apx_nodeDataMap_t *self, apx_nodeData_t *nodeData);
-void apx_nodeDataMap_destroy(apx_nodeDataMap_t *self);
-apx_nodeDataMap_t *apx_nodeDataMap_new(apx_nodeData_t *nodeData);
-void apx_nodeDataMap_delete(apx_nodeDataMap_t *self);
+void apx_bytePortMap_create(apx_bytePortMap_t *self, apx_node_t *node, apx_portType_t portType);
+void apx_bytePortMap_destroy(apx_bytePortMap_t *self);
+apx_portId_t apx_bytePortMap_lookup(apx_bytePortMap_t *self, int32_t offset);
 
-#endif //APX_NODE_DATA_MAP_H
+#endif //APX_BYTE_PORT_MAP_H

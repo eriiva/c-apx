@@ -10,8 +10,10 @@
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef uint32_t apx_offset_t; //use uint16_t for 64KB offset, use uint32_t for 4GB offset
+typedef int32_t apx_offset_t;
 typedef uint32_t apx_size_t; //use uint16_t  to send up to 64KB, use uint32_t for 4GB.
+typedef APX_PORT_ID_TYPE apx_portId_t; //uint32_t is default. Use uint16_t for smaller memory footprint
+typedef uint8_t apx_portType_t;
 
 typedef struct apx_dataWriteCmd_tag
 {

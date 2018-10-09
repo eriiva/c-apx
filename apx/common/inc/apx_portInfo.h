@@ -36,17 +36,14 @@
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 struct apx_nodeData_tag;
-struct apx_portData_tag;
-struct apx_port_tag;
 struct apx_file2_tag;
 
 typedef struct apx_portInfo_tag
 {
    struct apx_nodeData_tag *nodedata;
-   struct apx_port_tag *port;
-   struct apx_portData_tag *portData;
    struct apx_file2_tag *file;
-   int32_t offset; //offset in file
+   apx_offset_t offset; //offset in file
+   apx_portId_t portIndex; //the index of the port in nodeData, nodeData->node, nodeData->map
 }apx_portInfo_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -56,8 +53,8 @@ typedef struct apx_portInfo_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_portInfo_create(apx_portInfo_t *self, struct apx_nodeData_tag *nodedata, struct apx_port_tag *port, struct apx_portData_tag *portData, struct apx_file2_tag *file, int32_t offset);
-apx_portInfo_t *apx_portInfo_new(struct apx_nodeData_tag *nodedata, struct apx_port_tag *port, struct apx_portData_tag *portData, struct apx_file2_tag *file, int32_t offset);
+void apx_portInfo_create(apx_portInfo_t *self, struct apx_nodeData_tag *nodedata, apx_portId_t portIndex, struct apx_file2_tag *file, int32_t offset);
+apx_portInfo_t *apx_portInfo_new(struct apx_nodeData_tag *nodedata, apx_portId_t portIndex, struct apx_file2_tag *file, int32_t offset);
 void apx_portInfo_delete(apx_portInfo_t *self);
 void apx_portInfo_vdelete(void *arg);
 

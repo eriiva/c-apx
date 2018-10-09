@@ -57,11 +57,11 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-apx_error_t apx_port_create(apx_port_t *self, uint8_t portDirection, const char *name, const char* dataSignature, const char *attributes, int32_t lineNumber){
+apx_error_t apx_port_create(apx_port_t *self, apx_portType_t portType, const char *name, const char* dataSignature, const char *attributes, int32_t lineNumber){
    if( (self != 0) && (dataSignature != 0) ){
       apx_error_t error;
       self->name = (name != 0)? STRDUP(name) : 0;
-      self->portType = portDirection;
+      self->portType = portType;
       self->derivedPortSignature = (char*) 0;
       self->portIndex = -1;
       self->lineNumber = lineNumber;
@@ -274,7 +274,7 @@ int32_t apx_port_getPackLen(apx_port_t *self)
 }
 
 
-void apx_port_setPortIndex(apx_port_t *self, int32_t portIndex)
+void apx_port_setPortIndex(apx_port_t *self, apx_portId_t portIndex)
 {
    if ( (self != 0) && (portIndex>=0) )
    {
@@ -282,7 +282,7 @@ void apx_port_setPortIndex(apx_port_t *self, int32_t portIndex)
    }
 }
 
-int32_t  apx_port_getPortIndex(apx_port_t *self)
+apx_portId_t  apx_port_getPortIndex(apx_port_t *self)
 {
    if (self != 0)
    {
