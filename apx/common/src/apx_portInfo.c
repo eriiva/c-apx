@@ -48,23 +48,24 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_portInfo_create(apx_portInfo_t *self, struct apx_nodeData_tag *nodedata, apx_portId_t portIndex, struct apx_file2_tag *file, int32_t offset)
+void apx_portInfo_create(apx_portInfo_t *self, struct apx_nodeData_tag *nodedata, apx_portId_t portIndex,  apx_size_t dataSize, struct apx_file2_tag *file, int32_t offset)
 {
    if (self != 0)
    {
       self->nodedata = nodedata;
       self->file = file;
+      self->dataSize = dataSize;
       self->offset = offset;
       self->portIndex = portIndex;
    }
 }
 
-apx_portInfo_t *apx_portInfo_new(struct apx_nodeData_tag *nodedata, apx_portId_t portIndex, struct apx_file2_tag *file, int32_t offset)
+apx_portInfo_t *apx_portInfo_new(struct apx_nodeData_tag *nodedata, apx_portId_t portIndex,  apx_size_t dataSize, struct apx_file2_tag *file, int32_t offset)
 {
    apx_portInfo_t *self = (apx_portInfo_t*) malloc(sizeof(apx_portInfo_t));
    if(self != 0)
    {
-      apx_portInfo_create(self, nodedata, portIndex, file, offset);
+      apx_portInfo_create(self, nodedata, portIndex, dataSize, file, offset);
    }
    else
    {

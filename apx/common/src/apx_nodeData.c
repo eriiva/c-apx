@@ -533,15 +533,6 @@ apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
-void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nodeInfo)
-{
-   if (self != 0)
-   {
-      self->nodeInfo = nodeInfo;
-   }
-}
-
-
 void apx_nodeData_setNode(apx_nodeData_t *self, struct apx_node_tag *node)
 {
    if ( (self != 0) && (node != 0) )
@@ -615,7 +606,6 @@ void apx_nodeData_triggerInPortDataWritten(apx_nodeData_t *self, uint32_t offset
 }
 #endif
 
-#ifdef UNIT_TEST
 apx_file2_t *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self)
 {
    if (self != 0)
@@ -626,7 +616,8 @@ apx_file2_t *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self)
       result = apx_nodeData_createFileInfo(self, &fileInfo, fileType);
       if (result == 0)
       {
-         return apx_file2_newLocal(&fileInfo, NULL);
+         self->definitionFile = apx_file2_newLocal(&fileInfo, NULL);
+         return self->definitionFile;
       }
    }
    return (apx_file2_t*) 0;
@@ -642,12 +633,29 @@ struct apx_file2_tag *apx_nodeData_newLocalOutPortDataFile(apx_nodeData_t *self)
       result = apx_nodeData_createFileInfo(self, &fileInfo, fileType);
       if (result == 0)
       {
-         return apx_file2_newLocal(&fileInfo, NULL);
+         self->outPortDataFile = apx_file2_newLocal(&fileInfo, NULL);
+         return self->outPortDataFile;
       }
    }
    return (apx_file2_t*) 0;
 }
-#endif
+
+struct apx_file2_tag *apx_nodeData_newLocalInPortDataFile(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      const uint8_t fileType = APX_INDATA_FILE;
+      rmf_fileInfo_t fileInfo;
+      int8_t result;
+      result = apx_nodeData_createFileInfo(self, &fileInfo, fileType);
+      if (result == 0)
+      {
+         self->inPortDataFile = apx_file2_newLocal(&fileInfo, NULL);
+         return self->inPortDataFile;
+      }
+   }
+   return (apx_file2_t*) 0;
+}
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////

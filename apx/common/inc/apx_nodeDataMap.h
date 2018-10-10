@@ -50,7 +50,7 @@ typedef struct apx_nodeDataMap_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_nodeDataMap_create(apx_nodeDataMap_t *self, apx_nodeData_t *nodeData, uint8_t mode);
+apx_error_t apx_nodeDataMap_create(apx_nodeDataMap_t *self, apx_nodeData_t *nodeData, uint8_t mode);
 void apx_nodeDataMap_destroy(apx_nodeDataMap_t *self);
 apx_nodeDataMap_t *apx_nodeDataMap_new(apx_nodeData_t *nodeData, uint8_t mode);
 void apx_nodeDataMap_delete(apx_nodeDataMap_t *self);

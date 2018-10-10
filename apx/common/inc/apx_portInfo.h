@@ -42,6 +42,7 @@ typedef struct apx_portInfo_tag
 {
    struct apx_nodeData_tag *nodedata;
    struct apx_file2_tag *file;
+   apx_size_t dataSize; //size of the port data
    apx_offset_t offset; //offset in file
    apx_portId_t portIndex; //the index of the port in nodeData, nodeData->node, nodeData->map
 }apx_portInfo_t;
@@ -53,8 +54,8 @@ typedef struct apx_portInfo_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_portInfo_create(apx_portInfo_t *self, struct apx_nodeData_tag *nodedata, apx_portId_t portIndex, struct apx_file2_tag *file, int32_t offset);
-apx_portInfo_t *apx_portInfo_new(struct apx_nodeData_tag *nodedata, apx_portId_t portIndex, struct apx_file2_tag *file, int32_t offset);
+void apx_portInfo_create(apx_portInfo_t *self, struct apx_nodeData_tag *nodedata, apx_portId_t portIndex, apx_size_t dataSize, struct apx_file2_tag *file, int32_t offset);
+apx_portInfo_t *apx_portInfo_new(struct apx_nodeData_tag *nodedata, apx_portId_t portIndex,  apx_size_t dataSize, struct apx_file2_tag *file, int32_t offset);
 void apx_portInfo_delete(apx_portInfo_t *self);
 void apx_portInfo_vdelete(void *arg);
 

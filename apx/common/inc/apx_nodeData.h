@@ -32,12 +32,13 @@ struct apx_file2_tag;
 struct apx_es_fileManager_tag;
 #else
 struct apx_fileManager_tag;
-struct apx_nodeInfo_tag;
+struct apx_nodeDataMap_tag;
 #endif
 
 //forward declaration
 struct apx_nodeData_tag;
 struct apx_node_tag;
+
 
 /**
  * function table of event handlers that apx_nodeData_t can call when events are triggererd
@@ -76,11 +77,11 @@ typedef struct apx_nodeData_tag
    SPINLOCK_T definitionDataLock;
    SPINLOCK_T internalLock;
    struct apx_node_tag *node;
+   struct apx_nodeDataMap_tag *nodeDataMap;
 #endif
    struct apx_file2_tag *definitionFile;
    struct apx_file2_tag *outPortDataFile;
    struct apx_file2_tag *inPortDataFile;
-   struct apx_nodeInfo_tag *nodeInfo;
 } apx_nodeData_t;
 
 
@@ -125,7 +126,7 @@ void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_es_fileManager
 #else
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_fileManager_tag *fileManager);
 apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self);
-void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nodeInfo);
+//void apx_nodeData_setNodeInfo(apx_nodeData_t *self, struct apx_nodeInfo_tag *nodeInfo);
 void apx_nodeData_setNode(apx_nodeData_t *self, struct apx_node_tag *node);
 const char *apx_nodeData_getName(apx_nodeData_t *self);
 uint32_t apx_nodeData_getInPortDataLen(apx_nodeData_t *self);
@@ -134,6 +135,7 @@ uint32_t apx_nodeData_getOutPortDataLen(apx_nodeData_t *self);
 #ifdef UNIT_TEST
 struct apx_file2_tag *apx_nodeData_newLocalDefinitionFile(apx_nodeData_t *self);
 struct apx_file2_tag *apx_nodeData_newLocalOutPortDataFile(apx_nodeData_t *self);
+struct apx_file2_tag *apx_nodeData_newLocalInPortDataFile(apx_nodeData_t *self);
 #endif //UNIT_TEST
 #endif //APX_EMBEDDED
 #endif //APX_NODE_DATA_H

@@ -34,6 +34,8 @@
 #include "CuTest.h"
 #include "apx_nodeDataMap.h"
 #include "apx_error.h"
+#include "apx_parser.h"
+#include "apx_portInfo.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -45,7 +47,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_nodeDataMap_create(CuTest* tc);
+static void test_apx_nodeDataMap_create_serverMap(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -58,7 +60,7 @@ CuSuite* testSuite_apx_nodeDataMap(void)
 {
    CuSuite* suite = CuSuiteNew();
 
-   SUITE_ADD_TEST(suite, test_apx_nodeDataMap_create);
+   SUITE_ADD_TEST(suite, test_apx_nodeDataMap_create_serverMap);
 
 
    return suite;
@@ -67,8 +69,47 @@ CuSuite* testSuite_apx_nodeDataMap(void)
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_nodeDataMap_create(CuTest* tc)
+static void test_apx_nodeDataMap_create_serverMap(CuTest* tc)
 {
-
+   const char *apx_text =
+         "APX/1.2\n"
+         "N\"TestNode\"\n"
+         "P\"Name\"a[8]\n"
+         "P\"Id\"L\n";
+   apx_parser_t parser;
+   apx_node_t *node;
+   apx_nodeData_t *nodeData;
+   apx_nodeDataMap_t *map;
+   apx_parser_create(&parser);
+   node = apx_parser_parseString(&parser, apx_text);
+   CuAssertPtrNotNull(tc, node);
+   apx_parser_clearNodes(&parser);
+   nodeData = apx_nodeData_new((uint32_t) strlen(apx_text));
+   CuAssertPtrNotNull(tc, nodeData);
+   apx_nodeData_setNode(nodeData, node);
+   map = apx_nodeDataMap_new(nodeData, APX_SERVER_MODE);
+   CuAssertPtrNotNull(tc, map);
+   int32_t portLen = adt_ary_length(&map->providePortInfoList);
+   apx_portInfo_t *portInfo;
+   CuAssertUIntEquals(tc, 2, portLen);
+   portInfo = (apx_portInfo_t*) adt_ary_value(&map->providePortInfoList, 0);
+   CuAssertPtrNotNull(tc, portInfo);
+   CuAssertIntEquals(tc, 8, portInfo->dataSize);
+   CuAssertPtrEquals(tc, nodeData, portInfo->nodedata);
+   CuAssertIntEquals(tc, 0, portInfo->offset);
+   CuAssertIntEquals(tc, 0, portInfo->portIndex);
+   portInfo = (apx_portInfo_t*) adt_ary_value(&map->providePortInfoList, 1);
+   CuAssertPtrNotNull(tc, portInfo);
+   CuAssertUIntEquals(tc, 4, portInfo->dataSize);
+   CuAssertPtrEquals(tc, nodeData, portInfo->nodedata);
+   CuAssertIntEquals(tc, 8, portInfo->offset);
+   CuAssertIntEquals(tc, 1, portInfo->portIndex);
+   CuAssertPtrEquals(tc, 0, map->requireBytePortMap);
+   CuAssertPtrNotNull(tc, map->provideBytePortMap);
+   CuAssertUIntEquals(tc, 12, map->provideBytePortMap->mapLen);
+   apx_nodeDataMap_delete(map);
+   apx_nodeData_delete(nodeData);
+   apx_parser_destroy(&parser);
 }
 
+;
