@@ -31,6 +31,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "adt_ary.h"
 #include "apx_types.h"
+#include "apx_portInfo.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
@@ -39,8 +40,9 @@ typedef struct apx_portData_tag
 {
    const char *portSignature; //weak reference to string
    int32_t dataSize;
-   adt_ary_t requirePorts; //weak references to apx_portInfo_t
-   adt_ary_t providePorts; //weak references to apx_portInfo_t
+   int32_t currentProviderId;
+   adt_ary_t requirePortInfo; //weak references to apx_portInfo_t
+   adt_ary_t providePortInfo; //weak references to apx_portInfo_t
 }apx_portData_t;
 
 
@@ -52,5 +54,10 @@ void apx_portData_destroy(apx_portData_t *self);
 apx_portData_t *apx_portData_new(const char *portSignature, int32_t dataSize);
 void apx_portData_delete(apx_portData_t *self);
 void apx_portData_vdelete(void *arg);
+
+void apx_portData_insertRequirePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo);
+void apx_portData_insertProvidePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo);
+void apx_portData_removeRequirePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo);
+void apx_portData_removeProvidePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo);
 
 #endif //APX_PORT_DATA_H

@@ -31,6 +31,8 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "adt_hash.h"
 #include "apx_types.h"
+#include "apx_error.h"
+#include "apx_portData.h"
 #ifdef _WIN32
 # ifndef WIN32_LEAN_AND_MEAN
 # define WIN32_LEAN_AND_MEAN
@@ -56,5 +58,10 @@ typedef struct apx_portDataMap_tag
 //////////////////////////////////////////////////////////////////////////////
 void apx_portDataMap_create(apx_portDataMap_t *self);
 void apx_portDataMap_destroy(apx_portDataMap_t *self);
+apx_portData_t * apx_portDataMap_insert(apx_portDataMap_t *self, const char *portSignature, apx_size_t dataSize);
+apx_portData_t *apx_portDataMap_find(apx_portDataMap_t *self, const char *portSignature);
+apx_error_t apx_portDataMap_remove(apx_portDataMap_t *self, const char *portSignature);
+void apx_portDataMap_lock(apx_portDataMap_t *self);
+void apx_portDataMap_unlock(apx_portDataMap_t *self);
 
 #endif //APX_PORT_DATA_MAP_H

@@ -55,8 +55,9 @@ void apx_portData_create(apx_portData_t *self, const char *portSignature, int32_
    {
       self->portSignature = portSignature;
       self->dataSize = dataSize;
-      adt_ary_create(&self->requirePorts, (void (*)(void*)) 0);
-      adt_ary_create(&self->providePorts, (void (*)(void*)) 0);
+      self->currentProviderId = -1;
+      adt_ary_create(&self->requirePortInfo, (void (*)(void*)) 0);
+      adt_ary_create(&self->providePortInfo, (void (*)(void*)) 0);
    }
 }
 
@@ -64,8 +65,8 @@ void apx_portData_destroy(apx_portData_t *self)
 {
    if (self != 0)
    {
-      adt_ary_destroy(&self->requirePorts);
-      adt_ary_destroy(&self->providePorts);
+      adt_ary_destroy(&self->requirePortInfo);
+      adt_ary_destroy(&self->providePortInfo);
    }
 }
 
@@ -96,6 +97,60 @@ void apx_portData_vdelete(void *arg)
 {
    apx_portData_delete((apx_portData_t*) arg);
 }
+
+void apx_portData_insertRequirePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo)
+{
+   if (self != 0)
+   {
+      adt_ary_push(&self->requirePortInfo, (void*) portInfo);
+   }
+}
+
+void apx_portData_insertProvidePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo)
+{
+   if (self != 0)
+   {
+      adt_ary_push(&self->providePortInfo, (void*) portInfo);
+   }
+}
+
+void apx_portData_removeRequirePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo)
+{
+   if (self != 0)
+   {
+      int32_t i;
+      int32_t length = adt_ary_length(&self->requirePortInfo);
+      for (i=0; i<length; i++)
+      {
+         const apx_portInfo_t *elem = (const apx_portInfo_t*) adt_ary_value(&self->requirePortInfo, i);
+         if (elem == portInfo)
+         {
+            adt_ary_splice(&self->requirePortInfo, i, 1);
+            break;
+         }
+      }
+   }
+}
+
+void apx_portData_removeProvidePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo)
+{
+   if (self != 0)
+   {
+      int32_t i;
+      int32_t length = adt_ary_length(&self->providePortInfo);
+      for (i=0; i<length; i++)
+      {
+         const apx_portInfo_t *elem = (const apx_portInfo_t*) adt_ary_value(&self->providePortInfo, i);
+         if (elem == portInfo)
+         {
+            adt_ary_splice(&self->providePortInfo, i, 1);
+            break;
+         }
+      }
+   }
+}
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS

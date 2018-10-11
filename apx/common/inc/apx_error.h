@@ -33,6 +33,7 @@
 #define APX_MISSING_FILE_ERROR        21 //RMF code: 521
 #define APX_NAME_ERROR                22 //RMF code: 522 //should this be changed to APX_MISSING_NAME_ERROR?
 #define APX_NAME_TOO_LONG_ERROR       23 //RMF code: 523
+#define APX_NOT_FOUND_ERROR           24 //RMF code: 524
 
 #define RMF_APX_NO_ERROR                  500
 #define RMF_APX_INVALID_ARGUMENT_ERROR    501
@@ -58,6 +59,7 @@
 #define RMF_APX_MISSING_FILE_ERROR        521
 #define RMF_APX_NAME_ERROR                522
 #define RMF_APX_NAME_TOO_LONG_ERROR       523
+#define RMF_APX_NOT_FOUND_ERROR           524
 
 typedef int32_t apx_error_t;
 

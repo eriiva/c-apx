@@ -28,7 +28,6 @@
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_portDataMap.h"
-#include "apx_portData.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
@@ -48,6 +47,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+
 void apx_portDataMap_create(apx_portDataMap_t *self)
 {
    if (self != 0)
@@ -66,8 +66,67 @@ void apx_portDataMap_destroy(apx_portDataMap_t *self)
       MUTEX_UNLOCK(self->mutex);
       MUTEX_DESTROY(self->mutex);
    }
-
 }
+
+apx_portData_t *apx_portDataMap_insert(apx_portDataMap_t *self, const char *portSignature, apx_size_t dataSize)
+{
+   if ( (self != 0) && (portSignature != 0) && (dataSize > 0) )
+   {
+      apx_portData_t *portData = apx_portData_new(portSignature, dataSize);
+      if (portData != 0)
+      {
+         adt_hash_set(&self->internalMap, portSignature, 0, portData);
+      }
+      return portData;
+   }
+   return (apx_portData_t*) 0;
+}
+
+apx_portData_t *apx_portDataMap_find(apx_portDataMap_t *self, const char *portSignature)
+{
+   if ( (self != 0) && (portSignature != 0) )
+   {
+      void **ppResult = adt_hash_get(&self->internalMap, portSignature, 0);
+      if (ppResult != 0)
+      {
+         return (apx_portData_t*) *ppResult;
+      }
+   }
+   return (apx_portData_t*) 0;
+}
+
+apx_error_t apx_portDataMap_remove(apx_portDataMap_t *self, const char *portSignature)
+{
+   if ( (self != 0) && (portSignature != 0) )
+   {
+      void **ppResult = adt_hash_remove(&self->internalMap, portSignature, 0);
+      if (ppResult != 0)
+      {
+         apx_portData_t *portData = (apx_portData_t*) *ppResult;
+         apx_portData_delete(portData);
+         return APX_NO_ERROR;
+      }
+      return APX_NOT_FOUND_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+void apx_portDataMap_lock(apx_portDataMap_t *self)
+{
+   if (self != 0)
+   {
+      MUTEX_LOCK(self->mutex);
+   }
+}
+
+void apx_portDataMap_unlock(apx_portDataMap_t *self)
+{
+   if (self != 0)
+   {
+      MUTEX_UNLOCK(self->mutex);
+   }
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
