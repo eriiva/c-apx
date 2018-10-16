@@ -25,4 +25,13 @@
 # define APX_PORT_ID_TYPE int32_t //valid selections are: int8_t, int16_t and int32_t. int32_t is default
 #endif
 
+#ifndef APX_MAX_NUM_MESSAGES
+# define APX_MAX_NUM_MESSAGES 1000
+#endif
+
+
+#ifndef APX_MAX_NUM_EVENTS
+# define APX_MAX_NUM_EVENTS 1000
+#endif
+
 #endif //APX_CFG_H

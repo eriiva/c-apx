@@ -592,9 +592,8 @@ static void apx_fileManager_processOpenFixedFile(apx_fileManager_t *self, apx_fi
 static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const apx_file2_t *file, void *caller)
 {
    adt_list_elem_t *pIter;
-   MUTEX_LOCK(self->mutex);
+   MUTEX_LOCK(self->eventListenerMutex);
    pIter = adt_list_iter_first(&self->eventListeners);
-   MUTEX_UNLOCK(self->eventListenerMutex);
    while (pIter != 0)
    {
       apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;

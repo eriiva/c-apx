@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_fileManagerCommon.h
+* \file      apx_eventLoop.h
 * \author    Conny Gustafsson
-* \date      2018-08-02
-* \brief     APX FileManager common definitions
+* \date      2018-10-15
+* \brief     APX event loop
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,42 +23,56 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_FILE_MANAGER_COMMON_H
-#define APX_FILE_MANAGER_COMMON_H
+#ifndef APX_EVENT_LOOP_H
+#define APX_EVENT_LOOP_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_types.h"
+#include "apx_error.h"
+#include "apx_eventListener.h"
+#ifdef _WIN32
+# ifndef WIN32_LEAN_AND_MEAN
+# define WIN32_LEAN_AND_MEAN
+# endif
+# include <Windows.h>
+#else
+# include <pthread.h>
+# include <semaphore.h>
+#endif
+#include "osmacro.h"
+#include "adt_ringbuf.h"
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-
-//forward declarations
-struct apx_nodeData_tag;
-struct apx_nodeManager_tag;
-struct apx_serverEventRecorder_tag;
-struct apx_serverEventPlayer_tag;
-struct apx_clientEventRecorder_tag;
-struct apx_clientEventPlayer_tag;
-struct apx_file2_tag;
-
-#define APX_FILEMANAGER_CLIENT_MODE 0
-#define APX_FILEMANAGER_SERVER_MODE 1
-
-
-typedef struct apx_serverEventContainer_tag
+typedef struct apx_eventLoop_tag
 {
-   struct apx_serverEventRecorder_tag *recorder;
-   struct apx_serverEventPlayer_tag *player;
-}apx_serverEventContainer_t;
+   SPINLOCK_T lock;
+   THREAD_T workerThread;
+   SEMAPHORE_T semaphore;
+   adt_rbfs_t pendingEvents;
+   bool workerThreadValid;
+   bool workerThreadRun;
+   uint8_t *ringbufferData;
+   uint32_t ringbufferLen;
+} apx_eventLoop_t;
 
-typedef struct apx_clientEventContainer_tag
-{
-   struct apx_clientEventRecorder_tag *recorder;
-   struct apx_clientEventPlayer_tag *player;
-}apx_clientEventContainer_t;
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+apx_error_t apx_eventLoop_create(apx_eventLoop_t *self);
+void apx_eventLoop_destroy(apx_eventLoop_t *self);
+apx_eventLoop_t *apx_eventLoop_new(void);
+void apx_eventLoop_delete(apx_eventLoop_t *self);
+void apx_eventLoop_start(apx_eventLoop_t *self);
+void apx_eventLoop_stop(apx_eventLoop_t *self);
+void apx_eventLoop_emitConnected(apx_eventLoop_t *self, apx_eventListener_connectedFn_t *handler, void *arg, struct apx_fileManager_tag *fileManager);
 
+#ifdef UNIT_TEST
+void apx_eventLoop_run(apx_eventLoop_t *self);
+#endif
 
-#endif //APX_FILE_MANAGER_COMMON_H
+#endif //APX_EVENT_LOOP_H

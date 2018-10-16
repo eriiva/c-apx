@@ -69,6 +69,8 @@ typedef struct apx_nodeDataEventListener_tag
    void (*nodeComplete)(void *arg, struct apx_nodeData_tag *nodeData);
 }apx_nodeDataEventListener_t;
 
+typedef void (apx_eventListener_connectedFn_t)(void *arg, struct apx_fileManager_tag *fileManager);
+typedef void (apx_eventListener_disconnectedFn_t)(void *arg, struct apx_fileManager_tag *fileManager);
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
