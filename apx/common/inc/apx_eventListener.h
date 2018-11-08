@@ -45,8 +45,8 @@ struct apx_nodeData_tag;
 typedef struct apx_fileManagerEventListener_tag
 {
    void *arg;
-   void (*fileManagerStop)(void *arg, struct apx_fileManager_tag *fileManager);
-   void (*headerReceived)(void *arg, struct apx_fileManager_tag *fileManager);
+   void (*fileManagerPostStop)(void *arg, struct apx_fileManager_tag *fileManager);
+   void (*headerComplete)(void *arg, struct apx_fileManager_tag *fileManager);
    void (*fileCreate)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file2_tag *file);
    void (*fileRevoke)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file2_tag *file);
    void (*fileOpen)(void *arg, struct apx_fileManager_tag *fileManager, const struct apx_file2_tag *file);
@@ -69,8 +69,10 @@ typedef struct apx_nodeDataEventListener_tag
    void (*nodeComplete)(void *arg, struct apx_nodeData_tag *nodeData);
 }apx_nodeDataEventListener_t;
 
-typedef void (apx_eventListener_connectedFn_t)(void *arg, struct apx_fileManager_tag *fileManager);
-typedef void (apx_eventListener_disconnectedFn_t)(void *arg, struct apx_fileManager_tag *fileManager);
+typedef void (apx_eventListener_connectedFunc_t)(void *arg, struct apx_fileManager_tag *fileManager);
+typedef void (apx_eventListener_disconnectedFunc_t)(void *arg, struct apx_fileManager_tag *fileManager);
+typedef void (apx_eventListener_fileManagerStartFunc_t)(void *arg, struct apx_fileManager_tag *fileManager);
+typedef void (apx_eventListener_fileManagerStopFunc_t)(void *arg, struct apx_fileManager_tag *fileManager);
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES

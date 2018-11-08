@@ -31,7 +31,7 @@
 #include <string.h>
 #include "apx_serverBaseConnection.h"
 #include "bstr.h"
-#include "headerutil.h"
+#include "numheader.h"
 #include "apx_fileManager.h"
 #include "apx_eventListener.h"
 #include "apx_logging.h"
@@ -70,18 +70,25 @@ apx_error_t apx_serverBaseConnection_create(apx_serverBaseConnection_t *self, ui
 {
    if (self != 0)
    {
-      int8_t result;
+      adt_buf_err_t bufResult;
+      int8_t i8result;
       self->connectionId = connectionId;
       self->server = server;
       self->vtable.destructor = destructor;
       self->numHeaderLen = (int8_t) sizeof(uint32_t);
       apx_nodeDataManager_create(&self->nodeDataManager);
-      result = apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE, connectionId);
-      if (result != 0)
+      bufResult = apx_eventLoop_create(&self->eventLoop);
+      if (bufResult != BUF_E_OK)
+      {
+         apx_nodeDataManager_destroy(&self->nodeDataManager);
+         return APX_MEM_ERROR;
+      }
+      i8result = apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE, connectionId, &self->eventLoop);
+      if (i8result != 0)
       {
          apx_nodeDataManager_destroy(&self->nodeDataManager);
       }
-      return result;
+      return i8result;
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }
@@ -91,6 +98,7 @@ void apx_serverBaseConnection_destroy(apx_serverBaseConnection_t *self)
    if (self != 0)
    {
       apx_fileManager_destroy(&self->fileManager);
+      apx_eventLoop_destroy(&self->eventLoop);
       apx_nodeDataManager_destroy(&self->nodeDataManager);
    }
 }
@@ -172,6 +180,17 @@ void apx_serverBaseConnection_start(apx_serverBaseConnection_t *self)
    }
 }
 
+#ifdef UNIT_TEST
+void apx_serverBaseConnection_run(apx_serverBaseConnection_t *self)
+{
+   if (self != 0)
+   {
+      apx_eventLoop_run(&self->eventLoop);
+   }
+}
+#endif
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
@@ -238,7 +257,7 @@ static uint8_t apx_serverBaseConnection_parseMessage(apx_serverBaseConnection_t 
    const uint8_t *pResult;
    const uint8_t *pEnd = dataBuf+dataLen;
    const uint8_t *pNext = pBegin;
-   pResult = headerutil_numDecode32(pNext, pEnd, &msgLen);
+   pResult = numheader_decode32(pNext, pEnd, &msgLen);
    if (pResult>pNext)
    {
       uint32_t headerLen = (uint32_t) (pResult-pNext);

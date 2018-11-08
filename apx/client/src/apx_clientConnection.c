@@ -9,7 +9,7 @@
 #include "apx_clientConnection.h"
 #include "apx_client.h"
 #include "apx_transmitHandler.h"
-#include "headerutil.h"
+#include "numheader.h"
 #include "apx_fileManager.h"
 #include "apx_nodeManager.h"
 #ifdef UNIT_TEST
@@ -86,7 +86,7 @@ int8_t apx_clientConnection_create(apx_clientConnection_t *self, struct apx_clie
       self->client = client;
       self->maxMsgHeaderSize = (uint8_t) sizeof(uint32_t);
       self->isConnected = false;
-      apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_CLIENT_MODE, 0);
+      apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_CLIENT_MODE, 0, NULL);
       adt_bytearray_create(&self->sendBuffer, SEND_BUFFER_GROW_SIZE);
       SPINLOCK_INIT(self->lock);
       return 0;
@@ -319,7 +319,7 @@ static int8_t apx_clientConnection_parseMessage(apx_clientConnection_t *self, co
    const uint8_t *pResult;
    const uint8_t *pEnd = dataBuf+dataLen;
    const uint8_t *pNext = pBegin;
-   pResult = headerutil_numDecode32(pNext, pEnd, &msgLen);
+   pResult = numheader_decode32(pNext, pEnd, &msgLen);
    if (pResult>pNext)
    {
       uint32_t headerLen = (uint32_t) (pResult-pNext);
@@ -413,7 +413,7 @@ static int32_t apx_clientConnection_send(void *arg, int32_t offset, int32_t msgL
          uint8_t *pBegin;
          if (self->maxMsgHeaderSize == (uint8_t) sizeof(uint32_t))
          {
-            headerEnd = headerutil_numEncode32(header, (uint32_t) sizeof(header), msgLen);
+            headerEnd = header+numheader_encode32(header, (uint32_t) sizeof(header), msgLen);
             if (headerEnd>header)
             {
                headerLen=headerEnd-header;

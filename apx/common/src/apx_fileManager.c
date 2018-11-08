@@ -35,6 +35,7 @@
 #include "apx_msg.h"
 #include "apx_logging.h"
 #include "apx_file2.h"
+#include "apx_event.h"
 #include "pack.h"
 
 
@@ -45,8 +46,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void apx_fileManager_triggerHeaderReceivedEvent(apx_fileManager_t *self);
-static void apx_fileManager_triggerStoppedEvent(apx_fileManager_t *self);
+
+
 static int8_t apx_fileManager_startWorkerThread(apx_fileManager_t *self);
 static void apx_fileManager_stopWorkerThread(apx_fileManager_t *self);
 static void apx_fileManager_triggerSendAcknowledge(apx_fileManager_t *self);
@@ -56,9 +57,16 @@ static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file2_ta
 static void apx_fileManager_sendFileOpen(void *arg, const apx_file2_t *file, void *caller);
 static void apx_fileManager_openFileRequest(void *arg, uint32_t address);
 static void apx_fileManager_processOpenFixedFile(apx_fileManager_t *self, apx_file2_t *localFile);
-static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const apx_file2_t *file, void *caller);
 static void apx_fileManager_sendFixedFile(apx_fileManager_t *self, const apx_file2_t *file);
 static void apx_fileManager_sendInvalidReadHandler(apx_fileManager_t *self, uint32_t address);
+
+//these functions are called from (external) eventLoop thread
+static void apx_fileManagerEvent_onPostStop(apx_fileManager_t *self);
+static void apx_fileManagerEvent_onHeaderComplete(apx_fileManager_t *self);
+static void apx_fileManagerEvent_onFileCreated(apx_fileManager_t *self, apx_file2_t *file, const void *caller);
+static void apx_fileManagerEvent_onFileRevoked(apx_fileManager_t *self, apx_file2_t *file, const void *caller);
+static void apx_fileManagerEvent_onFileOpened(apx_fileManager_t *self, const apx_file2_t *file, const void *caller);
+static void apx_fileManagerEvent_onFileClosed(apx_fileManager_t *self, const apx_file2_t *file, const void *caller);
 
 static THREAD_PROTO(workerThread,arg);
 static bool workerThread_processMessage(apx_fileManager_t *self, apx_msg_t *msg);
@@ -75,27 +83,27 @@ static void workerThread_readFile(apx_fileManager_t *self, apx_msg_t *msg);
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t connectionId)
+int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t connectionId, apx_eventLoop_t *eventLoop)
 {
    if (self != 0)
    {
-      int8_t result;
-      size_t numItems = APX_MAX_NUM_MESSAGES;
-      size_t elemSize = RMF_MSG_SIZE;
-      self->ringbufferLen = numItems;
-      self->ringbufferData = (uint8_t*) malloc(numItems*elemSize);
+      int8_t i8Result;
+      adt_buf_err_t bufResult;
 
-      if (self->ringbufferData == 0)
+      bufResult = adt_rbfh_create(&self->messages, (uint8_t) RMF_MSG_SIZE);
+
+      if (bufResult != BUF_E_OK)
       {
-         return -1;
+         return APX_MEM_ERROR;
       }
-      adt_rbfs_create(&self->messages, self->ringbufferData,(uint16_t) numItems,(uint8_t) elemSize);
-      result = apx_fileManagerShared_create(&self->shared, connectionId);
-      if (result == 0)
+
+      i8Result = apx_fileManagerShared_create(&self->shared, connectionId);
+      if (i8Result == 0)
       {
          apx_fileManagerRemote_create(&self->remote, &self->shared);
          apx_fileManagerLocal_create(&self->local, &self->shared);
          adt_list_create(&self->eventListeners, apx_fileManagerEventListener_vdelete);
+         self->eventLoop = eventLoop;
          self->mode = mode;
          self->shared.arg = self;
          self->shared.fileCreated = apx_fileManager_fileCreatedCbk;
@@ -117,9 +125,9 @@ int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t co
       }
       else
       {
-         free(self->ringbufferData);
+         adt_rbfh_destroy(&self->messages);
       }
-      return result;
+      return i8Result;
    }
    return -1;
 }
@@ -139,10 +147,7 @@ void apx_fileManager_destroy(apx_fileManager_t *self)
       MUTEX_DESTROY(self->mutex);
       MUTEX_DESTROY(self->eventListenerMutex);
       SPINLOCK_DESTROY(self->lock);
-      if (self->ringbufferData != 0)
-      {
-         free(self->ringbufferData);
-      }
+      adt_rbfh_destroy(&self->messages);
    }
 }
 
@@ -239,7 +244,7 @@ void apx_fileManager_stop(apx_fileManager_t *self)
    if (self != 0)
    {
       apx_fileManager_stopWorkerThread(self);
-      apx_fileManager_triggerStoppedEvent(self);
+      apx_eventLoop_emitInternalFileManagerPostStop(self->eventLoop, self);
    }
 }
 void apx_fileManager_onHeaderReceived(apx_fileManager_t *self)
@@ -248,7 +253,7 @@ void apx_fileManager_onHeaderReceived(apx_fileManager_t *self)
    {
       assert(self->mode == APX_FILEMANAGER_SERVER_MODE);
       self->shared.isConnected = true;
-      apx_fileManager_triggerHeaderReceivedEvent(self);
+      apx_eventLoop_emitInternalRmfHeaderComplete(self->eventLoop, self);
       apx_fileManager_triggerSendAcknowledge(self);
       apx_fileManagerLocal_sendFileInfo(&self->local);
    }
@@ -315,7 +320,7 @@ void apx_fileManager_sendFileAlreadyExistsError(apx_fileManager_t *self, apx_fil
       msg.msgData1 = file->fileInfo.address;
       msg.msgData3 = STRDUP(file->fileInfo.name);
       SPINLOCK_ENTER(self->lock);
-      adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+      adt_rbfh_insert(&self->messages, (const uint8_t*) &msg);
       SPINLOCK_LEAVE(self->lock);
       SEMAPHORE_POST(self->semaphore);
    }
@@ -346,9 +351,37 @@ void apx_fileManager_sendApxErrorCode(apx_fileManager_t *self, uint32_t errorCod
       apx_msg_t msg = {APX_MSG_ERROR_CODE, 0, 0, 0, 0};
       msg.msgData1 = errorCode;
       SPINLOCK_ENTER(self->lock);
-      adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+      adt_rbfh_insert(&self->messages, (const uint8_t*) &msg);
       SPINLOCK_LEAVE(self->lock);
       SEMAPHORE_POST(self->semaphore);
+   }
+}
+
+/**
+ * This is called by the event loop thread
+ */
+void apx_fileManager_onInternalEvent(apx_fileManager_t *self, struct apx_event_tag *event)
+{
+   if ( (self != 0) && (event != 0) )
+   {
+      switch(event->evType)
+      {
+      case APX_EVENT_RMF_HEADER_COMPLETE:
+         apx_fileManagerEvent_onHeaderComplete(self);
+         break;
+      case APX_EVENT_RMF_FILE_CREATED:
+         apx_fileManagerEvent_onFileCreated(self, (apx_file2_t*) event->evData2, (const void*) event->evData3);
+         break;
+      case APX_EVENT_RMF_FILE_REVOKED:
+         apx_fileManagerEvent_onFileRevoked(self, (apx_file2_t*) event->evData2, (const void*) event->evData3);
+         break;
+      case APX_EVENT_RMF_FILE_OPENED:
+         apx_fileManagerEvent_onFileOpened(self, (const apx_file2_t*) event->evData2, (const void*) event->evData3);
+         break;
+      case APX_EVENT_RMF_FILE_CLOSED:
+         apx_fileManagerEvent_onFileClosed(self, (const apx_file2_t*) event->evData2, (const void*) event->evData3);
+         break;
+      }
    }
 }
 
@@ -358,10 +391,10 @@ bool apx_fileManager_run(apx_fileManager_t *self)
 {
    if (self != 0)
    {
-      if (adt_rbfs_size(&self->messages) > 0)
+      if (adt_rbfh_length(&self->messages) > 0)
       {
          apx_msg_t msg;
-         adt_rbfs_remove(&self->messages,(uint8_t*) &msg);
+         adt_rbfh_remove(&self->messages,(uint8_t*) &msg);
          return workerThread_processMessage(self, &msg);
       }
    }
@@ -372,7 +405,7 @@ int32_t apx_fileManager_numPendingMessages(apx_fileManager_t *self)
 {
    if (self != 0)
    {
-      return (int32_t) adt_rbfs_size(&self->messages);
+      return (int32_t) adt_rbfh_length(&self->messages);
    }
    return -1;
 }
@@ -382,47 +415,6 @@ int32_t apx_fileManager_numPendingMessages(apx_fileManager_t *self)
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-
-static void apx_fileManager_triggerHeaderReceivedEvent(apx_fileManager_t *self)
-{
-   if (self != 0)
-   {
-      MUTEX_LOCK(self->eventListenerMutex);
-      adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
-      while (pIter != 0)
-      {
-         apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
-         assert(listener != 0);
-         if (listener->headerReceived != 0)
-         {
-            listener->headerReceived(listener->arg, self);
-         }
-         pIter = adt_list_iter_next(pIter);
-      }
-      MUTEX_UNLOCK(self->eventListenerMutex);
-   }
-}
-
-static void apx_fileManager_triggerStoppedEvent(apx_fileManager_t *self)
-{
-   if (self != 0)
-   {
-      MUTEX_LOCK(self->eventListenerMutex);
-      adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
-      while (pIter != 0)
-      {
-         apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
-         assert(listener != 0);
-         if (listener->fileManagerStop != 0)
-         {
-            listener->fileManagerStop(listener->arg, self);
-         }
-         pIter = adt_list_iter_next(pIter);
-      }
-      MUTEX_UNLOCK(self->eventListenerMutex);
-   }
-}
-
 static int8_t apx_fileManager_startWorkerThread(apx_fileManager_t *self)
 {
    if( self->workerThreadValid == false ){
@@ -455,7 +447,7 @@ static void apx_fileManager_stopWorkerThread(apx_fileManager_t *self)
    #endif
          apx_msg_t msg = {APX_MSG_EXIT,0,0,0,0}; //{msgType, sender, msgData1, msgData2, msgData3}
          SPINLOCK_ENTER(self->lock);
-         adt_rbfs_insert(&self->messages,(const uint8_t*) &msg);
+         adt_rbfh_insert(&self->messages,(const uint8_t*) &msg);
          SPINLOCK_LEAVE(self->lock);
          SEMAPHORE_POST(self->semaphore);
    #ifdef _MSC_VER
@@ -494,7 +486,7 @@ static void apx_fileManager_triggerSendAcknowledge(apx_fileManager_t *self)
 {
    apx_msg_t msg = {APX_MSG_SEND_ACKNOWLEDGE, 0, 0, 0, 0};
    SPINLOCK_ENTER(self->lock);
-   adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+   adt_rbfh_insert(&self->messages, (const uint8_t*) &msg);
    SPINLOCK_LEAVE(self->lock);
    SEMAPHORE_POST(self->semaphore);
 }
@@ -504,19 +496,7 @@ static void apx_fileManager_fileCreatedCbk(void *arg, const struct apx_file2_tag
    apx_fileManager_t *self = (apx_fileManager_t *) arg;
    if (self != 0)
    {
-      MUTEX_LOCK(self->eventListenerMutex);
-      adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
-      while (pIter != 0)
-      {
-         apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
-         assert(listener != 0);
-         if (listener->fileCreate != 0)
-         {
-            listener->fileCreate(listener->arg, self, (struct apx_file2_tag*) pFile);
-         }
-         pIter = adt_list_iter_next(pIter);
-      }
-      MUTEX_UNLOCK(self->eventListenerMutex);
+      apx_eventLoop_emitInternalFileCreated(self->eventLoop, self, (apx_file2_t*) pFile, NULL);
    }
 }
 
@@ -528,7 +508,7 @@ static void apx_fileManager_sendFileInfoCbk(void *arg, const struct apx_file2_ta
       apx_msg_t msg = {APX_MSG_SEND_FILEINFO, 0, 0, 0, 0};
       msg.msgData3 = (void*) &pFile->fileInfo;
       SPINLOCK_ENTER(self->lock);
-      adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+      adt_rbfh_insert(&self->messages, (const uint8_t*) &msg);
       SPINLOCK_LEAVE(self->lock);
       SEMAPHORE_POST(self->semaphore);
    }
@@ -545,10 +525,10 @@ static void apx_fileManager_sendFileOpen(void *arg, const apx_file2_t *file, voi
       apx_msg_t msg = {APX_MSG_SEND_FILE_OPEN, 0, 0, 0, 0};
       msg.msgData1 = file->fileInfo.address;
       SPINLOCK_ENTER(self->lock);
-      adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+      adt_rbfh_insert(&self->messages, (const uint8_t*) &msg);
       SPINLOCK_LEAVE(self->lock);
       SEMAPHORE_POST(self->semaphore);
-      apx_fileManager_triggerFileOpenEvent(self, file, caller);
+      apx_eventLoop_emitInternalFileOpened(self->eventLoop, self, file, caller);
    }
 }
 
@@ -581,30 +561,12 @@ static void apx_fileManager_processOpenFixedFile(apx_fileManager_t *self, apx_fi
    {
       apx_file2_open(localFile);
       apx_fileManager_sendFixedFile(self, localFile);
-      apx_fileManager_triggerFileOpenEvent(self, localFile, NULL);
+      apx_eventLoop_emitInternalFileOpened(self->eventLoop, self, localFile, NULL);
    }
    else
    {
       apx_fileManager_sendInvalidReadHandler(self, localFile->fileInfo.address);
    }
-}
-
-static void apx_fileManager_triggerFileOpenEvent(apx_fileManager_t *self, const apx_file2_t *file, void *caller)
-{
-   adt_list_elem_t *pIter;
-   MUTEX_LOCK(self->eventListenerMutex);
-   pIter = adt_list_iter_first(&self->eventListeners);
-   while (pIter != 0)
-   {
-      apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
-      assert(listener != 0);
-      if ( (caller != listener) && (listener->fileOpen != 0) )
-      {
-         listener->fileOpen(listener->arg, self, file);
-      }
-      pIter = adt_list_iter_next(pIter);
-   }
-   MUTEX_UNLOCK(self->eventListenerMutex);
 }
 
 static void apx_fileManager_sendFixedFile(apx_fileManager_t *self, const apx_file2_t *file)
@@ -614,7 +576,7 @@ static void apx_fileManager_sendFixedFile(apx_fileManager_t *self, const apx_fil
    msg.msgData2 = file->fileInfo.length;
    msg.msgData3 = (void*) file;
    SPINLOCK_ENTER(self->lock);
-   adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+   adt_rbfh_insert(&self->messages, (const uint8_t*) &msg);
    SPINLOCK_LEAVE(self->lock);
    SEMAPHORE_POST(self->semaphore);
 }
@@ -624,10 +586,125 @@ static void apx_fileManager_sendInvalidReadHandler(apx_fileManager_t *self, uint
    apx_msg_t msg = {APX_MSG_ERROR_INVALID_READ_HANDLER, 0, 0, 0, 0};
    msg.msgData1 = address;
    SPINLOCK_ENTER(self->lock);
-   adt_rbfs_insert(&self->messages, (const uint8_t*) &msg);
+   adt_rbfh_insert(&self->messages, (const uint8_t*) &msg);
    SPINLOCK_LEAVE(self->lock);
    SEMAPHORE_POST(self->semaphore);
 }
+
+/*** Internal events ***/
+
+static void apx_fileManagerEvent_onPostStop(apx_fileManager_t *self)
+{
+   if (self != 0)
+   {
+      MUTEX_LOCK(self->eventListenerMutex);
+      adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
+      while (pIter != 0)
+      {
+         apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
+         assert(listener != 0);
+         if (listener->fileManagerPostStop != 0)
+         {
+            listener->fileManagerPostStop(listener->arg, self);
+         }
+         pIter = adt_list_iter_next(pIter);
+      }
+      MUTEX_UNLOCK(self->eventListenerMutex);
+   }
+}
+
+static void apx_fileManagerEvent_onHeaderComplete(apx_fileManager_t *self)
+{
+   if (self != 0)
+   {
+      MUTEX_LOCK(self->eventListenerMutex);
+      adt_list_elem_t *pIter = adt_list_iter_first(&self->eventListeners);
+      while (pIter != 0)
+      {
+         apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
+         assert(listener != 0);
+         if (listener->headerComplete != 0)
+         {
+            listener->headerComplete(listener->arg, self);
+         }
+         pIter = adt_list_iter_next(pIter);
+      }
+      MUTEX_UNLOCK(self->eventListenerMutex);
+   }
+}
+
+static void apx_fileManagerEvent_onFileCreated(apx_fileManager_t *self, apx_file2_t *file, const void *caller)
+{
+   adt_list_elem_t *pIter;
+   MUTEX_LOCK(self->eventListenerMutex);
+   pIter = adt_list_iter_first(&self->eventListeners);
+   while (pIter != 0)
+   {
+      apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
+      assert(listener != 0);
+      if ( (caller != (const void*) listener) && (listener->fileCreate != 0) )
+      {
+         listener->fileCreate(listener->arg, self, file);
+      }
+      pIter = adt_list_iter_next(pIter);
+   }
+   MUTEX_UNLOCK(self->eventListenerMutex);
+}
+
+static void apx_fileManagerEvent_onFileRevoked(apx_fileManager_t *self, apx_file2_t *file, const void *caller)
+{
+   adt_list_elem_t *pIter;
+   MUTEX_LOCK(self->eventListenerMutex);
+   pIter = adt_list_iter_first(&self->eventListeners);
+   while (pIter != 0)
+   {
+      apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
+      assert(listener != 0);
+      if ( (caller != (const void*) listener) && (listener->fileRevoke != 0) )
+      {
+         listener->fileRevoke(listener->arg, self, file);
+      }
+      pIter = adt_list_iter_next(pIter);
+   }
+   MUTEX_UNLOCK(self->eventListenerMutex);
+}
+
+static void apx_fileManagerEvent_onFileOpened(apx_fileManager_t *self, const apx_file2_t *file, const void *caller)
+{
+   adt_list_elem_t *pIter;
+   MUTEX_LOCK(self->eventListenerMutex);
+   pIter = adt_list_iter_first(&self->eventListeners);
+   while (pIter != 0)
+   {
+      apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
+      assert(listener != 0);
+      if ( (caller != (const void*) listener) && (listener->fileOpen != 0) )
+      {
+         listener->fileOpen(listener->arg, self, file);
+      }
+      pIter = adt_list_iter_next(pIter);
+   }
+   MUTEX_UNLOCK(self->eventListenerMutex);
+}
+
+static void apx_fileManagerEvent_onFileClosed(apx_fileManager_t *self, const apx_file2_t *file, const void *caller)
+{
+   adt_list_elem_t *pIter;
+   MUTEX_LOCK(self->eventListenerMutex);
+   pIter = adt_list_iter_first(&self->eventListeners);
+   while (pIter != 0)
+   {
+      apx_fileManagerEventListener_t *listener = (apx_fileManagerEventListener_t*) pIter->pItem;
+      assert(listener != 0);
+      if ( (caller != (const void*) listener) && (listener->fileClose != 0) )
+      {
+         listener->fileClose(listener->arg, self, file);
+      }
+      pIter = adt_list_iter_next(pIter);
+   }
+   MUTEX_UNLOCK(self->eventListenerMutex);
+}
+
 
 /*** workerThread functions ***/
 
@@ -652,7 +729,7 @@ static THREAD_PROTO(workerThread,arg)
 #endif
          {
             SPINLOCK_ENTER(self->lock);
-            adt_rbfs_remove(&self->messages,(uint8_t*) &msg);
+            adt_rbfh_remove(&self->messages,(uint8_t*) &msg);
             SPINLOCK_LEAVE(self->lock);
             if (!workerThread_processMessage(self, &msg))
             {

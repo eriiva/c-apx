@@ -35,11 +35,9 @@ typedef struct apx_allocator_tag
    SEMAPHORE_T semaphore; //thread semaphore
 
    //data object, all read/write accesses to these must be protected by the lock variable above
-   adt_rbfs_t messages; //pending messages (ringbuffer)
+   adt_rbfh_t messages; //pending cleanup messages (ringbuffer)
    bool isRunning; //when false it's time do shut down
    bool workerThreadValid; //true if workerThread is a valid variable
-   uint8_t *ringBufferData; //memory for ringbuffer
-   uint32_t ringBufferLen; //number of items in ringbuffer
    soa_t soa;
 
 #ifdef _MSC_VER

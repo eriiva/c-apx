@@ -44,7 +44,9 @@ static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_
 static apx_serverSocketConnection_t *apx_server_create_new_connection(apx_server_t *self, SOCKET_TYPE *sock);
 //static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 //static void apx_server_disconnected(void *arg);
+#ifndef UNIT_TEST
 static void apx_server_cleanup_connection(apx_serverBaseConnection_t *connection);
+#endif
 static uint32_t apx_server_generate_connection_id(apx_server_t *self);
 static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_fileManager_t *fileManager);
 
@@ -127,6 +129,21 @@ void apx_server_registerConnectionEventListener(apx_server_t *self, apx_connecti
 }
 
 #ifdef UNIT_TEST
+
+void apx_server_run(apx_server_t *self)
+{
+   if (self != 0)
+   {
+      adt_list_elem_t *it = adt_list_iter_first(&self->connections);
+      while(it != 0)
+      {
+         apx_serverBaseConnection_t *baseConnection = (apx_serverBaseConnection_t*) it->pItem;
+         apx_serverBaseConnection_run(baseConnection);
+         it = adt_list_iter_next(it);
+      }
+   }
+}
+
 void apx_server_acceptTestSocket(apx_server_t *self, testsocket_t *socket)
 {
    apx_server_accept((void*) self, (struct msocket_server_tag*) 0, socket);
@@ -261,11 +278,11 @@ static void apx_server_disconnected(void *arg)
       MUTEX_UNLOCK(server->lock);
    }
 }
-#endif
+
 
 static void apx_server_cleanup_connection(apx_serverBaseConnection_t *connection)
 {
-#ifndef UNIT_TEST
+
    switch (connection->socketObject->addressFamily)
    {
       APX_LOG_INFO("[APX_SERVER] Client (%p) disconnected", (void*)connection);
@@ -281,9 +298,9 @@ static void apx_server_cleanup_connection(apx_serverBaseConnection_t *connection
       default:
          break;
    }
-#endif
 }
 
+#endif //UNIT_TEST
 /**
  * Generates a unique connection ID by comparing ID candidates against its internal set data structure
  * This function assumes that APX_SERVER_MAX_CONCURRENT_CONNECTIONS is much less than 2^32-1 and that the caller has previously checked that

@@ -64,7 +64,7 @@ int32_t numheader_encode16(uint8_t *buf, int32_t maxBufLen, uint16_t value)
    }
    if (value <= NUMHEADER16_MAX_NUM_SHORT)
    {
-      retval = 1u;
+      retval = NUMHEADER16_SHORT_SIZE;
       buf[0]=(uint8_t) value; //encode 1-byte word with longbit set to 0
    }
    else
@@ -73,7 +73,7 @@ int32_t numheader_encode16(uint8_t *buf, int32_t maxBufLen, uint16_t value)
       {
          return -1;
       }
-      retval = NUMHEADER16_SIZE;
+      retval = NUMHEADER16_LONG_SIZE;
       //use the following trick to store values 32768-32895 into the 2-byte header as value 0-127 with longbit set to 1
       if(value>(uint16_t)32767u)
       {
@@ -135,7 +135,7 @@ int32_t numheader_encode32(uint8_t *buf, int32_t maxBufLen, uint32_t value)
    }
    if (value <= NUMHEADER32_MAX_NUM_SHORT)
    {
-      retval = 1u;
+      retval = NUMHEADER32_SHORT_SIZE;
       buf[0]=(uint8_t) value; //encode 1-byte word with longbit set to 0
    }
    else
@@ -144,7 +144,7 @@ int32_t numheader_encode32(uint8_t *buf, int32_t maxBufLen, uint32_t value)
       {
          return -1; //buffer to small
       }
-      retval = NUMHEADER32_SIZE;
+      retval = NUMHEADER32_LONG_SIZE;
       value |= 0x80000000; //activate long bit (highest significant bit)
       packBE(&buf[0], value, (uint8_t) sizeof(uint32_t));
    }

@@ -36,11 +36,13 @@
 //////////////////////////////////////////////////////////////////////////////
 #define NUMHEADER16_MAX_NUM_SHORT ((uint16_t) 127u)
 #define NUMHEADER16_MAX_NUM_LONG ((uint16_t) 32895u) //128+32767
-#define NUMHEADER16_SIZE 2u
+#define NUMHEADER16_SHORT_SIZE 1u
+#define NUMHEADER16_LONG_SIZE 2u
 
 #define NUMHEADER32_MAX_NUM_SHORT ((uint32_t) 127u)
 #define NUMHEADER32_MAX_NUM_LONG ((uint32_t) 2147483647ul) //should be the same as INT_MAX
-#define NUMHEADER32_SIZE 4u
+#define NUMHEADER32_SHORT_SIZE 1u
+#define NUMHEADER32_LONG_SIZE 4u
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES

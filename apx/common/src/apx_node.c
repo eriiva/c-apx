@@ -11,6 +11,7 @@
 #include "apx_types.h"
 #include "adt_ary.h"
 #include "adt_hash.h"
+#include "apx_dataType.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -304,6 +305,16 @@ apx_error_t apx_node_fillPortInitData(apx_node_t *self, apx_port_t *port, adt_by
       {
          return APX_VALUE_ERROR;
       }
+      if (dataElement->baseType == APX_BASE_TYPE_REF_PTR)
+      {
+         apx_datatype_t *datatype = dataElement->typeRef.ptr;
+         if (datatype->dataSignature->dataElement != 0)
+         {
+
+            dataElement = datatype->dataSignature->dataElement;
+         }
+      }
+      assert(dataElement->packLen > 0);
       adt_bytearray_resize(output, dataElement->packLen);
       if (port->portAttributes != 0)
       {

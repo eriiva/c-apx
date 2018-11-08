@@ -86,7 +86,7 @@ CuSuite* testSuite_apx_fileManager(void)
 static void test_apx_fileManager_createInServerMode(CuTest* tc)
 {
    apx_fileManager_t manager;
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT);
+   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
    CuAssertIntEquals(tc, 0, apx_fileManager_getNumEventListeners(&manager));
    apx_fileManager_destroy(&manager);
 }
@@ -94,7 +94,7 @@ static void test_apx_fileManager_createInServerMode(CuTest* tc)
 static void test_apx_fileManager_createInClientMode(CuTest* tc)
 {
    apx_fileManager_t manager;
-   apx_fileManager_create(&manager, APX_FILEMANAGER_CLIENT_MODE, CONNECTION_ID_DEFAULT);
+   apx_fileManager_create(&manager, APX_FILEMANAGER_CLIENT_MODE, CONNECTION_ID_DEFAULT, NULL);
    apx_fileManager_destroy(&manager);
 }
 
@@ -106,12 +106,14 @@ static void test_apx_fileManager_attachLocalFiles(CuTest* tc)
    apx_file2_t *outDataFile;
    apx_fileManagerEventListenerSpy_t spy;
    apx_fileManager_t manager;
+   apx_eventLoop_t loop;
 
+   apx_eventLoop_create(&loop);
    apx_fileManagerEventListenerSpy_create(&spy);
    memset(&listener, 0, sizeof(listener));
    listener.arg = &spy;
    listener.fileCreate = apx_fileManagerEventListenerSpy_fileCreate;
-   apx_fileManager_create(&manager, APX_FILEMANAGER_CLIENT_MODE, CONNECTION_ID_DEFAULT);
+   apx_fileManager_create(&manager, APX_FILEMANAGER_CLIENT_MODE, CONNECTION_ID_DEFAULT, &loop);
    apx_fileManager_registerEventListener(&manager, &listener);
    ApxNode_Init_TestNode1();
    nodeData = ApxNode_GetNodeData_TestNode1();
@@ -123,11 +125,13 @@ static void test_apx_fileManager_attachLocalFiles(CuTest* tc)
    CuAssertIntEquals(tc, 0, apx_fileManager_getNumLocalFiles(&manager));
    apx_fileManager_attachLocalFile(&manager, definitionFile);
    apx_fileManager_attachLocalFile(&manager, outDataFile);
+   apx_eventLoop_run(&loop);
    CuAssertIntEquals(tc, 2, spy.numfileCreateCalls);
    CuAssertIntEquals(tc, 2, apx_fileManager_getNumLocalFiles(&manager));
    CuAssertTrue(tc, !spy.lastFile->isRemoteFile);
    CuAssertTrue(tc, !spy.lastFile->isOpen);
    apx_fileManager_destroy(&manager);
+   apx_eventLoop_destroy(&loop);
 }
 
 static void test_apx_fileManager_registerListener(CuTest* tc)
@@ -136,7 +140,7 @@ static void test_apx_fileManager_registerListener(CuTest* tc)
    apx_fileManagerEventListener_t eventListener;
    void *handle;
    memset(&eventListener, 0, sizeof(eventListener));
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT);
+   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
    CuAssertIntEquals(tc, 0, apx_fileManager_getNumEventListeners(&manager));
    handle = apx_fileManager_registerEventListener(&manager, &eventListener);
    CuAssertIntEquals(tc, 1, apx_fileManager_getNumEventListeners(&manager));
@@ -153,22 +157,27 @@ static void test_apx_fileManager_createRemoteFile(CuTest* tc)
    int32_t msgLen;
    apx_fileManagerEventListenerSpy_t spy;
    apx_fileManager_t manager;
+   apx_eventLoop_t loop;
+
    apx_fileManagerEventListenerSpy_create(&spy);
 
    memset(&listener, 0, sizeof(listener));
    listener.arg = &spy;
    listener.fileCreate = apx_fileManagerEventListenerSpy_fileCreate;
 
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT);
+   apx_eventLoop_create(&loop);
+   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, &loop);
    apx_fileManager_registerEventListener(&manager, &listener);
    rmf_fileInfo_create(&info, "test.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
    msgLen = rmf_packHeader(&buffer[0], sizeof(buffer), RMF_CMD_START_ADDR, false);
    msgLen += rmf_serialize_cmdFileInfo(&buffer[msgLen], sizeof(buffer)-msgLen, &info);
    CuAssertIntEquals(tc, msgLen, apx_fileManager_processMessage(&manager, &buffer[0], msgLen));
+   apx_eventLoop_run(&loop);
    CuAssertIntEquals(tc, 1, spy.numfileCreateCalls);
    CuAssertTrue(tc, spy.lastFile->isRemoteFile);
    CuAssertTrue(tc, !spy.lastFile->isOpen);
    apx_fileManager_destroy(&manager);
+   apx_eventLoop_destroy(&loop);
 }
 
 static void test_apx_fileManager_openRemoteFile_sendMessage(CuTest* tc)
@@ -190,7 +199,7 @@ static void test_apx_fileManager_openRemoteFile_sendMessage(CuTest* tc)
    handler.send = apx_transmitHandlerSpy_send;
    handler.arg = &spy;
    apx_transmitHandlerSpy_create(&spy);
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT);
+   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
    apx_fileManager_setTransmitHandler(&manager, &handler);
    rmf_fileInfo_create(&info, "test.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
    msgLen = rmf_packHeader(&buffer[0], sizeof(buffer), RMF_CMD_START_ADDR, false);
@@ -227,7 +236,7 @@ static void test_apx_fileManager_openRemoteFile_setOpenFlag(CuTest* tc)
    int32_t msgLen;
    apx_file2_t *file;
 
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT);
+   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
    rmf_fileInfo_create(&info, "test.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
    msgLen = rmf_packHeader(&buffer[0], sizeof(buffer), RMF_CMD_START_ADDR, false);
    msgLen += rmf_serialize_cmdFileInfo(&buffer[msgLen], sizeof(buffer)-msgLen, &info);
@@ -249,7 +258,7 @@ static void test_apx_fileManager_openRemoteFile_processRequest_fixedFileNoReadHa
    const uint32_t fileAddress = 0x10000;
 
    apx_transmitHandlerSpy_create(&spy);
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT);
+   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
    attachSpyAsTransmitHandler(&manager, &spy);
    attachApxClientFiles(tc, &manager, fileAddress);
    receiveFileOpenRequest(tc, &manager, fileAddress);
@@ -276,7 +285,7 @@ static void test_apx_fileManager_openRemoteFile_processRequest_apxDefinitionFile
 
    apx_transmitHandlerSpy_create(&spy);
 
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT);
+   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
    attachSpyAsTransmitHandler(&manager, &spy);
 
 

@@ -36,6 +36,7 @@
 #include "apx_transmitHandler.h"
 #include "apx_error.h"
 #include "apx_file2.h"
+#include "apx_eventLoop.h"
 #ifndef ADT_RBFS_ENABLE
 #define ADT_RBFS_ENABLE 1
 #endif
@@ -50,6 +51,7 @@
 //forward declaration
 struct apx_fileManagerEventListener_tag;
 struct apx_file2_tag;
+struct apx_event_tag;
 
 typedef struct apx_fileManager_tag
 {
@@ -58,17 +60,16 @@ typedef struct apx_fileManager_tag
    apx_fileManagerLocal_t local;
    adt_list_t eventListeners; //contains strong references to apx_fileManagerEventListener_t
    apx_transmitHandler_t transmitHandler;
-   uint8_t mode;
+   apx_eventLoop_t *eventLoop;
    MUTEX_T mutex; //for locking variables in this object
    MUTEX_T eventListenerMutex; //Specific lock just for eventListener list
    SPINLOCK_T lock; //used exclusively by workerThread message queue
    THREAD_T workerThread; //local worker thread
    SEMAPHORE_T semaphore; //thread semaphore
-   adt_rbfs_t messages; //pending messages
+   adt_rbfh_t messages; //pending messages
    bool workerThreadValid;
-   uint8_t *ringbufferData; //strong pointer to raw data used by our ringbuffer
-   uint32_t ringbufferLen; //number of items in ringbuffer
    int8_t headerSize;
+   uint8_t mode;
 
 #ifdef _WIN32
    unsigned int threadId;
@@ -82,7 +83,7 @@ typedef struct apx_fileManager_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t connectionId);
+int8_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, uint32_t connectionId, apx_eventLoop_t *eventLoop);
 void apx_fileManager_destroy(apx_fileManager_t *self);
 
 void* apx_fileManager_registerEventListener(apx_fileManager_t *self, struct apx_fileManagerEventListener_tag* listener);
@@ -103,6 +104,7 @@ void apx_fileManager_sendFileAlreadyExistsError(apx_fileManager_t *self, apx_fil
 struct apx_file2_tag *apx_fileManager_findLocalFileByName(apx_fileManager_t *self, const char *name);
 struct apx_file2_tag *apx_fileManager_findRemoteFileByName(apx_fileManager_t *self, const char *name);
 void apx_fileManager_sendApxErrorCode(apx_fileManager_t *self, uint32_t errorCode);
+void apx_fileManager_onInternalEvent(apx_fileManager_t *self, struct apx_event_tag *event);
 
 #ifdef UNIT_TEST
 bool apx_fileManager_run(apx_fileManager_t *self);

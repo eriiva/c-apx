@@ -53,6 +53,7 @@ static void test_apx_nodeDataManager_verifyStaticNode(CuTest *tc);
 static void test_apx_nodeDataManager_attachStaticNode(CuTest *tc);
 static void test_apx_nodeDataManager_attachStaticNodeProtectFromDuplicates(CuTest *tc);
 static void test_apx_nodeDataManager_attachMultipleStaticNodes(CuTest *tc);
+static void test_apx_nodeDataManager_verifyInitValueWhenNodeIsCreated(CuTest *tc);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -75,6 +76,8 @@ CuSuite* testSuite_apx_nodeDataManager(void)
    SUITE_ADD_TEST(suite, test_apx_nodeDataManager_attachStaticNode);
    SUITE_ADD_TEST(suite, test_apx_nodeDataManager_attachStaticNodeProtectFromDuplicates);
    SUITE_ADD_TEST(suite, test_apx_nodeDataManager_attachMultipleStaticNodes);
+   SUITE_ADD_TEST(suite, test_apx_nodeDataManager_verifyInitValueWhenNodeIsCreated);
+
 
    return suite;
 }
@@ -289,4 +292,34 @@ static void test_apx_nodeDataManager_attachMultipleStaticNodes(CuTest *tc)
    CuAssertPtrEquals(tc, nodeData2, apx_nodeDataManager_find(&manager, nodeName2));
 
    apx_nodeDataManager_destroy(&manager);
+}
+
+static void test_apx_nodeDataManager_verifyInitValueWhenNodeIsCreated(CuTest *tc)
+{
+   apx_nodeDataManager_t manager;
+   apx_nodeData_t *nodeData;
+   uint32_t definitionLen;
+   const char *testDefinition= "APX/1.2\n"
+                 "N\"TestNode\"\n"
+                 "T\"VehicleSpeed_T\"S\n"
+                 "R\"VehicleSpeed\"T[0]:=65535\n";
+   definitionLen = (uint32_t) strlen(testDefinition);
+   apx_nodeDataManager_create(&manager);
+
+   nodeData = apx_nodeData_new(definitionLen);
+   CuAssertPtrNotNull(tc, nodeData);
+   CuAssertPtrEquals(tc, 0, nodeData->node);
+   CuAssertIntEquals(tc, 0, apx_nodeData_writeDefinitionData(nodeData, (const uint8_t*) testDefinition, 0, definitionLen));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeDataManager_parseDefinition(&manager, nodeData));
+   CuAssertPtrNotNull(tc, nodeData->node);
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_createPortDataBuffers(nodeData));
+   CuAssertIntEquals(tc, 2, nodeData->inPortDataLen);
+   CuAssertPtrNotNull(tc, nodeData->inPortDataBuf);
+   CuAssertUIntEquals(tc, 0xFF, nodeData->inPortDataBuf[0]);
+   CuAssertUIntEquals(tc, 0xFF, nodeData->inPortDataBuf[1]);
+
+
+   apx_nodeData_delete(nodeData);
+   apx_nodeDataManager_destroy(&manager);
+
 }

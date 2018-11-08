@@ -53,11 +53,9 @@ typedef struct apx_eventLoop_tag
    SPINLOCK_T lock;
    THREAD_T workerThread;
    SEMAPHORE_T semaphore;
-   adt_rbfs_t pendingEvents;
+   adt_rbfh_t pendingEvents;
    bool workerThreadValid;
    bool workerThreadRun;
-   uint8_t *ringbufferData;
-   uint32_t ringbufferLen;
 } apx_eventLoop_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -69,7 +67,13 @@ apx_eventLoop_t *apx_eventLoop_new(void);
 void apx_eventLoop_delete(apx_eventLoop_t *self);
 void apx_eventLoop_start(apx_eventLoop_t *self);
 void apx_eventLoop_stop(apx_eventLoop_t *self);
-void apx_eventLoop_emitConnected(apx_eventLoop_t *self, apx_eventListener_connectedFn_t *handler, void *arg, struct apx_fileManager_tag *fileManager);
+void apx_eventLoop_emitApxConnected(apx_eventLoop_t *self, apx_eventListener_connectedFunc_t *handler, void *arg, struct apx_fileManager_tag *fileManager);
+void apx_eventLoop_emitApxDisconnected(apx_eventLoop_t *self, apx_eventListener_connectedFunc_t *handler, void *arg, struct apx_fileManager_tag *fileManager);
+void apx_eventLoop_emitFileManagerPreStart(apx_eventLoop_t *self, apx_eventListener_fileManagerStartFunc_t *handler, void *arg, struct apx_fileManager_tag *fileManager);
+void apx_eventLoop_emitInternalRmfHeaderComplete(apx_eventLoop_t *self, struct apx_fileManager_tag *fileManager);
+void apx_eventLoop_emitInternalFileManagerPostStop(apx_eventLoop_t *self, struct apx_fileManager_tag *fileManager);
+void apx_eventLoop_emitInternalFileCreated(apx_eventLoop_t *self, struct apx_fileManager_tag *fileManager, struct apx_file2_tag *file, const void *caller);
+void apx_eventLoop_emitInternalFileOpened(apx_eventLoop_t *self, struct apx_fileManager_tag *fileManager, const struct apx_file2_tag *file, const void *caller);
 
 #ifdef UNIT_TEST
 void apx_eventLoop_run(apx_eventLoop_t *self);

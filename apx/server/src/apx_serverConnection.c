@@ -25,7 +25,7 @@
 #include "apx_logging.h"
 #include "apx_transmitHandler.h"
 #include "apx_fileManager.h"
-#include "headerutil.h"
+#include "numheader.h"
 #include "bstr.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
@@ -85,7 +85,7 @@ int8_t apx_serverConnection_create(apx_serverConnection_t *self, uint32_t connec
       self->numHeaderMaxLen = (int8_t) sizeof(uint32_t); //currently only 4-byte header is supported. There might be a future version where we support both 16-bit and 32-bit message headers
       self->connectionId = connectionId;
       adt_bytearray_create(&self->sendBuffer, SEND_BUFFER_GROW_SIZE);
-      result = apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE, connectionId);
+      result = apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE, connectionId, NULL);
       if (result == 0)
       {
          apx_serverConnection_registerTransmitHandler(self);
@@ -296,7 +296,7 @@ static uint8_t apx_serverConnection_parseMessage(apx_serverConnection_t *self, c
    const uint8_t *pResult;
    const uint8_t *pEnd = dataBuf+dataLen;
    const uint8_t *pNext = pBegin;
-   pResult = headerutil_numDecode32(pNext, pEnd, &msgLen);
+   pResult = numheader_decode32(pNext, pEnd, &msgLen);
    if (pResult>pNext)
    {
       uint32_t headerLen = (uint32_t) (pResult-pNext);
@@ -392,7 +392,7 @@ static int32_t apx_serverConnection_send(void *arg, int32_t offset, int32_t msgL
          uint8_t *pBegin;
          if (self->numHeaderMaxLen == (uint8_t) sizeof(uint32_t))
          {
-            headerEnd = headerutil_numEncode32(header, (uint32_t) sizeof(header), msgLen);
+            headerEnd = header+numheader_encode32(header, (uint32_t) sizeof(header), msgLen);
             if (headerEnd>header)
             {
                headerLen=headerEnd-header;

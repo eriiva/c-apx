@@ -33,6 +33,7 @@
 #include "apx_error.h"
 #include "apx_fileManager.h"
 #include "apx_nodeDataManager.h"
+#include "apx_eventLoop.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
@@ -43,6 +44,7 @@ typedef struct apx_serverBaseConnection_tag
 {
    apx_fileManager_t fileManager;
    apx_nodeDataManager_t nodeDataManager;
+   apx_eventLoop_t eventLoop;
    uint32_t connectionId;
    struct apx_server_tag *server;
    bool isGreetingParsed;
@@ -65,5 +67,9 @@ void apx_serverBaseConnection_vdelete(void *arg);
 apx_fileManager_t *apx_serverBaseConnection_getFileManager(apx_serverBaseConnection_t *self);
 int8_t apx_serverBaseConnection_dataReceived(apx_serverBaseConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 void apx_serverBaseConnection_start(apx_serverBaseConnection_t *self);
+
+#ifdef UNIT_TEST
+void apx_serverBaseConnection_run(apx_serverBaseConnection_t *self);
+#endif
 
 #endif //APX_SERVER_BASE_CONNECTION_H

@@ -40,7 +40,6 @@ CuSuite* testSuite_apx_bytePortMap(void);
 CuSuite* testSuite_apx_eventLoop(void);
 
 //util
-CuSuite* testsuite_headerutil(void);
 CuSuite* testsuite_pack(void);
 CuSuite* testsuite_sha256(void);
 
@@ -49,7 +48,6 @@ void RunAllTests(void)
    CuString *output = CuStringNew();
    CuSuite* suite = CuSuiteNew();
 
-   CuSuiteAddSuite(suite, testsuite_headerutil());
    CuSuiteAddSuite(suite, testsuite_pack());
 
    CuSuiteAddSuite(suite, testSuite_apx_dataElement());

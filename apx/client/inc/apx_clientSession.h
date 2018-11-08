@@ -43,9 +43,7 @@ typedef struct apx_clientSession_tag
    SPINLOCK_T lock;  //variable lock
    SEMAPHORE_T semaphore; //thread semaphore
 
-   adt_rbfs_t messages; //pending messages (ringbuffer)
-   size_t ringbufferLen;
-   uint8_t *ringbufferData;
+   adt_rbfh_t messages; //pending messages (ringbuffer)
    bool isRunning; //when false it's time to shut down
    bool workerThreadValid; //true if workerThread is a valid variable
 

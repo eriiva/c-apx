@@ -42,6 +42,7 @@ static bool apx_clientSession_abortCurrentCmd(apx_clientSession_t *self);
 //////////////////////////////////////////////////////////////////////////////
 int8_t apx_clientSession_create(apx_clientSession_t *self, apx_clientSessionHandler_t *sessionHandler)
 {
+   adt_buf_err_t result;
 #ifdef _MSC_VER
    self->workerThread = INVALID_HANDLE_VALUE;
 #else
@@ -50,13 +51,11 @@ int8_t apx_clientSession_create(apx_clientSession_t *self, apx_clientSessionHand
    self->workerThreadValid=false;
    SPINLOCK_INIT(self->lock);
    SEMAPHORE_CREATE(self->semaphore);
-   self->ringbufferLen = APX_CLIENT_SESSION_MAX_MESSAGES;
-   self->ringbufferData = (uint8_t*) malloc(APX_CLIENT_SESSION_MAX_MESSAGES*APX_CLIENT_SESSION_MESSAGE_SIZE);
-   if (self->ringbufferData == 0)
+   result = adt_rbfh_create(&self->messages, (uint8_t) APX_CLIENT_SESSION_MESSAGE_SIZE);
+   if (result != BUF_E_OK)
    {
       return -1;
    }
-   adt_rbfs_create(&self->messages, self->ringbufferData,(uint16_t) APX_CLIENT_SESSION_MAX_MESSAGES,(uint8_t) APX_CLIENT_SESSION_MESSAGE_SIZE);
    apx_cmd_create(&self->nextCmd);
    apx_cmd_create(&self->currentCmd);
    apx_clientSession_setSessionHandler(self, sessionHandler);
@@ -67,10 +66,7 @@ void apx_clientSession_destroy(apx_clientSession_t *self)
 {
    if (self != 0)
    {
-      if (self->ringbufferData != 0)
-      {
-         free(self->ringbufferData);
-      }
+      adt_rbfh_destroy(&self->messages);
       SEMAPHORE_DESTROY(self->semaphore);
       SPINLOCK_DESTROY(self->lock);
       apx_cmd_destroy(&self->nextCmd);
@@ -193,7 +189,7 @@ void apx_clientSession_stopThread(apx_clientSession_t *self)
 #endif
       apx_cmd_t msg = {APX_MSG_EXIT,0,0}; //{msgType, msgData, msgDestructor}
       SPINLOCK_ENTER(self->lock);
-      adt_rbfs_insert(&self->messages,(const uint8_t*) &msg);
+      adt_rbfh_insert(&self->messages,(const uint8_t*) &msg);
       SPINLOCK_LEAVE(self->lock);
       SEMAPHORE_POST(self->semaphore);
 #ifdef _MSC_VER
@@ -301,7 +297,7 @@ static int8_t apx_clientSession_getNextCmd(apx_clientSession_t *self)
       {
          uint8_t result;
          SPINLOCK_ENTER(self->lock);
-         result = adt_rbfs_remove(&self->messages,(uint8_t*) &self->nextCmd);
+         result = adt_rbfh_remove(&self->messages,(uint8_t*) &self->nextCmd);
          SPINLOCK_LEAVE(self->lock);
          if (result != 0)
          {

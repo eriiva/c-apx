@@ -64,6 +64,7 @@ void apx_server_start(apx_server_t *self);
 void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode);
 void apx_server_registerConnectionEventListener(apx_server_t *self, apx_connectionEventListener_t *eventListener);
 #ifdef UNIT_TEST
+void apx_server_run(apx_server_t *self);
 void apx_server_acceptTestSocket(apx_server_t *self, testsocket_t *socket);
 apx_serverBaseConnection_t *apx_server_getLastConnection(apx_server_t *self);
 #endif

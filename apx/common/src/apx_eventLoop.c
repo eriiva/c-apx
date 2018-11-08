@@ -31,6 +31,7 @@
 #include "apx_eventLoop.h"
 #include "apx_event.h"
 #include "apx_logging.h"
+#include "apx_fileManager.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -46,6 +47,7 @@
 #ifndef UNIT_TEST
 static THREAD_PROTO(workerThread,arg);
 #endif
+static void apx_eventLoop_queueEvent(apx_eventLoop_t *self, const apx_event_t *event);
 static apx_error_t apx_eventLoop_startWorkerThread(apx_eventLoop_t *self);
 static void apx_eventLoop_stopWorkerThread(apx_eventLoop_t *self);
 static void workerThread_processEvent(apx_eventLoop_t *self, apx_event_t *event);
@@ -57,16 +59,11 @@ apx_error_t apx_eventLoop_create(apx_eventLoop_t *self)
 {
    if (self != 0)
    {
-      size_t numItems = APX_MAX_NUM_MESSAGES;
-      size_t elemSize = APX_EVENT_SIZE;
-      self->ringbufferLen = numItems;
-      self->ringbufferData = (uint8_t*) malloc(numItems*elemSize);
-
-      if (self->ringbufferData == 0)
+      adt_buf_err_t result = adt_rbfh_create(&self->pendingEvents, (uint8_t) APX_EVENT_SIZE);
+      if (result != BUF_E_OK)
       {
          return APX_MEM_ERROR;
       }
-      adt_rbfs_create(&self->pendingEvents, self->ringbufferData,(uint16_t) numItems,(uint8_t) elemSize);
       SPINLOCK_INIT(self->lock);
       SEMAPHORE_CREATE(self->semaphore);
    #ifdef _WIN32
@@ -89,10 +86,7 @@ void apx_eventLoop_destroy(apx_eventLoop_t *self)
          apx_eventLoop_stop(self);
       }
       SPINLOCK_DESTROY(self->lock);
-      if (self->ringbufferData != 0)
-      {
-         free(self->ringbufferData);
-      }
+      adt_rbfh_destroy(&self->pendingEvents);
    }
 }
 
@@ -137,17 +131,84 @@ void apx_eventLoop_stop(apx_eventLoop_t *self)
    }
 }
 
-void apx_eventLoop_emitConnected(apx_eventLoop_t *self, apx_eventListener_connectedFn_t *handler, void *arg, struct apx_fileManager_tag *fileManager)
+void apx_eventLoop_emitApxConnected(apx_eventLoop_t *self, apx_eventListener_connectedFunc_t *handler, void *arg, struct apx_fileManager_tag *fileManager)
 {
    if (self != 0)
    {
-      apx_event_t event = {APX_EVENT_CONNECTED, 0, 0, 0, 0, 0};
+      apx_event_t event = {APX_EVENT_APX_CONNECTED, 0, 0, 0, 0, 0, 0, 0, 0};
       event.handler = (void*) handler;
       event.evData1 = arg;
       event.evData2 = (void*) fileManager;
-      SPINLOCK_ENTER(self->lock);
-      adt_rbfs_insert(&self->pendingEvents, (const uint8_t*) &event);
-      SPINLOCK_LEAVE(self->lock);
+      apx_eventLoop_queueEvent(self, &event);
+   }
+}
+
+void apx_eventLoop_emitApxDisconnected(apx_eventLoop_t *self, apx_eventListener_connectedFunc_t *handler, void *arg, struct apx_fileManager_tag *fileManager)
+{
+   if (self != 0)
+   {
+      apx_event_t event = {APX_EVENT_APX_DISCONNECTED, 0, 0, 0, 0, 0, 0, 0, 0};
+      event.handler = (void*) handler;
+      event.evData1 = arg;
+      event.evData2 = (void*) fileManager;
+      apx_eventLoop_queueEvent(self, &event);
+   }
+}
+
+void apx_eventLoop_emitFileManagerPreStart(apx_eventLoop_t *self, apx_eventListener_fileManagerStartFunc_t *handler, void *arg, struct apx_fileManager_tag *fileManager)
+{
+   if (self != 0)
+   {
+      apx_event_t event = {APX_EVENT_RMF_MANAGER_PRE_START, 0, 0, 0, 0, 0, 0, 0, 0};
+      event.handler = (void*) handler;
+      event.evData1 = arg;
+      event.evData2 = (void*) fileManager;
+      apx_eventLoop_queueEvent(self, &event);
+   }
+}
+
+void apx_eventLoop_emitInternalRmfHeaderComplete(apx_eventLoop_t *self, struct apx_fileManager_tag *fileManager)
+{
+   if (self != 0)
+   {
+      apx_event_t event = {APX_EVENT_RMF_HEADER_COMPLETE, APX_EVENT_FLAG_INTERNAL, 0, 0, 0, 0, 0, 0, 0};
+      event.evData1 = (void*) fileManager;
+      apx_eventLoop_queueEvent(self, &event);
+   }
+}
+
+
+void apx_eventLoop_emitInternalFileManagerPostStop(apx_eventLoop_t *self, struct apx_fileManager_tag *fileManager)
+{
+   if (self != 0)
+   {
+      apx_event_t event = {APX_EVENT_RMF_MANAGER_POST_STOP, APX_EVENT_FLAG_INTERNAL, 0, 0, 0, 0, 0, 0, 0};
+      event.evData1 = (void*) fileManager;
+      apx_eventLoop_queueEvent(self, &event);
+   }
+}
+
+void apx_eventLoop_emitInternalFileCreated(apx_eventLoop_t *self, struct apx_fileManager_tag *fileManager, struct apx_file2_tag *file, const void *caller)
+{
+   if (self != 0)
+   {
+      apx_event_t event = {APX_EVENT_RMF_FILE_CREATED, APX_EVENT_FLAG_INTERNAL, 0, 0, 0, 0, 0, 0, 0};
+      event.evData1 = (void*) fileManager;
+      event.evData2 = (void*) file;
+      event.evData3 = (void*) caller;
+      apx_eventLoop_queueEvent(self, &event);
+   }
+}
+
+void apx_eventLoop_emitInternalFileOpened(apx_eventLoop_t *self, struct apx_fileManager_tag *fileManager, const struct apx_file2_tag *file, const void *caller)
+{
+   if (self != 0)
+   {
+      apx_event_t event = {APX_EVENT_RMF_FILE_OPENED, APX_EVENT_FLAG_INTERNAL, 0, 0, 0, 0, 0, 0, 0};
+      event.evData1 = (void*) fileManager;
+      event.evData2 = (void*) file;
+      event.evData3 = (void*) caller;
+      apx_eventLoop_queueEvent(self, &event);
    }
 }
 
@@ -157,6 +218,17 @@ void apx_eventLoop_emitConnected(apx_eventLoop_t *self, apx_eventListener_connec
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+
+static void apx_eventLoop_queueEvent(apx_eventLoop_t *self, const apx_event_t *event)
+{
+   SPINLOCK_ENTER(self->lock);
+   adt_rbfh_insert(&self->pendingEvents, (const uint8_t*) event);
+   SPINLOCK_LEAVE(self->lock);
+#ifndef UNIT_TEST
+   SEMAPHORE_POST(self->semaphore);
+#endif
+}
+
 static apx_error_t apx_eventLoop_startWorkerThread(apx_eventLoop_t *self)
 {
 #ifndef UNIT_TEST
@@ -272,8 +344,8 @@ void apx_eventLoop_run(apx_eventLoop_t *self)
    bool isRunning = self->workerThreadRun;
    while(isRunning == true)
    {
-      uint8_t rc = adt_rbfs_remove(&self->pendingEvents,(uint8_t*) &event);
-      if (rc == E_BUF_OK)
+      uint8_t rc = adt_rbfh_remove(&self->pendingEvents,(uint8_t*) &event);
+      if (rc == BUF_E_OK)
       {
          workerThread_processEvent(self, &event);
       }
@@ -288,18 +360,38 @@ void apx_eventLoop_run(apx_eventLoop_t *self)
 
 static void workerThread_processEvent(apx_eventLoop_t *self, apx_event_t *event)
 {
-   union handler_tag
+
+   if ( (event->evFlags & APX_EVENT_FLAG_INTERNAL) != 0)
    {
-      apx_eventListener_connectedFn_t *connected;
-      apx_eventListener_disconnectedFn_t *disconnected;
-   }handler;
-   switch(event->evType)
-   {
-   case APX_EVENT_CONNECTED:
-      handler.connected = (apx_eventListener_connectedFn_t*) event->handler;
-      handler.connected(event->evData1, (struct apx_fileManager_tag*)event->evData2);
-      break;
-   default:
-      assert(0);
+      apx_fileManager_t *fileManager = (apx_fileManager_t*) event->evData1;
+      apx_fileManager_onInternalEvent(fileManager, event);
    }
+   else
+   {
+      union handler_tag
+      {
+         apx_eventListener_connectedFunc_t *connected;
+         apx_eventListener_disconnectedFunc_t *disconnected;
+         apx_eventListener_fileManagerStartFunc_t *managerStart;
+         apx_eventListener_fileManagerStopFunc_t *managerStop;
+      } handler;
+      switch(event->evType)
+      {
+      case APX_EVENT_APX_CONNECTED:
+         handler.connected = (apx_eventListener_connectedFunc_t*) event->handler;
+         if (handler.connected != 0) handler.connected(event->evData1, (struct apx_fileManager_tag*)event->evData2);
+         break;
+      case APX_EVENT_APX_DISCONNECTED:
+         handler.disconnected = (apx_eventListener_disconnectedFunc_t*) event->handler;
+         if (handler.disconnected != 0) handler.disconnected(event->evData1, (struct apx_fileManager_tag*)event->evData2);
+         break;
+      case APX_EVENT_RMF_MANAGER_PRE_START:
+         handler.managerStart = (apx_eventListener_disconnectedFunc_t*) event->handler;
+         if (handler.managerStart != 0) handler.managerStart(event->evData1, (struct apx_fileManager_tag*)event->evData2);
+         break;
+      default:
+         assert(0);
+      }
+   }
+
 }

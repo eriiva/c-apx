@@ -297,7 +297,7 @@ apx_error_t apx_nodeData_readInPortData(apx_nodeData_t *self, uint8_t *dest, uin
 #ifndef APX_EMBEDDED
       SPINLOCK_ENTER(self->inPortDataLock);
 #endif
-      if ( (offset+len) > self->outPortDataLen)
+      if ( (offset+len) > self->inPortDataLen)
       {
          retval = APX_INVALID_ARGUMENT_ERROR;
       }

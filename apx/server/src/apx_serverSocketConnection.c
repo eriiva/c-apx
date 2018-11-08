@@ -46,7 +46,7 @@
 #include "apx_logging.h"
 #include "apx_transmitHandler.h"
 #include "apx_fileManager.h"
-#include "headerutil.h"
+#include "numheader.h"
 #include "bstr.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
@@ -217,7 +217,7 @@ static int32_t apx_serverSocketConnection_send(void *arg, int32_t offset, int32_
          uint8_t *pBegin;
          if (self->base.numHeaderLen == (uint8_t) sizeof(uint32_t))
          {
-            headerEnd = headerutil_numEncode32(header, (uint32_t) sizeof(header), msgLen);
+            headerEnd = header+numheader_encode32(header, (uint32_t) sizeof(header), msgLen);
             if (headerEnd>header)
             {
                headerLen=headerEnd-header;
