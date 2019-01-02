@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_portInfo.c
+* \file      apx_routingTableEntry.h
 * \author    Conny Gustafsson
 * \date      2018-10-08
-* \brief     Description
+* \brief     An element in the globalPortMap_t
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,72 +23,42 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
+#ifndef APX_ROUTING_TABLE_ENTRY_H
+#define APX_ROUTING_TABLE_ENTRY_H
+
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <malloc.h>
-#include "apx_error.h"
-#include "apx_portInfo.h"
-#ifdef MEM_LEAK_CHECK
-#include "CMemLeak.h"
-#endif
+#include "adt_list.h"
+#include "apx_types.h"
+#include "apx_portDataRef.h"
 
 //////////////////////////////////////////////////////////////////////////////
-// PRIVATE CONSTANTS AND DATA TYPES
+// PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+//forward declarations
+struct apx_nodeData_tag;
+struct apx_port_tag;
 
-//////////////////////////////////////////////////////////////////////////////
-// PRIVATE FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// PRIVATE VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTIONS
-//////////////////////////////////////////////////////////////////////////////
-void apx_portInfo_create(apx_portInfo_t *self, struct apx_nodeData_tag *nodedata, apx_portId_t portIndex,  apx_size_t dataSize, struct apx_file2_tag *file, int32_t offset)
+typedef struct apx_routingTableEntry_tag
 {
-   if (self != 0)
-   {
-      self->nodedata = nodedata;
-      self->file = file;
-      self->dataSize = dataSize;
-      self->offset = offset;
-      self->portIndex = portIndex;
-   }
-}
-
-apx_portInfo_t *apx_portInfo_new(struct apx_nodeData_tag *nodedata, apx_portId_t portIndex,  apx_size_t dataSize, struct apx_file2_tag *file, int32_t offset)
-{
-   apx_portInfo_t *self = (apx_portInfo_t*) malloc(sizeof(apx_portInfo_t));
-   if(self != 0)
-   {
-      apx_portInfo_create(self, nodedata, portIndex, dataSize, file, offset);
-   }
-   else
-   {
-      apx_setError(APX_MEM_ERROR);
-   }
-   return self;
-}
-
-void apx_portInfo_delete(apx_portInfo_t *self)
-{
-   if (self != 0)
-   {
-      free(self);
-   }
-}
-
-void apx_portInfo_vdelete(void *arg)
-{
-   apx_portInfo_delete((apx_portInfo_t*) arg);
-}
+   const char *portSignature; //weak reference to string
+   int32_t currentProviderId; //which provider is currently selected
+   adt_list_t requirePortRef; //weak references to apx_portDataRef_t
+   adt_list_t providePortRef; //weak references to apx_portDataRef_t
+}apx_routingTableEntry_t;
 
 //////////////////////////////////////////////////////////////////////////////
-// PRIVATE FUNCTIONS
+// PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+void apx_routingTableEntry_create(apx_routingTableEntry_t *self, const char *portSignature);
+void apx_routingTableEntry_destroy(apx_routingTableEntry_t *self);
+apx_routingTableEntry_t *apx_routingTableEntry_new(const char *portSignature);
+void apx_routingTableEntry_delete(apx_routingTableEntry_t *self);
+void apx_routingTableEntry_vdelete(void *arg);
 
+void apx_routingTableEntry_attachPortDataRef(apx_routingTableEntry_t *self, apx_portDataRef_t *portDataRef);
+void apx_routingTableEntry_detachPortDataRef(apx_routingTableEntry_t *self, apx_portDataRef_t *portDataRef);
+bool apx_routingTableEntry_isEmpty(apx_routingTableEntry_t *self);
 
+#endif //APX_ROUTING_TABLE_ENTRY_H

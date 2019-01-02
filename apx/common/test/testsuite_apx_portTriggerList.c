@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_fileManagerSharedSpy.c
+* \file      testsuite_apx_portTriggerList.c
 * \author    Conny Gustafsson
-* \date      2018-08-28
-* \brief     Description
+* \date      2018-12-07
+* \brief     Unit tests for apx_portTriggerList
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -26,13 +26,18 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_fileManagerSharedSpy.h"
-#include <malloc.h>
-#include <errno.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+#include "CuTest.h"
+#include "apx_portTriggerList.h"
+#include "apx_parser.h"
+#include "apx_test_nodes.h"
+#include "apx_nodeData.h"
+#include "apx_portDataMap.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
-
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -41,11 +46,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-
+static void test_create_apx_portTriggerListFromNode1(CuTest* tc);
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -53,84 +54,54 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_fileManagerSharedSpy_create(apx_fileManagerSharedSpy_t *self)
+CuSuite* testSuite_apx_portTriggerList(void)
 {
-   if (self != 0)
-   {
-      self->numFileCreatedCalls = 0;
-      self->numSendFileInfoCalls = 0;
-      self->numSendFileOpenCalls = 0;
-      self->numOpenFileRequestCalls = 0;
-   }
+   CuSuite* suite = CuSuiteNew();
+
+   SUITE_ADD_TEST(suite, test_create_apx_portTriggerListFromNode1);
+
+   return suite;
 }
-
-void apx_fileManagerSharedSpy_destroy(apx_fileManagerSharedSpy_t *self)
-{
-
-}
-
-apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void)
-{
-   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) malloc(sizeof(apx_fileManagerSharedSpy_t));
-   if (self != 0)
-   {
-      apx_fileManagerSharedSpy_create(self);
-   }
-   else
-   {
-      errno = ENOMEM;
-   }
-   return self;
-}
-
-void apx_fileManagerSharedSpy_delete(apx_fileManagerSharedSpy_t *self)
-{
-   if (self != 0)
-   {
-      apx_fileManagerSharedSpy_destroy(self);
-      free(self);
-   }
-}
-
-void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file2_tag *pFile, void *caller)
-{
-   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
-   if (self != 0)
-   {
-      self->numFileCreatedCalls++;
-   }
-}
-
-void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file2_tag *pFile)
-{
-   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
-   if (self != 0)
-   {
-      self->numSendFileInfoCalls++;
-   }
-}
-
-void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file2_t *file, void *caller)
-{
-   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
-   if (self != 0)
-   {
-      self->numSendFileOpenCalls++;
-   }
-}
-
-void apx_fileManagerSharedSpy_openFileRequest(void *arg, uint32_t address)
-{
-   apx_fileManagerSharedSpy_t *self = (apx_fileManagerSharedSpy_t*) arg;
-   if (self != 0)
-   {
-      self->numOpenFileRequestCalls++;
-   }
-}
-
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-
+static void test_create_apx_portTriggerListFromNode1(CuTest* tc)
+{
+   apx_parser_t parser;
+   apx_nodeData_t *nodeData1;
+   apx_nodeData_t *nodeData3;
+   apx_nodeData_t *nodeData4;
+   apx_nodeData_t *nodeData5;
+   apx_portDataRef_t *portData3;
+   apx_portDataRef_t *portData4;
+   apx_portDataRef_t *portData5;
+   apx_portTriggerList_t triggerList; //a single trigger list for port 0 of nodeData1
+   apx_parser_create(&parser);
+   nodeData1 = apx_nodeData_make_from_cstr(&parser, g_apx_test_node1);
+   CuAssertPtrNotNull(tc, nodeData1);
+   nodeData3 = apx_nodeData_make_from_cstr(&parser, g_apx_test_node3);
+   CuAssertPtrNotNull(tc, nodeData3);
+   nodeData4 = apx_nodeData_make_from_cstr(&parser, g_apx_test_node4);
+   CuAssertPtrNotNull(tc, nodeData4);
+   nodeData5 = apx_nodeData_make_from_cstr(&parser, g_apx_test_node5);
+   CuAssertPtrNotNull(tc, nodeData5);
+   apx_parser_destroy(&parser);
+   apx_portTriggerList_create(&triggerList);
+   portData3 = apx_portDataMap_getRequirePortData(apx_nodeData_getPortDataMap(nodeData3), 0);
+   CuAssertPtrNotNull(tc, portData3);
+   portData4 = apx_portDataMap_getRequirePortData(apx_nodeData_getPortDataMap(nodeData4), 0);
+   CuAssertPtrNotNull(tc, portData4);
+   portData5 = apx_portDataMap_getRequirePortData(apx_nodeData_getPortDataMap(nodeData5), 0);
+   CuAssertPtrNotNull(tc, portData5);
+   apx_portTriggerList_insert(&triggerList, portData3);
+   apx_portTriggerList_insert(&triggerList, portData4);
+   apx_portTriggerList_insert(&triggerList, portData5);
+   CuAssertIntEquals(tc, 3, apx_portTriggerList_length(&triggerList));
+   apx_portTriggerList_destroy(&triggerList);
+   apx_nodeData_delete(nodeData1);
+   apx_nodeData_delete(nodeData3);
+   apx_nodeData_delete(nodeData4);
+   apx_nodeData_delete(nodeData5);
+}
 

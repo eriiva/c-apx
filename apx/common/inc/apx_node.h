@@ -38,8 +38,8 @@ apx_datatype_t *apx_node_createDataType(apx_node_t *self, const char* name, cons
 apx_port_t *apx_node_createRequirePort(apx_node_t *self, const char* name, const char *dsg, const char *attr, int32_t lineNumber);
 apx_port_t *apx_node_createProvidePort(apx_node_t *self, const char* name, const char *dsg, const char *attr, int32_t lineNumber);
 apx_error_t apx_node_finalize(apx_node_t *self, int32_t *errorLine);
-apx_port_t *apx_node_getRequirePort(apx_node_t *self, int32_t portIndex);
-apx_port_t *apx_node_getProvidePort(apx_node_t *self, int32_t portIndex);
+apx_port_t *apx_node_getRequirePort(const apx_node_t *self, int32_t portIndex);
+apx_port_t *apx_node_getProvidePort(const apx_node_t *self, int32_t portIndex);
 int32_t apx_node_getNumRequirePorts(apx_node_t *self);
 int32_t apx_node_getNumProvidePorts(apx_node_t *self);
 int32_t apx_node_calcOutPortDataLen(apx_node_t *self);

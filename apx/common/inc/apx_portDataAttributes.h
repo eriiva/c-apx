@@ -1,7 +1,7 @@
 /*****************************************************************************
-* \file      apx_fileManagerSharedSpy.h
+* \file      apx_portDataAttributes.h
 * \author    Conny Gustafsson
-* \date      2018-08-28
+* \date      2018-11-25
 * \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
@@ -23,25 +23,29 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_FILE_MANAGER_SHARED_SPY_H
-#define APX_FILE_MANAGER_SHARED_SPY_H
+#ifndef APX_PORT_DATA_ATTRIBUTES_H
+#define APX_PORT_DATA_ATTRIBUTES_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "rmf.h"
-#include "apx_file2.h"
+#include "apx_types.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_fileManagerSharedSpy_tag
+typedef struct apx_portDataAttributes_tag
 {
-   int32_t numFileCreatedCalls;
-   int32_t numSendFileInfoCalls;
-   int32_t numSendFileOpenCalls;
-   int32_t numOpenFileRequestCalls;
-} apx_fileManagerSharedSpy_t;
+   apx_portId_t portId;
+   apx_size_t dataSize; //Size of the data portion in the port data
+   apx_size_t totalSize; //Total size of port data, including possible headers
+   apx_offset_t offset; //offset in file
+   apx_portType_t portType; //Is this a provide or require port?
+   apx_dynLenType_t dynLenType; //Is this a dynamically sized array port?
+   apx_queLenType_t queLenType; //Is this a queued port?
+   apx_size_t maxDynLen; //What is the maximum length of the dynamic array?
+   apx_size_t maxQueLen; //What is the maximum number of queued elements?
+}apx_portDataAttributes_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -50,13 +54,10 @@ typedef struct apx_fileManagerSharedSpy_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_fileManagerSharedSpy_create(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_destroy(apx_fileManagerSharedSpy_t *self);
-apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void);
-void apx_fileManagerSharedSpy_delete(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file2_tag *pFile, void *caller);
-void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file2_tag *pFile);
-void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file2_t *file, void *caller);
-void apx_fileManagerSharedSpy_openFileRequest(void *arg, uint32_t address);
+void apx_portDataAttributes_create(apx_portDataAttributes_t *self, apx_portType_t portType, apx_portId_t portId, apx_offset_t offset, apx_size_t dataSize);
+apx_portDataAttributes_t *apx_portDataAttributes_new(apx_portType_t portType, apx_portId_t portIndex, apx_offset_t offset, apx_size_t dataSize);
+void apx_portDataAttributes_delete(apx_portDataAttributes_t *self);
+void apx_portDataAttributes_vdelete(void *arg);
 
-#endif //APX_FILE_MANAGER_SHARED_SPY_H
+
+#endif //APX_PORT_DATA_ATTRIBUTES_H

@@ -60,9 +60,9 @@ int32_t apx_fileManagerRemote_processMessage(apx_fileManagerRemote_t *self, cons
 int8_t apx_fileManageRemote_openFile(apx_fileManagerRemote_t *self, uint32_t address, void *caller);
 struct apx_file2_tag *apx_fileManagerRemote_findByName(apx_fileManagerRemote_t *self, const char *name);
 
-#ifdef UNIT_TEST
+void apx_fileManagerRemote_processFileInfo(apx_fileManagerRemote_t *self, const rmf_fileInfo_t *cmdFileInfo);
 void apx_fileManagerRemote_processCmdMsg(apx_fileManagerRemote_t *self, const uint8_t *msgBuf, int32_t msgLen);
 void apx_fileManagerRemote_processDataMsg(apx_fileManagerRemote_t *self, uint32_t address, const uint8_t *msgBuf, int32_t msgLen, bool more_bit);
-#endif
+
 
 #endif //APX_FILEMANAGER_REMOTE_H

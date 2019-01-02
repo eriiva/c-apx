@@ -1,8 +1,8 @@
 /*****************************************************************************
 * \file      apx_portDataMap.h
 * \author    Conny Gustafsson
-* \date      2018-10-08
-* \brief     Global map of all port data elements
+* \date      2018-11-26
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -29,39 +29,48 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "adt_hash.h"
 #include "apx_types.h"
 #include "apx_error.h"
-#include "apx_portData.h"
-#ifdef _WIN32
-# ifndef WIN32_LEAN_AND_MEAN
-# define WIN32_LEAN_AND_MEAN
-# endif
-# include <Windows.h>
-#else
-# include <pthread.h>
-#endif
-#include "osmacro.h"
-
+#include "apx_portDataAttributes.h"
+#include "apx_portDataRef.h"
+#include "apx_bytePortMap.h"
+#include "apx_nodeData.h"
+#include "apx_portTriggerList.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 typedef struct apx_portDataMap_tag
 {
-   adt_hash_t internalMap; //strong references to apx_portData_t
-   MUTEX_T mutex; //modification lock
+   apx_portDataAttributes_t *requirePortDataAttributes; //strong reference to apx_portDataRefAttributes_t, length of array=numRequirePorts
+   apx_portDataAttributes_t *providePortDataAttributes; //strong reference to apx_portDataRefAttributes_t, length of array=numProvidePorts
+   apx_portDataRef_t *requirePortData; //strong references to apx_portDataRef_t, length of array=numRequirePorts
+   apx_portDataRef_t *providePortData; //strong references to apx_portDataRef_t, length of array=numProvidePorts
+   apx_bytePortMap_t *requirePortByteMap; //used in client mode, maps byte offset back to require port ID
+   apx_bytePortMap_t *providePortByteMap; //used in server mode, maps byte offset back to provide port ID
+   apx_portTriggerList_t *portTriggerList; //used in server mode, strong reference to apx_portTriggerList_t, length of array=numProvidePorts
+   int32_t numRequirePorts;
+   int32_t numProvidePorts;
 }apx_portDataMap_t;
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC VARIABLES
+//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_portDataMap_create(apx_portDataMap_t *self);
+apx_error_t apx_portDataMap_create(apx_portDataMap_t *self, apx_nodeData_t *nodeData);
 void apx_portDataMap_destroy(apx_portDataMap_t *self);
-apx_portData_t * apx_portDataMap_insert(apx_portDataMap_t *self, const char *portSignature, apx_size_t dataSize);
-apx_portData_t *apx_portDataMap_find(apx_portDataMap_t *self, const char *portSignature);
-apx_error_t apx_portDataMap_remove(apx_portDataMap_t *self, const char *portSignature);
-void apx_portDataMap_lock(apx_portDataMap_t *self);
-void apx_portDataMap_unlock(apx_portDataMap_t *self);
+apx_portDataMap_t *apx_portDataMap_new(apx_nodeData_t *nodeData);
+void apx_portDataMap_delete(apx_portDataMap_t *self);
+apx_portDataAttributes_t *apx_portDataMap_getRequirePortAttributes(apx_portDataMap_t *self, apx_portId_t portId);
+apx_portDataAttributes_t *apx_portDataMap_getProvidePortAttributes(apx_portDataMap_t *self, apx_portId_t portId);
+apx_error_t apx_portDataMap_initPortTriggerList(apx_portDataMap_t *self);
+apx_error_t apx_portDataMap_initRequirePortByteMap(apx_portDataMap_t *self, apx_node_t *node);
+apx_error_t apx_portDataMap_initProvidePortByteMap(apx_portDataMap_t *self, apx_node_t *node);
+apx_portDataRef_t *apx_portDataMap_getRequirePortData(apx_portDataMap_t *self, apx_portId_t portId);
+apx_portDataRef_t *apx_portDataMap_getProvidePortData(apx_portDataMap_t *self, apx_portId_t portId);
+
 
 #endif //APX_PORT_DATA_MAP_H

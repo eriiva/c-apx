@@ -120,7 +120,7 @@ apx_port_t *apx_node_createRequirePort(apx_node_t *self, const char* name, const
      port = apx_requirePort_new(name, dsg, attr, lineNumber);
      if (port != 0)
      {
-        int32_t portIndex = adt_ary_length(&self->requirePortList);
+        apx_portId_t portId = (apx_portId_t) adt_ary_length(&self->requirePortList);
         if ( port->portAttributes != 0 )
         {
            apx_error_t result = apx_attributeParser_parseObject(&self->attributeParser, port->portAttributes);
@@ -131,7 +131,7 @@ apx_port_t *apx_node_createRequirePort(apx_node_t *self, const char* name, const
               return NULL;
            }
         }
-        apx_port_setPortIndex(port,portIndex);
+        apx_port_setPortId(port, portId);
         adt_ary_push(&self->requirePortList,port);
      }
    }
@@ -146,7 +146,7 @@ apx_port_t *apx_node_createProvidePort(apx_node_t *self, const char* name, const
      port = apx_providePort_new(name, dsg, attr, lineNumber);
      if (port != 0)
      {
-        int32_t portIndex = adt_ary_length(&self->providePortList);
+        apx_portId_t portId = (apx_portId_t )adt_ary_length(&self->providePortList);
         if ( port->portAttributes != 0 )
         {
            apx_error_t result = apx_attributeParser_parseObject(&self->attributeParser, port->portAttributes);
@@ -157,7 +157,7 @@ apx_port_t *apx_node_createProvidePort(apx_node_t *self, const char* name, const
               return NULL;
            }
         }
-        apx_port_setPortIndex(port,portIndex);
+        apx_port_setPortId(port, portId);
         adt_ary_push(&self->providePortList,port);
      }
    }
@@ -192,7 +192,7 @@ apx_error_t apx_node_finalize(apx_node_t *self, int32_t *errorLine)
             apx_datatype_t *datatype = (apx_datatype_t*) adt_ary_value(&self->datatypeList, i);
             if ( (datatype->name != 0) && (strlen(datatype->name)>0) )
             {
-               adt_hash_set(&typeMap, datatype->name, 0, datatype);
+               adt_hash_set(&typeMap, datatype->name, datatype);
             }
          }
          providePortLen = adt_ary_length(&self->providePortList);
@@ -231,20 +231,20 @@ apx_error_t apx_node_finalize(apx_node_t *self, int32_t *errorLine)
    return retval;
 }
 
-apx_port_t *apx_node_getRequirePort(apx_node_t *self, int32_t portIndex)
+apx_port_t *apx_node_getRequirePort(const apx_node_t *self, int32_t portIndex)
 {
    if (self != 0)
    {
-      return (apx_port_t*) *adt_ary_get(&self->requirePortList,portIndex);
+      return (apx_port_t*) *adt_ary_get((adt_ary_t*)&self->requirePortList,portIndex);
    }
    return (apx_port_t*) 0;
 }
 
-apx_port_t *apx_node_getProvidePort(apx_node_t *self, int32_t portIndex)
+apx_port_t *apx_node_getProvidePort(const apx_node_t *self, int32_t portIndex)
 {
    if (self != 0)
    {
-      return (apx_port_t*) *adt_ary_get(&self->providePortList,portIndex);
+      return (apx_port_t*) *adt_ary_get((adt_ary_t*) &self->providePortList,portIndex);
    }
    return (apx_port_t*) 0;
 }

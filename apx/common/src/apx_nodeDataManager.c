@@ -189,7 +189,7 @@ apx_error_t apx_nodeDataManager_attach(apx_nodeDataManager_t *self, apx_nodeData
       {
          return APX_NODE_ALREADY_EXISTS_ERROR;
       }
-      adt_hash_set(&self->nodeDataMap, name, 0, nodeData);
+      adt_hash_set(&self->nodeDataMap, name, nodeData);
       return APX_NO_ERROR;
    }
    return APX_INVALID_ARGUMENT_ERROR;
@@ -199,7 +199,7 @@ apx_nodeData_t *apx_nodeDataManager_find(apx_nodeDataManager_t *self, const char
 {
    if ( (self != 0 ) && (name != 0) )
    {
-      void **result = adt_hash_get(&self->nodeDataMap, name, 0);
+      void **result = adt_hash_get(&self->nodeDataMap, name);
       if (result != 0)
       {
          return (apx_nodeData_t*) *result;

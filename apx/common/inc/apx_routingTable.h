@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_fileManagerSharedSpy.h
+* \file      apx_routingTable.h
 * \author    Conny Gustafsson
-* \date      2018-08-28
-* \brief     Description
+* \date      2018-10-08
+* \brief     Global map of all port data elements
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,40 +23,51 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_FILE_MANAGER_SHARED_SPY_H
-#define APX_FILE_MANAGER_SHARED_SPY_H
+#ifndef APX_ROUTING_TABLE_H
+#define APX_ROUTING_TABLE_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "rmf.h"
-#include "apx_file2.h"
+#include "adt_hash.h"
+#include "apx_types.h"
+#include "apx_error.h"
+#include "apx_routingTableEntry.h"
+#ifdef _WIN32
+# ifndef WIN32_LEAN_AND_MEAN
+# define WIN32_LEAN_AND_MEAN
+# endif
+# include <Windows.h>
+#else
+# include <pthread.h>
+#endif
+#include "osmacro.h"
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_fileManagerSharedSpy_tag
+//Forward declarations
+struct apx_nodeData_tag;
+typedef struct apx_routingTable_tag
 {
-   int32_t numFileCreatedCalls;
-   int32_t numSendFileInfoCalls;
-   int32_t numSendFileOpenCalls;
-   int32_t numOpenFileRequestCalls;
-} apx_fileManagerSharedSpy_t;
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
+   adt_hash_t internalMap; //strong references to apx_routingTableEntry_t
+   MUTEX_T mutex; //modification lock
+}apx_routingTable_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_fileManagerSharedSpy_create(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_destroy(apx_fileManagerSharedSpy_t *self);
-apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void);
-void apx_fileManagerSharedSpy_delete(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file2_tag *pFile, void *caller);
-void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file2_tag *pFile);
-void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file2_t *file, void *caller);
-void apx_fileManagerSharedSpy_openFileRequest(void *arg, uint32_t address);
+void apx_routingTable_create(apx_routingTable_t *self);
+void apx_routingTable_destroy(apx_routingTable_t *self);
+apx_routingTableEntry_t *apx_routingTable_insert(apx_routingTable_t *self, const char *portSignature);
+apx_routingTableEntry_t *apx_routingTable_findNoLock(apx_routingTable_t *self, const char *portSignature);
+apx_routingTableEntry_t *apx_routingTable_find(apx_routingTable_t *self, const char *portSignature);
+apx_error_t apx_routingTable_remove(apx_routingTable_t *self, const char *portSignature);
+void apx_routingTable_lock(apx_routingTable_t *self);
+void apx_routingTable_unlock(apx_routingTable_t *self);
+int32_t apx_routingTable_length(apx_routingTable_t *self);
+void apx_routingTable_attachNodeData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData);
+void apx_routingTable_detachNodeData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData);
 
-#endif //APX_FILE_MANAGER_SHARED_SPY_H
+#endif //APX_ROUTING_TABLE_H

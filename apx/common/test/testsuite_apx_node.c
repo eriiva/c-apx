@@ -137,13 +137,13 @@ static void test_apx_node_createNodeWithoutTypeReferences(CuTest* tc)
    port = apx_node_getRequirePort(&node, 0);
    CuAssertPtrNotNull(tc, port);
    CuAssertIntEquals(tc, 2, apx_dataSignature_calcPackLen(&port->dataSignature));
-   CuAssertIntEquals(tc, 0, apx_port_getPortIndex(port));
+   CuAssertIntEquals(tc, 0, apx_port_getPortId(port));
    CuAssertStrEquals(tc, "\"VehicleSpeed\"S", apx_port_getDerivedPortSignature(port));
 
    port = apx_node_getRequirePort(&node, 1);
    CuAssertPtrNotNull(tc, port);
    CuAssertIntEquals(tc, 1, apx_dataSignature_calcPackLen(&port->dataSignature));
-   CuAssertIntEquals(tc, 1 ,apx_port_getPortIndex(port));
+   CuAssertIntEquals(tc, 1 ,apx_port_getPortId(port));
    CuAssertStrEquals(tc, "\"ParkBrakeFailure\"C(0,3)", apx_port_getDerivedPortSignature(port));
 
    port = apx_node_getRequirePort(&node, 2);
@@ -172,13 +172,13 @@ static void test_apx_node_createNodeWithIdTypeReferences(CuTest* tc)
    port = apx_node_getRequirePort(&node, 0);
    CuAssertPtrNotNull(tc, port);
    CuAssertIntEquals(tc, 2, apx_dataSignature_calcPackLen(&port->dataSignature));
-   CuAssertIntEquals(tc, 0, apx_port_getPortIndex(port));
+   CuAssertIntEquals(tc, 0, apx_port_getPortId(port));
    CuAssertStrEquals(tc, "\"VehicleSpeed\"S", apx_port_getDerivedPortSignature(port));
 
    port = apx_node_getRequirePort(&node, 1);
    CuAssertPtrNotNull(tc, port);
    CuAssertIntEquals(tc, 2, apx_dataSignature_calcPackLen(&port->dataSignature));
-   CuAssertIntEquals(tc, 1 ,apx_port_getPortIndex(port));
+   CuAssertIntEquals(tc, 1 ,apx_port_getPortId(port));
    CuAssertStrEquals(tc, "\"EngineSpeed\"S", apx_port_getDerivedPortSignature(port));
 
    port = apx_node_getRequirePort(&node, 2);
@@ -207,13 +207,13 @@ static void test_apx_node_createNodeWithNameTypeReferences(CuTest* tc)
    port = apx_node_getRequirePort(&node, 0);
    CuAssertPtrNotNull(tc, port);
    CuAssertIntEquals(tc, 2, apx_dataSignature_calcPackLen(&port->dataSignature));
-   CuAssertIntEquals(tc, 0, apx_port_getPortIndex(port));
+   CuAssertIntEquals(tc, 0, apx_port_getPortId(port));
    CuAssertStrEquals(tc, "\"VehicleSpeed\"S", apx_port_getDerivedPortSignature(port));
 
    port = apx_node_getRequirePort(&node, 1);
    CuAssertPtrNotNull(tc, port);
    CuAssertIntEquals(tc, 2, apx_dataSignature_calcPackLen(&port->dataSignature));
-   CuAssertIntEquals(tc, 1 ,apx_port_getPortIndex(port));
+   CuAssertIntEquals(tc, 1 ,apx_port_getPortId(port));
    CuAssertStrEquals(tc, "\"EngineSpeed\"S", apx_port_getDerivedPortSignature(port));
 
    port = apx_node_getRequirePort(&node, 2);

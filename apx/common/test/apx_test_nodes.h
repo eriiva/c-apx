@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_nodeDataMap.h
+* \file      apx_test_nodes.h
 * \author    Conny Gustafsson
-* \date      2018-10-08
-* \brief     Memory map of a nodeData_t object. Only used in server mode
+* \date      2018-12-07
+* \brief     APX definitions for unit tests
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,36 +23,34 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_NODE_DATA_MAP_H
-#define APX_NODE_DATA_MAP_H
+#ifndef APX_TEST_NODES_H
+#define APX_TEST_NODES_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_types.h"
-#include "adt_ary.h"
-#include "apx_nodeData.h"
-#include "apx_bytePortMap.h"
-
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_nodeDataMap_tag
-{
-   apx_nodeData_t *nodeData; //parent object
-   adt_ary_t providePortInfoList; //strong references to apx_portInfo_t
-   adt_ary_t requirePortInfoList; //strong references to apx_portInfo_t
-   apx_bytePortMap_t *requireBytePortMap; //used only in client mode
-   apx_bytePortMap_t *provideBytePortMap; //used only in server mode
-}apx_nodeDataMap_t;
+#define APX_TESTNODE1_IN_DATA_LEN  1
+#define APX_TESTNODE1_OUT_DATA_LEN 4
+#define APX_TESTNODE5_IN_DATA_LEN  3
+#define APX_TESTNODE5_OUT_DATA_LEN 1
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC VARIABLES
+//////////////////////////////////////////////////////////////////////////////
+extern const char *g_apx_test_node1;
+extern const char *g_apx_test_node2;
+extern const char *g_apx_test_node3;
+extern const char *g_apx_test_node4;
+extern const char *g_apx_test_node5;
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-apx_error_t apx_nodeDataMap_create(apx_nodeDataMap_t *self, apx_nodeData_t *nodeData, uint8_t mode);
-void apx_nodeDataMap_destroy(apx_nodeDataMap_t *self);
-apx_nodeDataMap_t *apx_nodeDataMap_new(apx_nodeData_t *nodeData, uint8_t mode);
-void apx_nodeDataMap_delete(apx_nodeDataMap_t *self);
 
-#endif //APX_NODE_DATA_MAP_H
+
+#endif //APX_TEST_NODES_H

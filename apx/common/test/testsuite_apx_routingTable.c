@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_portData.h
+* \file      testsuite_apx_routingTable.c
 * \author    Conny Gustafsson
-* \date      2018-10-08
-* \brief     A port data element contains lists of all provide-ports and require-ports currently associated with a port signature
+* \date      2018-10-09
+* \brief     Unit tests for apx_routingTable
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,41 +23,49 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_PORT_DATA_H
-#define APX_PORT_DATA_H
-
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "adt_ary.h"
-#include "apx_types.h"
-#include "apx_portInfo.h"
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+#include "CuTest.h"
+#include "apx_routingTable.h"
+#include "apx_parser.h"
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_portData_tag
+#define ERROR_SIZE 15
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+static void test_apx_routingTable_create(CuTest* tc);
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE VARIABLES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+CuSuite* testSuite_apx_routingTable(void)
 {
-   const char *portSignature; //weak reference to string
-   int32_t dataSize;
-   int32_t currentProviderId;
-   adt_ary_t requirePortInfo; //weak references to apx_portInfo_t
-   adt_ary_t providePortInfo; //weak references to apx_portInfo_t
-}apx_portData_t;
+   CuSuite* suite = CuSuiteNew();
 
+   SUITE_ADD_TEST(suite, test_apx_routingTable_create);
+
+   return suite;
+}
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
+// PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_portData_create(apx_portData_t *self, const char *portSignature, int32_t dataSize);
-void apx_portData_destroy(apx_portData_t *self);
-apx_portData_t *apx_portData_new(const char *portSignature, int32_t dataSize);
-void apx_portData_delete(apx_portData_t *self);
-void apx_portData_vdelete(void *arg);
+static void test_apx_routingTable_create(CuTest* tc)
+{
 
-void apx_portData_insertRequirePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo);
-void apx_portData_insertProvidePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo);
-void apx_portData_removeRequirePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo);
-void apx_portData_removeProvidePortInfo(apx_portData_t *self, const apx_portInfo_t *portInfo);
-
-#endif //APX_PORT_DATA_H
+}

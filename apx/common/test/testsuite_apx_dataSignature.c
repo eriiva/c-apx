@@ -401,8 +401,8 @@ static void test_apx_dataSignature_resolveNameType(CuTest *tc)
    t2 = apx_datatype_new("EngineSpeed_T", "S", NULL, 1);
    adt_ary_push(typeList, t1);
    adt_ary_push(typeList, t2);
-   adt_hash_set(typeMap, t1->name, 0, t1);
-   adt_hash_set(typeMap, t2->name, 0, t2);
+   adt_hash_set(typeMap, t1->name, t1);
+   adt_hash_set(typeMap, t2->name, t2);
    dsg1 = apx_dataSignature_new("T[\"VehicleSpeed_T\"]");
    dsg2 = apx_dataSignature_new("T[\"EngineSpeed_T\"]");
 
@@ -438,8 +438,8 @@ static void test_apx_dataSignature_resolveNameTypeWithError(CuTest *tc)
    t2 = apx_datatype_new("EngineSpeed_T", "S", NULL, 1);
    adt_ary_push(typeList, t1);
    adt_ary_push(typeList, t2);
-   adt_hash_set(typeMap, t1->name, 0, t1);
-   adt_hash_set(typeMap, t2->name, 0, t2);
+   adt_hash_set(typeMap, t1->name, t1);
+   adt_hash_set(typeMap, t2->name, t2);
    dsg = apx_dataSignature_new("T[\"VehicleSpeed_t\"]");
 
    CuAssertIntEquals(tc, APX_BASE_TYPE_REF_NAME, dsg->dataElement->baseType);

@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_fileManagerSharedSpy.h
+* \file      apx_portDataRef.h
 * \author    Conny Gustafsson
-* \date      2018-08-28
-* \brief     Description
+* \date      2018-10-08
+* \brief     Collects all useful information about a specific port into a single container
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,25 +23,29 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_FILE_MANAGER_SHARED_SPY_H
-#define APX_FILE_MANAGER_SHARED_SPY_H
+#ifndef APX_PORT_DATA_H
+#define APX_PORT_DATA_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "rmf.h"
-#include "apx_file2.h"
+#include "apx_types.h"
+#include "apx_event.h"
+#include "apx_portDataAttributes.h"
+#include <stdbool.h>
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_fileManagerSharedSpy_tag
+struct apx_nodeData_tag;
+struct apx_file2_tag;
+
+typedef struct apx_portDataRef_tag
 {
-   int32_t numFileCreatedCalls;
-   int32_t numSendFileInfoCalls;
-   int32_t numSendFileOpenCalls;
-   int32_t numOpenFileRequestCalls;
-} apx_fileManagerSharedSpy_t;
+   struct apx_nodeData_tag *nodeData; //weak reference
+   apx_uniquePortId_t portId; //This is a provide-port ID if APX_PORT_ID_PROVIDE_PORT is set, otherwise it's a require-port ID.
+}apx_portDataRef_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -50,13 +54,11 @@ typedef struct apx_fileManagerSharedSpy_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_fileManagerSharedSpy_create(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_destroy(apx_fileManagerSharedSpy_t *self);
-apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void);
-void apx_fileManagerSharedSpy_delete(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file2_tag *pFile, void *caller);
-void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file2_tag *pFile);
-void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file2_t *file, void *caller);
-void apx_fileManagerSharedSpy_openFileRequest(void *arg, uint32_t address);
+void apx_portDataRef_create(apx_portDataRef_t *self, struct apx_nodeData_tag *nodeData, apx_uniquePortId_t portId);
+apx_portDataRef_t *apx_portDataRef_new(struct apx_nodeData_tag *nodedata, apx_uniquePortId_t portId);
+void apx_portDataRef_delete(apx_portDataRef_t *self);
+void apx_portDataRef_vdelete(void *arg);
+bool apx_portDataRef_isProvidePortRef(apx_portDataRef_t *self);
+void apx_portDataRef_createPortConnectedEvent(apx_event_t *event, apx_portDataRef_t *localPortDataRef, apx_portDataRef_t *remotePortDataRef);
 
-#endif //APX_FILE_MANAGER_SHARED_SPY_H
+#endif //APX_PORT_DATA_H

@@ -40,10 +40,6 @@
 struct adt_ary_tag;
 struct adt_hash_tag;
 
-
-#define APX_REQUIRE_PORT 0
-#define APX_PROVIDE_PORT 1
-
 typedef struct apx_port_tag
 {
    char *name;
@@ -51,7 +47,7 @@ typedef struct apx_port_tag
    apx_portAttributes_t *portAttributes; //port attributes object, includes the raw attributes string
    char *derivedPortSignature; //Derived port signature, excluding the initial 'R' or 'P'
    int32_t lineNumber; //line number in the APX-file where this port is defines. Special value 0 is used in case this port was created without an APX-file
-   apx_portId_t portIndex; //index of the port 0..len(ports) where it resides on its parent node
+   apx_portId_t portId; //index of the port 0..len(ports) where it resides on its parent node
    apx_portType_t portType; //APX_REQUIRE_PORT or APX_PROVIDE_PORT
 } apx_port_t;
 
@@ -71,7 +67,7 @@ const char *apx_port_getDerivedPortSignature(apx_port_t *self);
 apx_error_t apx_port_updatePackLen(apx_port_t *self);
 
 int32_t apx_port_getPackLen(apx_port_t *self);
-void apx_port_setPortIndex(apx_port_t *self, apx_portId_t portIndex);
-apx_portId_t  apx_port_getPortIndex(apx_port_t *self);
+void apx_port_setPortId(apx_port_t *self, apx_portId_t portId);
+apx_portId_t  apx_port_getPortId(apx_port_t *self);
 
 #endif //APX_PORT_H

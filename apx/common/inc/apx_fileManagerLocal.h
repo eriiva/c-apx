@@ -62,7 +62,7 @@ void apx_fileManagerLocal_create(apx_fileManagerLocal_t *self, apx_fileManagerSh
 void apx_fileManagerLocal_destroy(apx_fileManagerLocal_t *self);
 //void apx_fileManagerLocal_start(apx_fileManagerLocal_t *self);
 //void apx_fileManagerLocal_stop(apx_fileManagerLocal_t *self);
-void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file2_tag *localFile);
+void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file2_tag *localFile, void *caller);
 int32_t apx_fileManagerLocal_getNumFiles(apx_fileManagerLocal_t *self);
 int32_t apx_fileManagerLocal_serializeFileInfo(apx_fileManagerLocal_t *self, uint8_t *bufData, int32_t bufLen, uint8_t headerSize);
 void apx_fileManagerLocal_sendFileInfo(apx_fileManagerLocal_t *self);

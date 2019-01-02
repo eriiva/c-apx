@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      testsuite_apx_nodeDataMap.c
+* \file      apx_portTriggerList.c
 * \author    Conny Gustafsson
-* \date      2018-10-08
-* \brief     Unit tests for apx_nodeDataMap_t
+* \date      2018-12-07
+* \brief     Internal lookup table for port subscriptions
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -26,16 +26,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stddef.h>
-#include <string.h>
-#include "CuTest.h"
-#include "apx_nodeDataMap.h"
-#include "apx_error.h"
-#include "apx_parser.h"
-#include "apx_portInfo.h"
+#include <malloc.h>
+#include "apx_portTriggerList.h"
+
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -47,7 +40,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_nodeDataMap_create_serverMap(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -56,60 +48,87 @@ static void test_apx_nodeDataMap_create_serverMap(CuTest* tc);
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-CuSuite* testSuite_apx_nodeDataMap(void)
+void apx_portTriggerList_create(apx_portTriggerList_t *self)
 {
-   CuSuite* suite = CuSuiteNew();
-
-   SUITE_ADD_TEST(suite, test_apx_nodeDataMap_create_serverMap);
-
-
-   return suite;
+   if (self != 0)
+   {
+      adt_ary_create(&self->requirePortData, 0);
+   }
 }
+
+void apx_portTriggerList_destroy(apx_portTriggerList_t *self)
+{
+   if (self != 0)
+   {
+      adt_ary_destroy(&self->requirePortData);
+   }
+}
+
+apx_portTriggerList_t* apx_portTriggerList_new(void)
+{
+   apx_portTriggerList_t *self = (apx_portTriggerList_t*) malloc(sizeof(apx_portTriggerList_t));
+   if (self != 0)
+   {
+      apx_portTriggerList_create(self);
+   }
+   else
+   {
+      apx_setError(APX_MEM_ERROR);
+   }
+   return self;
+}
+
+void apx_portTriggerList_delete(apx_portTriggerList_t *self)
+{
+   if (self != 0)
+   {
+      apx_portTriggerList_destroy(self);
+      free(self);
+   }
+}
+
+apx_error_t apx_portTriggerList_insert(apx_portTriggerList_t *self, apx_portDataRef_t *portData)
+{
+   if ( (self != 0) && (portData != 0) )
+   {
+      apx_error_t retval = APX_NO_ERROR;
+      adt_error_t result = adt_ary_push(&self->requirePortData, portData);
+      if (result != ADT_NO_ERROR)
+      {
+         if (result == ADT_MEM_ERROR)
+         {
+            retval = APX_MEM_ERROR;
+         }
+         else
+         {
+            retval = -1; //unhandled error
+         }
+      }
+      return retval;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+void apx_portTriggerList_remove(apx_portTriggerList_t *self, apx_portDataRef_t *portData)
+{
+   if ( (self != 0) && (portData != 0) )
+   {
+      (void) adt_ary_remove(&self->requirePortData, portData);
+   }
+}
+
+int32_t apx_portTriggerList_length(apx_portTriggerList_t *self)
+{
+   if (self != 0)
+   {
+      return adt_ary_length(&self->requirePortData);
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_nodeDataMap_create_serverMap(CuTest* tc)
-{
-   const char *apx_text =
-         "APX/1.2\n"
-         "N\"TestNode\"\n"
-         "P\"Name\"a[8]\n"
-         "P\"Id\"L\n";
-   apx_parser_t parser;
-   apx_node_t *node;
-   apx_nodeData_t *nodeData;
-   apx_nodeDataMap_t *map;
-   apx_parser_create(&parser);
-   node = apx_parser_parseString(&parser, apx_text);
-   CuAssertPtrNotNull(tc, node);
-   apx_parser_clearNodes(&parser);
-   nodeData = apx_nodeData_new((uint32_t) strlen(apx_text));
-   CuAssertPtrNotNull(tc, nodeData);
-   apx_nodeData_setNode(nodeData, node);
-   map = apx_nodeDataMap_new(nodeData, APX_SERVER_MODE);
-   CuAssertPtrNotNull(tc, map);
-   int32_t portLen = adt_ary_length(&map->providePortInfoList);
-   apx_portInfo_t *portInfo;
-   CuAssertUIntEquals(tc, 2, portLen);
-   portInfo = (apx_portInfo_t*) adt_ary_value(&map->providePortInfoList, 0);
-   CuAssertPtrNotNull(tc, portInfo);
-   CuAssertIntEquals(tc, 8, portInfo->dataSize);
-   CuAssertPtrEquals(tc, nodeData, portInfo->nodedata);
-   CuAssertIntEquals(tc, 0, portInfo->offset);
-   CuAssertIntEquals(tc, 0, portInfo->portIndex);
-   portInfo = (apx_portInfo_t*) adt_ary_value(&map->providePortInfoList, 1);
-   CuAssertPtrNotNull(tc, portInfo);
-   CuAssertUIntEquals(tc, 4, portInfo->dataSize);
-   CuAssertPtrEquals(tc, nodeData, portInfo->nodedata);
-   CuAssertIntEquals(tc, 8, portInfo->offset);
-   CuAssertIntEquals(tc, 1, portInfo->portIndex);
-   CuAssertPtrEquals(tc, 0, map->requireBytePortMap);
-   CuAssertPtrNotNull(tc, map->provideBytePortMap);
-   CuAssertUIntEquals(tc, 12, map->provideBytePortMap->mapLen);
-   apx_nodeDataMap_delete(map);
-   apx_nodeData_delete(nodeData);
-   apx_parser_destroy(&parser);
-}
 
-;
+

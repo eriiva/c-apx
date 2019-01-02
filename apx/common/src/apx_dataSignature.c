@@ -202,7 +202,7 @@ apx_error_t apx_dataSignature_resolveTypes(apx_dataSignature_t *self, struct adt
       {
          if (typeMap != 0)
          {
-            void **ppVal = adt_hash_get(typeMap, self->dataElement->typeRef.name, 0);
+            void **ppVal = adt_hash_get(typeMap, self->dataElement->typeRef.name);
             if (ppVal != 0)
             {
                apx_dataElement_setTypeReferencePtr(self->dataElement, (apx_datatype_t*) *ppVal);

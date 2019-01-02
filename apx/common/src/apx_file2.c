@@ -67,6 +67,7 @@ int8_t apx_file2_create(apx_file2_t *self, bool isRemoteFile, const rmf_fileInfo
       int8_t result;
       self->isRemoteFile = isRemoteFile;
       self->isOpen = false;
+      self->isDataValid = false;
       self->nodeData = (apx_nodeData_t*) 0;
       self->fileType = APX_UNKNOWN_FILE;
 
@@ -226,6 +227,32 @@ void apx_file2_setHandler(apx_file2_t *self, const apx_file_handler_t *handler)
    {
       memcpy(&self->handler, handler, sizeof(apx_file_handler_t));
    }
+}
+
+bool apx_file2_isDataValid(apx_file2_t *self)
+{
+   if (self != 0)
+   {
+      return self->isDataValid;
+   }
+   return false;
+}
+
+void apx_file2_setDataValid(apx_file2_t *self)
+{
+   if (self != 0)
+   {
+      self->isDataValid = true;
+   }
+}
+
+bool apx_file2_isOpen(apx_file2_t *self)
+{
+   if (self != 0)
+   {
+      return self->isOpen;
+   }
+   return false;
 }
 
 //////////////////////////////////////////////////////////////////////////////

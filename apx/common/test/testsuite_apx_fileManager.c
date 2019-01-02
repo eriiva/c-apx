@@ -14,6 +14,7 @@
 #include "apx_transmitHandlerSpy.h"
 #include "apx_fileManagerEventListenerSpy.h"
 #include "apx_nodeData.h"
+#include "apx_serverTestConnection.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -22,7 +23,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define CONNECTION_ID_DEFAULT 0
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
@@ -86,7 +86,7 @@ CuSuite* testSuite_apx_fileManager(void)
 static void test_apx_fileManager_createInServerMode(CuTest* tc)
 {
    apx_fileManager_t manager;
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
+   apx_fileManager_create(&manager, APX_SERVER_MODE, NULL);
    CuAssertIntEquals(tc, 0, apx_fileManager_getNumEventListeners(&manager));
    apx_fileManager_destroy(&manager);
 }
@@ -94,7 +94,7 @@ static void test_apx_fileManager_createInServerMode(CuTest* tc)
 static void test_apx_fileManager_createInClientMode(CuTest* tc)
 {
    apx_fileManager_t manager;
-   apx_fileManager_create(&manager, APX_FILEMANAGER_CLIENT_MODE, CONNECTION_ID_DEFAULT, NULL);
+   apx_fileManager_create(&manager, APX_CLIENT_MODE, NULL);
    apx_fileManager_destroy(&manager);
 }
 
@@ -105,16 +105,16 @@ static void test_apx_fileManager_attachLocalFiles(CuTest* tc)
    apx_file2_t *definitionFile;
    apx_file2_t *outDataFile;
    apx_fileManagerEventListenerSpy_t spy;
-   apx_fileManager_t manager;
-   apx_eventLoop_t loop;
+   apx_serverTestConnection_t connection;
+   apx_fileManager_t *manager;
 
-   apx_eventLoop_create(&loop);
+   apx_serverTestConnection_create(&connection, NULL);
    apx_fileManagerEventListenerSpy_create(&spy);
    memset(&listener, 0, sizeof(listener));
    listener.arg = &spy;
    listener.fileCreate = apx_fileManagerEventListenerSpy_fileCreate;
-   apx_fileManager_create(&manager, APX_FILEMANAGER_CLIENT_MODE, CONNECTION_ID_DEFAULT, &loop);
-   apx_fileManager_registerEventListener(&manager, &listener);
+   manager = &connection.base.base.fileManager;
+   apx_fileManager_registerEventListener(manager, &listener);
    ApxNode_Init_TestNode1();
    nodeData = ApxNode_GetNodeData_TestNode1();
    definitionFile = apx_nodeData_newLocalDefinitionFile(nodeData);
@@ -122,31 +122,32 @@ static void test_apx_fileManager_attachLocalFiles(CuTest* tc)
    CuAssertPtrNotNull(tc, definitionFile);
    CuAssertPtrNotNull(tc, outDataFile);
    CuAssertIntEquals(tc, 0, spy.numfileCreateCalls);
-   CuAssertIntEquals(tc, 0, apx_fileManager_getNumLocalFiles(&manager));
-   apx_fileManager_attachLocalFile(&manager, definitionFile);
-   apx_fileManager_attachLocalFile(&manager, outDataFile);
-   apx_eventLoop_run(&loop);
+   CuAssertIntEquals(tc, 0, apx_fileManager_getNumLocalFiles(manager));
+   apx_fileManager_attachLocalFile(manager, definitionFile, NULL);
+   apx_fileManager_attachLocalFile(manager, outDataFile, NULL);
+   apx_serverTestConnection_runEventLoop(&connection);
    CuAssertIntEquals(tc, 2, spy.numfileCreateCalls);
-   CuAssertIntEquals(tc, 2, apx_fileManager_getNumLocalFiles(&manager));
+   CuAssertIntEquals(tc, 2, apx_fileManager_getNumLocalFiles(manager));
    CuAssertTrue(tc, !spy.lastFile->isRemoteFile);
    CuAssertTrue(tc, !spy.lastFile->isOpen);
-   apx_fileManager_destroy(&manager);
-   apx_eventLoop_destroy(&loop);
+   apx_serverTestConnection_destroy(&connection);
 }
 
 static void test_apx_fileManager_registerListener(CuTest* tc)
 {
-   apx_fileManager_t manager;
+   apx_serverTestConnection_t connection;
    apx_fileManagerEventListener_t eventListener;
    void *handle;
+   apx_fileManager_t *manager;
+   apx_serverTestConnection_create(&connection, NULL);
    memset(&eventListener, 0, sizeof(eventListener));
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
-   CuAssertIntEquals(tc, 0, apx_fileManager_getNumEventListeners(&manager));
-   handle = apx_fileManager_registerEventListener(&manager, &eventListener);
-   CuAssertIntEquals(tc, 1, apx_fileManager_getNumEventListeners(&manager));
-   apx_fileManager_unregisterEventListener(&manager, handle);
-   CuAssertIntEquals(tc, 0, apx_fileManager_getNumEventListeners(&manager));
-   apx_fileManager_destroy(&manager);
+   manager = &connection.base.base.fileManager;
+   CuAssertIntEquals(tc, 0, apx_fileManager_getNumEventListeners(manager));
+   handle = apx_fileManager_registerEventListener(manager, &eventListener);
+   CuAssertIntEquals(tc, 1, apx_fileManager_getNumEventListeners(manager));
+   apx_fileManager_unregisterEventListener(manager, handle);
+   CuAssertIntEquals(tc, 0, apx_fileManager_getNumEventListeners(manager));
+   apx_serverTestConnection_destroy(&connection);
 }
 
 static void test_apx_fileManager_createRemoteFile(CuTest* tc)
@@ -156,8 +157,8 @@ static void test_apx_fileManager_createRemoteFile(CuTest* tc)
    rmf_fileInfo_t info;
    int32_t msgLen;
    apx_fileManagerEventListenerSpy_t spy;
-   apx_fileManager_t manager;
-   apx_eventLoop_t loop;
+   apx_fileManager_t *manager;
+   apx_serverTestConnection_t connection;
 
    apx_fileManagerEventListenerSpy_create(&spy);
 
@@ -165,24 +166,26 @@ static void test_apx_fileManager_createRemoteFile(CuTest* tc)
    listener.arg = &spy;
    listener.fileCreate = apx_fileManagerEventListenerSpy_fileCreate;
 
-   apx_eventLoop_create(&loop);
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, &loop);
-   apx_fileManager_registerEventListener(&manager, &listener);
+   apx_serverTestConnection_create(&connection, NULL);
+   manager = &connection.base.base.fileManager;
+   apx_serverTestConnection_runEventLoop(&connection);
+   apx_fileManager_registerEventListener(manager, &listener);
    rmf_fileInfo_create(&info, "test.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
    msgLen = rmf_packHeader(&buffer[0], sizeof(buffer), RMF_CMD_START_ADDR, false);
    msgLen += rmf_serialize_cmdFileInfo(&buffer[msgLen], sizeof(buffer)-msgLen, &info);
-   CuAssertIntEquals(tc, msgLen, apx_fileManager_processMessage(&manager, &buffer[0], msgLen));
-   apx_eventLoop_run(&loop);
+   CuAssertIntEquals(tc, msgLen, apx_fileManager_processMessage(manager, &buffer[0], msgLen));
+   apx_serverTestConnection_runEventLoop(&connection);
    CuAssertIntEquals(tc, 1, spy.numfileCreateCalls);
    CuAssertTrue(tc, spy.lastFile->isRemoteFile);
    CuAssertTrue(tc, !spy.lastFile->isOpen);
-   apx_fileManager_destroy(&manager);
-   apx_eventLoop_destroy(&loop);
+   apx_serverTestConnection_destroy(&connection);
 }
 
 static void test_apx_fileManager_openRemoteFile_sendMessage(CuTest* tc)
 {
-   apx_fileManager_t manager;
+   apx_fileManager_t *manager;
+   apx_serverTestConnection_t connection;
+
    uint8_t buffer[100];
    rmf_fileInfo_t info;
    apx_file2_t *file;
@@ -199,20 +202,21 @@ static void test_apx_fileManager_openRemoteFile_sendMessage(CuTest* tc)
    handler.send = apx_transmitHandlerSpy_send;
    handler.arg = &spy;
    apx_transmitHandlerSpy_create(&spy);
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
-   apx_fileManager_setTransmitHandler(&manager, &handler);
+   apx_serverTestConnection_create(&connection, NULL);
+   manager = &connection.base.base.fileManager;
+   apx_fileManager_setTransmitHandler(manager, &handler);
    rmf_fileInfo_create(&info, "test.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
    msgLen = rmf_packHeader(&buffer[0], sizeof(buffer), RMF_CMD_START_ADDR, false);
    msgLen += rmf_serialize_cmdFileInfo(&buffer[msgLen], sizeof(buffer)-msgLen, &info);
 
-   CuAssertIntEquals(tc, msgLen, apx_fileManager_processMessage(&manager, &buffer[0], msgLen));
+   CuAssertIntEquals(tc, msgLen, apx_fileManager_processMessage(manager, &buffer[0], msgLen));
 
-   file = apx_fileMap_findByName(&manager.remote.remoteFileMap, "test.apx");
+   file = apx_fileMap_findByName(&manager->remote.remoteFileMap, "test.apx");
    CuAssertPtrNotNull(tc, file);
    CuAssertIntEquals(tc, 0, apx_transmitHandlerSpy_length(&spy));
-   CuAssertIntEquals(tc, 0, apx_fileManager_openRemoteFile(&manager, file->fileInfo.address, (void*) 0));
-   CuAssertIntEquals(tc, 1, apx_fileManager_numPendingMessages(&manager));
-   apx_fileManager_run(&manager);
+   CuAssertIntEquals(tc, 0, apx_fileManager_openRemoteFile(manager, file->fileInfo.address, (void*) 0));
+   CuAssertIntEquals(tc, 1, apx_fileManager_numPendingMessages(manager));
+   apx_fileManager_run(manager);
    CuAssertIntEquals(tc, 1, apx_transmitHandlerSpy_length(&spy));
    array = apx_transmitHandlerSpy_next(&spy);
    CuAssertPtrNotNull(tc, array);
@@ -224,59 +228,67 @@ static void test_apx_fileManager_openRemoteFile_sendMessage(CuTest* tc)
    CuAssertUIntEquals(tc, info.address, cmd.address);
 
    adt_bytearray_delete(array);
-   apx_fileManager_destroy(&manager);
+   apx_serverTestConnection_destroy(&connection);
    apx_transmitHandlerSpy_destroy(&spy);
 }
 
 static void test_apx_fileManager_openRemoteFile_setOpenFlag(CuTest* tc)
 {
-   apx_fileManager_t manager;
+   apx_fileManager_t *manager;
+   apx_serverTestConnection_t connection;
+
    uint8_t buffer[100];
    rmf_fileInfo_t info;
    int32_t msgLen;
    apx_file2_t *file;
 
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
+   apx_serverTestConnection_create(&connection, NULL);
+   manager = &connection.base.base.fileManager;
+
    rmf_fileInfo_create(&info, "test.apx", 0x10000, 100, RMF_FILE_TYPE_FIXED);
    msgLen = rmf_packHeader(&buffer[0], sizeof(buffer), RMF_CMD_START_ADDR, false);
    msgLen += rmf_serialize_cmdFileInfo(&buffer[msgLen], sizeof(buffer)-msgLen, &info);
-   CuAssertIntEquals(tc, msgLen, apx_fileManager_processMessage(&manager, &buffer[0], msgLen));
+   CuAssertIntEquals(tc, msgLen, apx_fileManager_processMessage(manager, &buffer[0], msgLen));
 
-   file = apx_fileMap_findByName(&manager.remote.remoteFileMap, "test.apx");
+   file = apx_fileMap_findByName(&manager->remote.remoteFileMap, "test.apx");
    CuAssertTrue(tc, file->isOpen == false);
-   CuAssertIntEquals(tc, 0, apx_fileManager_openRemoteFile(&manager, file->fileInfo.address, (void*) 0));
+   CuAssertIntEquals(tc, 0, apx_fileManager_openRemoteFile(manager, file->fileInfo.address, (void*) 0));
    CuAssertTrue(tc, file->isOpen == true);
 
-   apx_fileManager_destroy(&manager);
+   apx_serverTestConnection_destroy(&connection);
 }
 
 static void test_apx_fileManager_openRemoteFile_processRequest_fixedFileNoReadHandler(CuTest* tc)
 {
 
-   apx_fileManager_t manager;
+   apx_fileManager_t *manager;
+   apx_serverTestConnection_t connection;
+
    apx_transmitHandlerSpy_t spy;
    const uint32_t fileAddress = 0x10000;
 
    apx_transmitHandlerSpy_create(&spy);
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
-   attachSpyAsTransmitHandler(&manager, &spy);
-   attachApxClientFiles(tc, &manager, fileAddress);
-   receiveFileOpenRequest(tc, &manager, fileAddress);
-   CuAssertIntEquals(tc, 1, apx_fileManager_numPendingMessages(&manager));
+   apx_serverTestConnection_create(&connection, NULL);
+   manager = &connection.base.base.fileManager;
+
+   attachSpyAsTransmitHandler(manager, &spy);
+   attachApxClientFiles(tc, manager, fileAddress);
+   receiveFileOpenRequest(tc, manager, fileAddress);
+   CuAssertIntEquals(tc, 1, apx_fileManager_numPendingMessages(manager));
    CuAssertIntEquals(tc, 0, apx_transmitHandlerSpy_length(&spy));
-   apx_fileManager_run(&manager);
-   verifyInvalidReadHandler(tc, &manager, &spy, fileAddress);
+   apx_fileManager_run(manager);
+   verifyInvalidReadHandler(tc, manager, &spy, fileAddress);
 
-
-
-   apx_fileManager_destroy(&manager);
+   apx_serverTestConnection_destroy(&connection);
    apx_transmitHandlerSpy_destroy(&spy);
 
 }
 
 static void test_apx_fileManager_openRemoteFile_processRequest_apxDefinitionFile(CuTest* tc)
 {
-   apx_fileManager_t manager;
+   apx_fileManager_t *manager;
+   apx_serverTestConnection_t connection;
+
    apx_transmitHandlerSpy_t spy;
 
    apx_file_handler_t fileHandler;
@@ -285,13 +297,15 @@ static void test_apx_fileManager_openRemoteFile_processRequest_apxDefinitionFile
 
    apx_transmitHandlerSpy_create(&spy);
 
-   apx_fileManager_create(&manager, APX_FILEMANAGER_SERVER_MODE, CONNECTION_ID_DEFAULT, NULL);
-   attachSpyAsTransmitHandler(&manager, &spy);
+   apx_serverTestConnection_create(&connection, NULL);
+   manager = &connection.base.base.fileManager;
+
+   attachSpyAsTransmitHandler(manager, &spy);
 
 
-   attachApxClientFiles(tc, &manager, fileAddress);
+   attachApxClientFiles(tc, manager, fileAddress);
 
-   definitionFile = apx_fileManager_findLocalFileByName(&manager, "TestNode.apx");
+   definitionFile = apx_fileManager_findLocalFileByName(manager, "TestNode.apx");
    CuAssertPtrNotNull(tc, definitionFile);
 
    memset(&fileHandler, 0, sizeof(fileHandler));
@@ -299,14 +313,14 @@ static void test_apx_fileManager_openRemoteFile_processRequest_apxDefinitionFile
    fileHandler.read = readDefinitionData;
    apx_file2_setHandler(definitionFile, &fileHandler);
 
-   receiveFileOpenRequest(tc, &manager, fileAddress);
-   CuAssertIntEquals(tc, 1, apx_fileManager_numPendingMessages(&manager));
+   receiveFileOpenRequest(tc, manager, fileAddress);
+   CuAssertIntEquals(tc, 1, apx_fileManager_numPendingMessages(manager));
    CuAssertIntEquals(tc, 0, apx_transmitHandlerSpy_length(&spy));
-   apx_fileManager_run(&manager);
+   apx_fileManager_run(manager);
 
-   verifyWriteDefinitionFile(tc, &manager, &spy, fileAddress);
+   verifyWriteDefinitionFile(tc, manager, &spy, fileAddress);
 
-   apx_fileManager_destroy(&manager);
+   apx_serverTestConnection_destroy(&connection);
    apx_transmitHandlerSpy_destroy(&spy);
 
 }
@@ -331,7 +345,7 @@ static void attachApxClientFiles(CuTest* tc, apx_fileManager_t *manager, uint32_
 
    rmf_fileInfo_create(&info, "TestNode.apx", definitionFileAddress, len, RMF_FILE_TYPE_FIXED);
    localFile = apx_file2_newLocal(&info, NULL);
-   apx_fileManager_attachLocalFile(manager, localFile);
+   apx_fileManager_attachLocalFile(manager, localFile, NULL);
 }
 
 static void receiveFileOpenRequest(CuTest *tc, apx_fileManager_t *manager, uint32_t fileAddress)

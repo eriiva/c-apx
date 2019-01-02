@@ -63,7 +63,7 @@ apx_error_t apx_port_create(apx_port_t *self, apx_portType_t portType, const cha
       self->name = (name != 0)? STRDUP(name) : 0;
       self->portType = portType;
       self->derivedPortSignature = (char*) 0;
-      self->portIndex = -1;
+      self->portId = -1;
       self->lineNumber = lineNumber;
       error = apx_dataSignature_create(&self->dataSignature, dataSignature);
       if (error != APX_NO_ERROR)
@@ -274,19 +274,19 @@ int32_t apx_port_getPackLen(apx_port_t *self)
 }
 
 
-void apx_port_setPortIndex(apx_port_t *self, apx_portId_t portIndex)
+void apx_port_setPortId(apx_port_t *self, apx_portId_t portId)
 {
-   if ( (self != 0) && (portIndex>=0) )
+   if ( (self != 0) && (portId>=0) )
    {
-      self->portIndex=portIndex;
+      self->portId=portId;
    }
 }
 
-apx_portId_t  apx_port_getPortIndex(apx_port_t *self)
+apx_portId_t  apx_port_getPortId(apx_port_t *self)
 {
    if (self != 0)
    {
-      return self->portIndex;
+      return self->portId;
    }
    return -1;
 }

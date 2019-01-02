@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_portInfo.h
+* \file      apx_portDataRef.c
 * \author    Conny Gustafsson
 * \date      2018-10-08
-* \brief     Collects all useful information about a specific port into a single container
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,40 +23,86 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_PORT_INFO_H
-#define APX_PORT_INFO_H
-
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_types.h"
-
+#include <malloc.h>
+#include <string.h>
+#include "apx_error.h"
+#include "apx_portDataRef.h"
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-struct apx_nodeData_tag;
-struct apx_file2_tag;
 
-typedef struct apx_portInfo_tag
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE VARIABLES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+void apx_portDataRef_create(apx_portDataRef_t *self, struct apx_nodeData_tag *nodeData, apx_uniquePortId_t portId)
 {
-   struct apx_nodeData_tag *nodedata;
-   struct apx_file2_tag *file;
-   apx_size_t dataSize; //size of the port data
-   apx_offset_t offset; //offset in file
-   apx_portId_t portIndex; //the index of the port in nodeData, nodeData->node, nodeData->map
-}apx_portInfo_t;
+   if (self != 0)
+   {
+      self->nodeData = nodeData;
+      self->portId = portId;
+   }
+}
+
+apx_portDataRef_t *apx_portDataRef_new(struct apx_nodeData_tag *nodedata, apx_uniquePortId_t portId)
+{
+   apx_portDataRef_t *self = (apx_portDataRef_t*) malloc(sizeof(apx_portDataRef_t));
+   if(self != 0)
+   {
+      apx_portDataRef_create(self, nodedata, portId);
+   }
+   else
+   {
+      apx_setError(APX_MEM_ERROR);
+   }
+   return self;
+}
+
+void apx_portDataRef_delete(apx_portDataRef_t *self)
+{
+   if (self != 0)
+   {
+      free(self);
+   }
+}
+
+void apx_portDataRef_vdelete(void *arg)
+{
+   apx_portDataRef_delete((apx_portDataRef_t*) arg);
+}
+
+bool apx_portDataRef_isProvidePortRef(apx_portDataRef_t *self)
+{
+   return ( (self != 0) && ( (self->portId & APX_PORT_ID_PROVIDE_PORT) != 0u ) );
+}
+
+void apx_portDataRef_createPortConnectedEvent(apx_event_t *event, apx_portDataRef_t *localPortDataRef, apx_portDataRef_t *remotePortDataRef)
+{
+   if (event != 0)
+   {
+      memset(event, 0, APX_EVENT_SIZE);
+      event->evType = APX_EVENT_NODE_PORT_CONNECTED;
+      event->evData1 = (void*) localPortDataRef;
+      event->evData2 = (void*) remotePortDataRef;
+   }
+}
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
+// PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
-//////////////////////////////////////////////////////////////////////////////
-void apx_portInfo_create(apx_portInfo_t *self, struct apx_nodeData_tag *nodedata, apx_portId_t portIndex, apx_size_t dataSize, struct apx_file2_tag *file, int32_t offset);
-apx_portInfo_t *apx_portInfo_new(struct apx_nodeData_tag *nodedata, apx_portId_t portIndex,  apx_size_t dataSize, struct apx_file2_tag *file, int32_t offset);
-void apx_portInfo_delete(apx_portInfo_t *self);
-void apx_portInfo_vdelete(void *arg);
 
-#endif //APX_PORT_INFO_H

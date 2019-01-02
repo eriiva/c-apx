@@ -91,14 +91,14 @@ void apx_fileManagerLocal_destroy(apx_fileManagerLocal_t *self)
    }
 }
 
-void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file2_tag *localFile)
+void apx_fileManagerLocal_attachFile(apx_fileManagerLocal_t *self, struct apx_file2_tag *localFile, void *caller)
 {
    if ((self != 0) && (localFile != 0))
    {
       apx_fileMap_insertFile(&self->localFileMap, localFile);
       if (self->shared->fileCreated != 0)
       {
-         self->shared->fileCreated(self->shared->arg, localFile);
+         self->shared->fileCreated(self->shared->arg, localFile, caller);
       }
       if ( (self->shared->isConnected) && (self->shared->sendFileInfo != 0) )
       {

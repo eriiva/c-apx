@@ -24,7 +24,7 @@ typedef struct apx_fileManagerShared_tag
    apx_fileMap_t localFileMap;
    uint32_t fmid; //a.k.a channel ID
    bool isConnected;
-   void (*fileCreated)(void *arg, const struct apx_file2_tag *pFile);
+   void (*fileCreated)(void *arg, const struct apx_file2_tag *pFile, void *caller);
    void (*sendFileInfo)(void *arg, const struct apx_file2_tag *pFile);
    void (*sendFileOpen)(void *arg, const struct apx_file2_tag *pFile, void *caller);
    void (*openFileRequest)(void *arg, uint32_t address);

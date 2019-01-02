@@ -10,7 +10,7 @@
 
 
 
-#define IFSTREAM_BLOCK_SIZE 65536
+#define IFSTREAM_BLOCK_SIZE 8192
 
 /**************** Private Function Declarations *******************/
 
@@ -69,7 +69,6 @@ int ifstream_readBinaryFile(ifstream_t *self,const char *filename)
 {
    if( (self != 0) && (filename != 0) ){
       uint32_t chunkLen = 0;
-      char *buf;
       char *chunk;
       chunk = (char*) malloc(IFSTREAM_BLOCK_SIZE);
       if( chunk != 0 ){

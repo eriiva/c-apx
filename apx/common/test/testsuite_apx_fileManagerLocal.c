@@ -86,8 +86,8 @@ static void test_apx_fileManagerLocal_attachFile(CuTest* tc)
    CuAssertPtrNotNull(tc, outDataFile);
    CuAssertUIntEquals(tc, RMF_INVALID_ADDRESS, definitionFile->fileInfo.address);
    CuAssertUIntEquals(tc, RMF_INVALID_ADDRESS, outDataFile->fileInfo.address);
-   apx_fileManagerLocal_attachFile(&local, definitionFile);
-   apx_fileManagerLocal_attachFile(&local, outDataFile);
+   apx_fileManagerLocal_attachFile(&local, definitionFile, NULL);
+   apx_fileManagerLocal_attachFile(&local, outDataFile, NULL);
    CuAssertIntEquals(tc, 2, apx_fileManagerLocal_getNumFiles(&local));
    CuAssertUIntEquals(tc, 0x4000000, definitionFile->fileInfo.address);
    CuAssertUIntEquals(tc, 0, outDataFile->fileInfo.address);

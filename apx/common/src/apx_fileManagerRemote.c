@@ -55,9 +55,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-DYN_STATIC void apx_fileManagerRemote_processCmdMsg(apx_fileManagerRemote_t *self, const uint8_t *msgBuf, int32_t msgLen);
-DYN_STATIC void apx_fileManagerRemote_processDataMsg(apx_fileManagerRemote_t *self, uint32_t address, const uint8_t *msgBuf, int32_t msgLen, bool more_bit);
-static void apx_fileManagerRemote_processFileInfo(apx_fileManagerRemote_t *self, const rmf_fileInfo_t *cmdFileInfo);
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -174,10 +171,29 @@ struct apx_file2_tag *apx_fileManagerRemote_findByName(apx_fileManagerRemote_t *
    return remoteFile;
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// PRIVATE FUNCTIONS
-//////////////////////////////////////////////////////////////////////////////
-DYN_STATIC void apx_fileManagerRemote_processCmdMsg(apx_fileManagerRemote_t *self, const uint8_t *msgBuf, int32_t msgLen)
+void apx_fileManagerRemote_processFileInfo(apx_fileManagerRemote_t *self, const rmf_fileInfo_t *cmdFileInfo)
+{
+   if ( (self != 0) && (cmdFileInfo != 0) )
+   {
+      apx_file2_t *remoteFile = apx_file2_newRemote(cmdFileInfo, NULL);
+      if (remoteFile != 0)
+      {
+         MUTEX_LOCK(self->mutex);
+         apx_fileMap_insertFile(&self->remoteFileMap, remoteFile);
+         MUTEX_UNLOCK(self->mutex);
+         if (self->shared->fileCreated != 0)
+         {
+            self->shared->fileCreated(self->shared->arg, remoteFile, NULL);
+         }
+      }
+      else
+      {
+         APX_LOG_ERROR("[APX_FILE_MANAGER] apx_file_newRemoteFile returned NULL");
+      }
+   }
+}
+
+void apx_fileManagerRemote_processCmdMsg(apx_fileManagerRemote_t *self, const uint8_t *msgBuf, int32_t msgLen)
 {
    if (self != 0)
    {
@@ -245,7 +261,7 @@ DYN_STATIC void apx_fileManagerRemote_processCmdMsg(apx_fileManagerRemote_t *sel
    }
 }
 
-DYN_STATIC void apx_fileManagerRemote_processDataMsg(apx_fileManagerRemote_t *self, uint32_t address, const uint8_t *msgBuf, int32_t msgLen, bool more_bit)
+void apx_fileManagerRemote_processDataMsg(apx_fileManagerRemote_t *self, uint32_t address, const uint8_t *msgBuf, int32_t msgLen, bool more_bit)
 {
    if (self != 0)
    {
@@ -258,27 +274,12 @@ DYN_STATIC void apx_fileManagerRemote_processDataMsg(apx_fileManagerRemote_t *se
    }
 }
 
-static void apx_fileManagerRemote_processFileInfo(apx_fileManagerRemote_t *self, const rmf_fileInfo_t *cmdFileInfo)
-{
-   if ( (self != 0) && (cmdFileInfo != 0) )
-   {
-      apx_file2_t *remoteFile = apx_file2_newRemote(cmdFileInfo, NULL);
-      if (remoteFile != 0)
-      {
-         MUTEX_LOCK(self->mutex);
-         apx_fileMap_insertFile(&self->remoteFileMap, remoteFile);
-         MUTEX_UNLOCK(self->mutex);
-         if (self->shared->fileCreated != 0)
-         {
-            self->shared->fileCreated(self->shared->arg, remoteFile);
-         }
-      }
-      else
-      {
-         APX_LOG_ERROR("[APX_FILE_MANAGER] apx_file_newRemoteFile returned NULL");
-      }
-   }
-}
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+
+
 
 
 

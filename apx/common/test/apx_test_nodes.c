@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_fileManagerSharedSpy.h
+* \file      apx_test_nodes.c
 * \author    Conny Gustafsson
-* \date      2018-08-28
-* \brief     Description
+* \date      2018-12-07
+* \brief     APX definitions for unit tests
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,40 +23,68 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_FILE_MANAGER_SHARED_SPY_H
-#define APX_FILE_MANAGER_SHARED_SPY_H
-
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "rmf.h"
-#include "apx_file2.h"
+#include "apx_test_nodes.h"
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC CONSTANTS AND DATA TYPES
+// PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_fileManagerSharedSpy_tag
-{
-   int32_t numFileCreatedCalls;
-   int32_t numSendFileInfoCalls;
-   int32_t numSendFileOpenCalls;
-   int32_t numOpenFileRequestCalls;
-} apx_fileManagerSharedSpy_t;
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
+const char *g_apx_test_node1 =
+"APX/1.2\n"
+"N\"TestNode1\"\n"
+"P\"WheelBasedVehicleSpeed\"S\n"
+"P\"CabTiltLockWarning\"C(0,7)\n"
+"P\"VehicleMode\"C(0,15)\n"
+"R\"GearSelectionMode\"C(0,7)\n";
+
+const char *g_apx_test_node2 =
+"APX/1.2\n"
+"N\"TestNode2\"\n"
+"P\"WheelBasedVehicleSpeed\"S\n"
+"P\"ParkBrakeAlert\"C(0,3)\n"
+"R\"VehicleMode\"C(0,15)\n";
+
+const char *g_apx_test_node3 =
+"APX/1.2\n"
+"N\"TestNode3\"\n"
+"R\"WheelBasedVehicleSpeed\"S\n";
+
+const char *g_apx_test_node4 =
+"APX/1.2\n"
+"N\"TestNode4\"\n"
+"R\"WheelBasedVehicleSpeed\"S\n"
+"R\"ParkBrakeAlert\"C(0,3)\n"
+"R\"VehicleMode\"C(0,15)\n";
+
+const char *g_apx_test_node5 =
+"APX/1.2\n"
+"N\"TestNode5\"\n"
+"R\"WheelBasedVehicleSpeed\"S\n"
+"R\"CabTiltLockWarning\"C(0,7)\n"
+"P\"GearSelectionMode\"C(0,7)\n";
+
+
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
+// PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
-void apx_fileManagerSharedSpy_create(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_destroy(apx_fileManagerSharedSpy_t *self);
-apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void);
-void apx_fileManagerSharedSpy_delete(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file2_tag *pFile, void *caller);
-void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file2_tag *pFile);
-void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file2_t *file, void *caller);
-void apx_fileManagerSharedSpy_openFileRequest(void *arg, uint32_t address);
 
-#endif //APX_FILE_MANAGER_SHARED_SPY_H
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+
+

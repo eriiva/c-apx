@@ -14,6 +14,8 @@
 #include <assert.h>
 #include "apx_fileManager.h"
 #include "apx_node.h"
+#include "apx_portDataMap.h"
+#include "apx_parser.h"
 #endif
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
@@ -44,7 +46,7 @@ static void apx_nodeData_triggerOutPortDataWritten(apx_nodeData_t *self, uint32_
 static apx_error_t apx_nodeData_createInitData(apx_nodeData_t *self);
 
 #ifndef APX_EMBEDDED
-static void apx_nodeData_clearPortBuffers(apx_nodeData_t *self);
+static void apx_nodeData_clearPortDataBuffers(apx_nodeData_t *self);
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -70,6 +72,12 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       self->outPortDataBuf = outPortDataBuf;
       self->outPortDataLen = outPortDataLen;
       self->outPortDirtyFlags = outPortDirtyFlags;
+      self->inPortConnectionCount = (apx_connectionCount_t*) 0;
+      self->outPortConnectionCount = (apx_connectionCount_t*) 0;
+      self->inPortConnectionCountTotal = 0u;
+      self->outPortConnectionCountTotal = 0u;
+      self->numInPorts = 0;
+      self->numOutPorts = 0;
       self->outPortDataFile = (apx_file2_t*) 0;
       self->inPortDataFile = (apx_file2_t*) 0;
       self->definitionFile = (apx_file2_t*) 0;
@@ -87,6 +95,7 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       SPINLOCK_INIT(self->outPortDataLock);
       SPINLOCK_INIT(self->definitionDataLock);
       SPINLOCK_INIT(self->internalLock);
+      self->portDataMap = (apx_portDataMap_t*) 0;
       self->fileManager = (apx_fileManager_t*) 0;
       self->node = (apx_node_t*) 0;
 #endif
@@ -114,7 +123,11 @@ void apx_nodeData_destroy(apx_nodeData_t *self)
          {
             free(self->definitionDataBuf);
          }
-         apx_nodeData_clearPortBuffers(self);
+         if (self->portDataMap != 0)
+         {
+            apx_portDataMap_delete(self->portDataMap);
+         }
+         apx_nodeData_clearPortDataBuffers(self);
       }
       if ( self->node != 0)
       {
@@ -214,6 +227,47 @@ void apx_nodeData_vdelete(void *arg)
 {
    apx_nodeData_delete((apx_nodeData_t*) arg);
 }
+
+/**
+ * Helper functions that fully creates an apx_nodeData structure from a definition.
+ * This is primarily used during unit testing
+ */
+apx_nodeData_t *apx_nodeData_make_from_cstr(struct apx_parser_tag *parser, const char* apx_text)
+{
+   apx_node_t *node = apx_parser_parseString(parser, apx_text);
+   if (node != 0)
+   {
+      apx_error_t result = APX_NO_ERROR;
+      apx_nodeData_t *nodeData;
+      nodeData = apx_nodeData_new((uint32_t) strlen(apx_text));
+      if (nodeData != 0){
+         apx_parser_clearNodes(parser);
+         apx_nodeData_setNode(nodeData, node);
+         result = apx_nodeData_createPortDataBuffers(nodeData);
+         if (result == APX_NO_ERROR)
+         {
+            apx_portDataMap_t *portDataMap = apx_portDataMap_new(nodeData);
+            if (portDataMap != 0)
+            {
+               apx_nodeData_setPortDataMap(nodeData, portDataMap);
+            }
+            else
+            {
+               apx_nodeData_delete(nodeData);
+               nodeData = (apx_nodeData_t*) 0;
+            }
+         }
+         else
+         {
+            apx_nodeData_delete(nodeData);
+            nodeData = (apx_nodeData_t*) 0;
+         }
+      }
+      return nodeData;
+   }
+   return (apx_nodeData_t*) 0;
+}
+
 #endif
 
 apx_error_t apx_nodeData_setChecksumData(apx_nodeData_t *self, uint8_t checksumType, uint8_t *checksumData)
@@ -489,6 +543,70 @@ struct apx_file2_tag *apx_nodeData_getOutPortDataFile(apx_nodeData_t *self)
    return (struct apx_file2_tag *) 0;
 }
 
+//Connection count API
+apx_connectionCount_t apx_nodeData_getInPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+{
+   apx_connectionCount_t retval = 0;
+   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numInPorts) )
+   {
+      retval = self->inPortConnectionCount[portId];
+   }
+   return retval;
+}
+
+apx_connectionCount_t apx_nodeData_getOutPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+{
+   apx_connectionCount_t retval = 0;
+   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numOutPorts) )
+   {
+      retval = self->outPortConnectionCount[portId];
+   }
+   return retval;
+}
+
+void apx_nodeData_incInPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+{
+   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numInPorts) )
+   {
+      if (self->inPortConnectionCount[portId] < APX_CONNECTION_COUNT_MAX)
+      {
+         self->inPortConnectionCount[portId]++;
+      }
+   }
+}
+
+void apx_nodeData_incOutPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+{
+   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numOutPorts) )
+   {
+      if (self->outPortConnectionCount[portId] < APX_CONNECTION_COUNT_MAX)
+      {
+         self->outPortConnectionCount[portId]++;
+      }
+   }
+}
+
+void apx_nodeData_decInPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+{
+   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numInPorts) )
+   {
+      if (self->inPortConnectionCount[portId] > 0u)
+      {
+         self->inPortConnectionCount[portId]--;
+      }
+   }
+}
+
+void apx_nodeData_decOutPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+{
+   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numOutPorts) )
+   {
+      if (self->outPortConnectionCount[portId] > 0u)
+      {
+         self->outPortConnectionCount[portId]--;
+      }
+   }
+}
 
 
 #ifndef APX_EMBEDDED
@@ -504,31 +622,76 @@ apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
       }
       if (self->outPortDataLen > 0)
       {
+         int32_t numProvidePorts = apx_node_getNumProvidePorts(self->node);
+         assert(numProvidePorts > 0);
+         size_t connectionCountSize = sizeof(apx_connectionCount_t)*numProvidePorts;
+         self->numOutPorts = numProvidePorts;
          self->outPortDataBuf = (uint8_t*) malloc(self->outPortDataLen);
          self->outPortDirtyFlags = (uint8_t*) malloc(self->outPortDataLen);
-         if ( (self->outPortDataBuf == 0) || (self->outPortDirtyFlags == 0) )
+         self->outPortConnectionCount = (apx_connectionCount_t*) malloc(connectionCountSize);
+         if ( (self->outPortDataBuf == 0) || (self->outPortDirtyFlags == 0) || (self->outPortConnectionCount == 0) )
          {
-            apx_nodeData_clearPortBuffers(self);
+            apx_nodeData_clearPortDataBuffers(self);
             return APX_MEM_ERROR;
          }
+         memset(self->outPortConnectionCount, 0, connectionCountSize);
       }
       if (self->inPortDataLen > 0)
       {
          apx_error_t result;
+         int32_t numRequirePorts = apx_node_getNumRequirePorts(self->node);
+         assert(numRequirePorts > 0);
+         size_t connectionCountSize = sizeof(apx_connectionCount_t)*numRequirePorts;
+         self->numInPorts = numRequirePorts;
          self->inPortDataBuf = (uint8_t*) malloc(self->inPortDataLen);
          self->inPortDirtyFlags = (uint8_t*) malloc(self->inPortDataLen);
-         if ( (self->inPortDataBuf == 0) || (self->inPortDirtyFlags == 0))
+         self->inPortConnectionCount = (apx_connectionCount_t*) malloc(connectionCountSize);
+         if ( (self->inPortDataBuf == 0) || (self->inPortDirtyFlags == 0) || (self->inPortConnectionCount == 0))
          {
-            apx_nodeData_clearPortBuffers(self);
+            apx_nodeData_clearPortDataBuffers(self);
             return APX_MEM_ERROR;
          }
+         memset(self->inPortConnectionCount, 0, connectionCountSize);
          result = apx_nodeData_createInitData(self);
          if (result != APX_NO_ERROR)
          {
+            apx_nodeData_clearPortDataBuffers(self);
             return result;
          }
       }
       return APX_NO_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+apx_error_t apx_nodeData_createPortDataMap(apx_nodeData_t *self, uint8_t mode)
+{
+   if ( (self != 0) && (self->node != 0) )
+   {
+      apx_error_t result = APX_NO_ERROR;
+      self->portDataMap = apx_portDataMap_new(self);
+      if (self->portDataMap == (apx_portDataMap_t*) 0)
+      {
+         return APX_MEM_ERROR;
+      }
+      if (mode == APX_SERVER_MODE)
+      {
+         result = apx_portDataMap_initProvidePortByteMap(self->portDataMap, self->node);
+         if (result == APX_NO_ERROR)
+         {
+            result = apx_portDataMap_initPortTriggerList(self->portDataMap);
+         }
+      }
+      else //APX_CLIENT_MODE
+      {
+         result = apx_portDataMap_initRequirePortByteMap(self->portDataMap, self->node);
+      }
+      if (result != APX_NO_ERROR)
+      {
+         apx_portDataMap_delete(self->portDataMap);
+         self->portDataMap = (apx_portDataMap_t*) 0;
+      }
+      return result;
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }
@@ -540,6 +703,51 @@ void apx_nodeData_setNode(apx_nodeData_t *self, struct apx_node_tag *node)
       self->node = node;
    }
 }
+
+struct apx_node_tag *apx_nodeData_getNode(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      return self->node;
+   }
+   return (struct apx_node_tag*) 0;
+}
+
+void apx_nodeData_setPortDataMap(apx_nodeData_t *self, struct apx_portDataMap_tag *portDataMap)
+{
+   if ( (self != 0) && (portDataMap != 0) )
+   {
+      self->portDataMap = portDataMap;
+   }
+}
+
+struct apx_portDataMap_tag* apx_nodeData_getPortDataMap(apx_nodeData_t *self)
+{
+   if ( self != 0 )
+   {
+      return self->portDataMap;
+   }
+   return (struct apx_portDataMap_tag*) 0;
+}
+
+struct apx_portDataRef_tag *apx_nodeData_getRequirePortDataRef(apx_nodeData_t *self, apx_portId_t portId)
+{
+   if ( (self != 0) && (self->portDataMap != 0) )
+   {
+      return apx_portDataMap_getRequirePortData(self->portDataMap, portId);
+   }
+   return (struct apx_portDataRef_tag*) 0;
+}
+
+struct apx_portDataRef_tag *apx_nodeData_getProvidePortDataRef(apx_nodeData_t *self, apx_portId_t portId)
+{
+   if ( (self != 0) && (self->portDataMap != 0) )
+   {
+      return apx_portDataMap_getProvidePortData(self->portDataMap, portId);
+   }
+   return (struct apx_portDataRef_tag*) 0;
+}
+
 
 const char *apx_nodeData_getName(apx_nodeData_t *self)
 {
@@ -563,7 +771,68 @@ const char *apx_nodeData_getName(apx_nodeData_t *self)
    return (const char*) 0;
 }
 
-#endif
+
+
+
+void apx_nodeData_setConnection(apx_nodeData_t *self, struct apx_connectionBase_tag *connection)
+{
+   if ( (self != 0) && (connection != 0) )
+   {
+      self->connection = connection;
+   }
+}
+
+struct apx_connectionBase_tag* apx_nodeData_getConnection(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      return self->connection;
+   }
+   return (struct apx_connectionBase_tag*) 0;
+}
+
+/**
+ * Returns true when these criteria are met:
+ * 1. The <node>.apx file has been received (or found in cache) and successfully parsed
+ * 2. If the APX node has provide ports the <node>.out file has been opened and fully received (sent from client to server)
+ * 3. If the APX node has require ports the <node>.in file has been requested to be opened (sent from server to client)
+ */
+bool apx_nodeData_isComplete(apx_nodeData_t *self)
+{
+   bool retval = true;
+   if (self != 0)
+   {
+      if ( (self->node != 0) && (self->portDataMap != 0)) //Test 1
+      {
+         if (self->portDataMap->numProvidePorts > 0 )
+         {
+            if ( (self->outPortDataFile == 0) || (apx_file2_isOpen(self->outPortDataFile)==false) || (apx_file2_isDataValid(self->outPortDataFile) == false) )
+            {
+               retval = false;
+            }
+         }
+         if ( (retval == true) && (self->portDataMap->numRequirePorts > 0))
+         {
+            if ( (self->inPortDataFile == 0) || (apx_file2_isOpen(self->inPortDataFile)==false) )
+            {
+               retval = false;
+            }
+         }
+      }
+      else
+      {
+         retval = false;
+      }
+   }
+   else
+   {
+      retval = false;
+   }
+   return retval;
+}
+
+
+#endif //!APX_EMBEDDED
 
 uint32_t apx_nodeData_getInPortDataLen(apx_nodeData_t *self)
 {
@@ -656,6 +925,8 @@ struct apx_file2_tag *apx_nodeData_newLocalInPortDataFile(apx_nodeData_t *self)
    }
    return (apx_file2_t*) 0;
 }
+
+
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
@@ -744,6 +1015,7 @@ static apx_error_t apx_nodeData_writeDefinitionFile(void *arg, apx_file2_t *file
          if ( retval == APX_NO_ERROR )
          {
             uint32_t totalWriteLength = offset + len - self->definitionStartOffset;
+            apx_file2_setDataValid(file);
             apx_nodeData_triggerDefinitionDataWritten(self, self->definitionStartOffset, totalWriteLength);
          }
          self->definitionStartOffset = APX_NODE_INVALID_OFFSET;
@@ -766,12 +1038,13 @@ static apx_error_t apx_nodeData_writeInPortDataFile(void *arg, apx_file2_t *file
       {
          self->inPortDataStartOffset = offset;
       }
-      retval = apx_nodeData_writeDefinitionData(self, src, offset, len);
+      retval = apx_nodeData_writeInPortData(self, src, offset, len);
       if (more == false)
       {
          if ( retval == APX_NO_ERROR )
          {
             uint32_t totalWriteLength = offset + len - self->inPortDataStartOffset;
+            apx_file2_setDataValid(file);
             apx_nodeData_triggerInPortDataWritten(self, self->inPortDataStartOffset, totalWriteLength);
          }
          self->inPortDataStartOffset = APX_NODE_INVALID_OFFSET;
@@ -794,12 +1067,13 @@ static apx_error_t apx_nodeData_writeOutPortDataFile(void *arg, apx_file2_t *fil
       {
          self->outPortDataStartOffset = offset;
       }
-      retval = apx_nodeData_writeDefinitionData(self, src, offset, len);
+      retval = apx_nodeData_writeOutPortData(self, src, offset, len);
       if (more == false)
       {
          if ( retval == APX_NO_ERROR )
          {
             uint32_t totalWriteLength = offset + len - self->outPortDataStartOffset;
+            apx_file2_setDataValid(file);
             apx_nodeData_triggerOutPortDataWritten(self, self->outPortDataStartOffset, totalWriteLength);
          }
          self->outPortDataStartOffset = APX_NODE_INVALID_OFFSET;
@@ -916,7 +1190,7 @@ static apx_error_t apx_nodeData_createInitData(apx_nodeData_t *self)
 
 
 #ifndef APX_EMBEDDED
-static void apx_nodeData_clearPortBuffers(apx_nodeData_t *self)
+static void apx_nodeData_clearPortDataBuffers(apx_nodeData_t *self)
 {
    if ( self->inPortDataBuf != 0)
    {
@@ -933,6 +1207,14 @@ static void apx_nodeData_clearPortBuffers(apx_nodeData_t *self)
    if ( self->outPortDirtyFlags != 0)
    {
       free(self->outPortDirtyFlags);
+   }
+   if ( self->inPortConnectionCount != 0)
+   {
+      free(self->inPortConnectionCount);
+   }
+   if ( self->outPortConnectionCount != 0)
+   {
+      free(self->outPortConnectionCount);
    }
 }
 

@@ -78,6 +78,7 @@ static void test_apx_eventLoop_connected_event(CuTest* tc)
    apx_fileManager_t fileManager;
    apx_eventLoop_t *loop = apx_eventLoop_new();
    CuAssertPtrNotNull(tc, loop);
+/*
    CuAssertIntEquals(tc, 0, apx_fileManager_create(&fileManager, APX_FILEMANAGER_SERVER_MODE, 0, NULL));
    mockHandlerReset();
    apx_eventLoop_emitApxConnected(loop, mock_onConnected, 0, &fileManager);
@@ -86,6 +87,7 @@ static void test_apx_eventLoop_connected_event(CuTest* tc)
    CuAssertUIntEquals(tc, 1, m_onConnectedCount);
 
    apx_fileManager_destroy(&fileManager);
+*/
    apx_eventLoop_delete(loop);
 }
 
@@ -94,14 +96,15 @@ static void test_apx_eventLoop_disconnected_event(CuTest* tc)
    apx_fileManager_t fileManager;
    apx_eventLoop_t *loop = apx_eventLoop_new();
    CuAssertPtrNotNull(tc, loop);
+/*
    CuAssertIntEquals(tc, 0, apx_fileManager_create(&fileManager, APX_FILEMANAGER_SERVER_MODE, 0, NULL));
    mockHandlerReset();
    apx_eventLoop_emitApxDisconnected(loop, mock_onDisconnected, 0, &fileManager);
    CuAssertUIntEquals(tc, 0, m_onDisconnectedCount);
    apx_eventLoop_run(loop);
    CuAssertUIntEquals(tc, 1, m_onDisconnectedCount);
-
    apx_fileManager_destroy(&fileManager);
+   */
    apx_eventLoop_delete(loop);
 }
 

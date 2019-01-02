@@ -12,8 +12,14 @@
 //////////////////////////////////////////////////////////////////////////////
 typedef int32_t apx_offset_t;
 typedef uint32_t apx_size_t; //use uint16_t  to send up to 64KB, use uint32_t for 4GB.
-typedef APX_PORT_ID_TYPE apx_portId_t; //uint32_t is default. Use uint16_t for smaller memory footprint
-typedef uint8_t apx_portType_t;
+typedef APX_PORT_ID_TYPE apx_portId_t; //int32_t is default. Use int16_t for smaller memory footprint
+typedef uint32_t apx_uniquePortId_t; //highest significant bit is 0 when it contains a require port ID and 1 when it contains a provide port ID
+typedef uint8_t apx_portType_t; //APX_REQUIRE_PORT, APX_PROVIDE_PORT
+typedef uint8_t apx_dynLenType_t; //APX_DYN_LEN_NONE, APX_DYN_LEN_U8, APX_DYN_LEN_U16, APX_DYN_LEN_U32
+typedef uint8_t apx_queLenType_t; //APX_QUE_LEN_NONE, APX_QUE_LEN_U8, APX_QUE_LEN_U16, APX_QUE_LEN_U32
+typedef APX_CONNECTION_COUNT_TYPE apx_connectionCount_t;
+typedef uint8_t apx_mode_t; //APX_NO_MODE, APX_CLIENT_MODE, APX_SERVER_MODE
+
 
 typedef struct apx_dataWriteCmd_tag
 {
@@ -51,10 +57,29 @@ typedef struct apx_dataWriteCmd_tag
 #define APX_CHECKSUM_NONE         0u
 #define APX_CHECKSUM_SHA256       1u
 
-#define APX_CLIENT_MODE           0u
-#define APX_SERVER_MODE           1u
+#define APX_NO_MODE              ((apx_mode_t) 0u)
+#define APX_CLIENT_MODE          ((apx_mode_t) 1u)
+#define APX_SERVER_MODE          ((apx_mode_t) 2u)
 
 #define APX_CHECKSUMLEN_SHA256    32u
+
+#define APX_REQUIRE_PORT ((apx_portType_t) 0u)
+#define APX_PROVIDE_PORT ((apx_portType_t) 1u)
+
+//Select which type of dynamic array option is used for this port (APX 1.3/future implementation)
+#define APX_DYN_LEN_NONE  ((apx_dynLenType_t) 0u) //This port is not a dynamic array
+#define APX_DYN_LEN_U8    ((apx_dynLenType_t) 1u) //This port has a dynamic array length < 256 elements
+#define APX_DYN_LEN_U16   ((apx_dynLenType_t) 2u) //This port has a dynamic array length < 65536 elements
+#define APX_DYN_LEN_U32   ((apx_dynLenType_t) 3u) //This port has a dynamic array length < 2^32 elements
+
+//Select which type of queue length option is used for this port (APX 1.3/future implementation)
+#define APX_QUE_LEN_NONE  ((apx_queLenType_t) 0u) //This port is not queued
+#define APX_QUE_LEN_U8    ((apx_queLenType_t) 1u) //This port has < 256 queued elements
+#define APX_QUE_LEN_U16   ((apx_queLenType_t) 2u) //This port has < 65536 queued elements
+#define APX_QUE_LEN_U32   ((apx_queLenType_t) 3u) //This port has < 2^32 queued elements
+
+#define APX_PORT_ID_PROVIDE_PORT 0x80000000 //used inside an uint32_t to carry either a provide port ID and a require port ID.
+#define APX_PORT_ID_MASK         0x7FFFFFFF //used to clear the port flag (ready to cast it into an int32_t)
 
 #if defined(_MSC_PLATFORM_TOOLSET) && (_MSC_PLATFORM_TOOLSET<=110)
 #include "msc_bool.h"

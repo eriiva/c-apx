@@ -1,6 +1,8 @@
 #ifndef APX_CFG_H
 #define APX_CFG_H
 
+#include <stdint.h>
+
 #ifndef APX_BUF_GROW_SIZE
 # define APX_BUF_GROW_SIZE 65536
 #endif
@@ -33,5 +35,20 @@
 #ifndef APX_MAX_NUM_EVENTS
 # define APX_MAX_NUM_EVENTS 1000
 #endif
+
+#ifndef APX_DYN_ARRAY_ENABLE
+# define APX_DYN_ARRAY_ENABLE 1
+#endif
+
+#ifndef APX_QUE_PORT_ENABLE
+# define APX_QUE_PORT_ENABLE 1
+#endif
+
+#ifndef APX_CONNECTION_COUNT_TYPE
+# define APX_CONNECTION_COUNT_TYPE uint16_t  //Using uint8_t or uint16_t is recommended
+# define APX_CONNECTION_COUNT_MAX  UINT16_MAX //This define must match limit of selected data type APX_CONNECTION_COUNT_TYPE
+#endif
+
+#define APX_SERVER_MAX_CONCURRENT_CONNECTIONS 10000 //maximum number of connections the server will accept
 
 #endif //APX_CFG_H

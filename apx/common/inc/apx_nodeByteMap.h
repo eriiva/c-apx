@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_fileManagerSharedSpy.h
+* \file      apx_nodeByteMap.h
 * \author    Conny Gustafsson
-* \date      2018-08-28
-* \brief     Description
+* \date      2018-10-08
+* \brief     Memory map of a nodeData_t object. Only used in server mode
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,40 +23,33 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_FILE_MANAGER_SHARED_SPY_H
-#define APX_FILE_MANAGER_SHARED_SPY_H
+#ifndef APX_NODE_PORT_MAP_H
+#define APX_NODE_PORT_MAP_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "rmf.h"
-#include "apx_file2.h"
+#include "apx_types.h"
+#include "adt_ary.h"
+#include "apx_nodeData.h"
+#include "apx_bytePortMap.h"
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_fileManagerSharedSpy_tag
+typedef struct apx_nodeByteMap_tag
 {
-   int32_t numFileCreatedCalls;
-   int32_t numSendFileInfoCalls;
-   int32_t numSendFileOpenCalls;
-   int32_t numOpenFileRequestCalls;
-} apx_fileManagerSharedSpy_t;
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
+   apx_bytePortMap_t *requireBytePortMap; //used only in client mode, maps byte offset back to require port ID
+   apx_bytePortMap_t *provideBytePortMap; //used only in server mode, maps byte offset back to provide port ID
+}apx_nodeByteMap_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_fileManagerSharedSpy_create(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_destroy(apx_fileManagerSharedSpy_t *self);
-apx_fileManagerSharedSpy_t *apx_fileManagerSharedSpy_new(void);
-void apx_fileManagerSharedSpy_delete(apx_fileManagerSharedSpy_t *self);
-void apx_fileManagerSharedSpy_fileCreated(void *arg, const struct apx_file2_tag *pFile, void *caller);
-void apx_fileManagerSharedSpy_sendFileInfo(void *arg, const struct apx_file2_tag *pFile);
-void apx_fileManagerSharedSpy_sendFileOpen(void *arg, const apx_file2_t *file, void *caller);
-void apx_fileManagerSharedSpy_openFileRequest(void *arg, uint32_t address);
+apx_error_t apx_nodeByteMap_create(apx_nodeByteMap_t *self, apx_nodeData_t *nodeData, uint8_t mode);
+void apx_nodeByteMap_destroy(apx_nodeByteMap_t *self);
+apx_nodeByteMap_t *apx_nodeByteMap_new(apx_nodeData_t *nodeData, uint8_t mode);
+void apx_nodeByteMap_delete(apx_nodeByteMap_t *self);
 
-#endif //APX_FILE_MANAGER_SHARED_SPY_H
+#endif //APX_NODE_PORT_MAP_H
