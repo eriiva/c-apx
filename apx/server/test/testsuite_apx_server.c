@@ -63,9 +63,6 @@ static void test_apx_server_create(CuTest* tc)
 {
    apx_server_t server;
    apx_server_create(&server);
-   CuAssertTrue(tc, adt_u32Set_is_empty(&server.connectionIdSet));
-   CuAssertUIntEquals(tc, 0, server.nextConnectionId);
-   CuAssertUIntEquals(tc, 0, server.numConnections);
    apx_server_destroy(&server);
 }
 
@@ -134,15 +131,15 @@ static void test_apx_server_eachConnectionGetNewId(CuTest* tc)
       conn = (apx_serverSocketConnection_t*) apx_server_getLastConnection(&server);
       CuAssertPtrNotNull(tc, conn);
       sprintf(msg, "i=%d",i);
-      CuAssertUIntEquals_Msg(tc, &msg[0], connectionIdExpected++, conn->base.connectionId);
+      CuAssertUIntEquals_Msg(tc, &msg[0], connectionIdExpected++, conn->base.base.connectionId);
    }
    //resetting internal variable nextConnectionId to 0 shall still yield next generated ID to be unique
-   server.nextConnectionId=0;
+   server.connectionManager.nextConnectionId=0;
    lastSocket = testsocket_new();
    apx_server_acceptTestSocket(&server, lastSocket);
    conn = (apx_serverSocketConnection_t*) apx_server_getLastConnection(&server);
    CuAssertPtrNotNull(tc, conn);
-   CuAssertUIntEquals(tc, 10, conn->base.connectionId);
+   CuAssertUIntEquals(tc, 10, conn->base.base.connectionId);
    apx_server_destroy(&server);
 
 }

@@ -41,14 +41,9 @@ struct msocket_server_tag;
 static void apx_server_create_socket_servers(apx_server_t *self, uint16_t tcpPort);
 static void apx_server_destroy_socket_servers(apx_server_t *self);
 static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_TYPE *sock);
-static apx_serverSocketConnection_t *apx_server_create_new_connection(apx_server_t *self, SOCKET_TYPE *sock);
-//static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
-//static void apx_server_disconnected(void *arg);
-#ifndef UNIT_TEST
-static void apx_server_cleanup_connection(apx_serverBaseConnection_t *connection);
-#endif
-static uint32_t apx_server_generate_connection_id(apx_server_t *self);
-static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_fileManager_t *fileManager);
+static void apx_server_attach_and_start_connection(apx_server_t *self, apx_serverConnectionBase_t *newConnection);
+static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_connectionBase_t *connection);
+
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -75,14 +70,10 @@ void apx_server_create(apx_server_t *self, uint16_t port)
 #else
       apx_server_create_socket_servers(self, 0);
 #endif
-      adt_list_create(&self->connections, apx_serverBaseConnection_vdelete);
       adt_list_create(&self->connectionEventListeners, (void (*)(void*)) 0);
       self->debugMode = APX_DEBUG_NONE;
-      apx_portDataMap_create(&self->portDataMap);
-      MUTEX_INIT(self->lock);
-      adt_u32Set_create(&self->connectionIdSet);
-      self->nextConnectionId = 0u;
-      self->numConnections = 0u;
+      apx_routingTable_create(&self->routingTable);
+      apx_connectionManager_create(&self->connectionManager);
    }
 }
 
@@ -92,7 +83,8 @@ void apx_server_start(apx_server_t *self)
 #ifndef UNIT_TEST
    if (self != 0)
    {
-      msocket_server_start(&self->tcpServer,0,0,self->tcpPort);
+      apx_connectionManager_start(&self->connectionManager);
+      msocket_server_start(&self->tcpServer, 0, 0, self->tcpPort);
    }
 #endif
 }
@@ -102,12 +94,11 @@ void apx_server_destroy(apx_server_t *self)
    if (self != 0)
    {
       //close and delete all open server connections
-      adt_list_destroy(&self->connections);
       adt_list_destroy(&self->connectionEventListeners);
-      adt_u32Set_destroy(&self->connectionIdSet);
+      apx_connectionManager_stop(&self->connectionManager);
+      apx_connectionManager_destroy(&self->connectionManager);
       apx_server_destroy_socket_servers(self);
-      apx_portDataMap_destroy(&self->portDataMap);
-      MUTEX_DESTROY(self->lock);
+      apx_routingTable_destroy(&self->routingTable);
    }
 }
 
@@ -128,37 +119,54 @@ void apx_server_registerConnectionEventListener(apx_server_t *self, apx_connecti
    }
 }
 
+void apx_server_acceptConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection)
+{
+   if ( (self != 0) && (serverConnection != 0))
+   {
+      apx_server_attach_and_start_connection(self, serverConnection);
+   }
+}
+
+void apx_server_removeConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection)
+{
+   if ( (self != 0) && (serverConnection != 0))
+   {
+      apx_connectionManager_shutdown(&self->connectionManager, serverConnection);
+   }
+}
+
+apx_routingTable_t* apx_server_getRoutingTable(apx_server_t *self)
+{
+   if (self != 0)
+   {
+      return &self->routingTable;
+   }
+   return (apx_routingTable_t*) 0;
+}
+
 #ifdef UNIT_TEST
 
 void apx_server_run(apx_server_t *self)
 {
    if (self != 0)
    {
-      adt_list_elem_t *it = adt_list_iter_first(&self->connections);
-      while(it != 0)
-      {
-         apx_serverBaseConnection_t *baseConnection = (apx_serverBaseConnection_t*) it->pItem;
-         apx_serverBaseConnection_run(baseConnection);
-         it = adt_list_iter_next(it);
-      }
+      apx_connectionManager_run(&self->connectionManager);
    }
 }
+
 
 void apx_server_acceptTestSocket(apx_server_t *self, testsocket_t *socket)
 {
    apx_server_accept((void*) self, (struct msocket_server_tag*) 0, socket);
 }
 
-apx_serverBaseConnection_t *apx_server_getLastConnection(apx_server_t *self)
+apx_serverConnectionBase_t *apx_server_getLastConnection(apx_server_t *self)
 {
    if (self != 0)
    {
-      if (adt_list_is_empty(&self->connections) == false)
-      {
-         return (apx_serverBaseConnection_t*) adt_list_last(&self->connections);
-      }
+      return apx_connectionManager_getLastConnection(&self->connectionManager);
    }
-   return (apx_serverBaseConnection_t*) 0;
+   return (apx_serverConnectionBase_t*) 0;
 }
 #endif
 
@@ -199,129 +207,26 @@ static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_
    apx_server_t *self = (apx_server_t*) arg;
    if (self != 0)
    {
-      if (self->numConnections < APX_SERVER_MAX_CONCURRENT_CONNECTIONS)
+      if (apx_connectionManager_getNumConnections(&self->connectionManager) < APX_SERVER_MAX_CONCURRENT_CONNECTIONS)
       {
-         apx_serverSocketConnection_t *newConnection = apx_server_create_new_connection(self, sock);
+         apx_serverSocketConnection_t *newConnection = apx_serverSocketConnection_new(sock, self);
          if (newConnection != 0)
          {
-            apx_fileManager_t *fileManager;
-   #ifndef UNIT_TEST
-            if (sock->addressFamily == AF_INET)
-            {
-               APX_LOG_INFO("[APX_SERVER] New connection (%p) from %s", (void*) newConnection, sock->tcpInfo.addr);
-            }
-            else
-            {
-               APX_LOG_INFO("[APX_SERVER] New connection (%p)", (void*)newConnection);
-            }
-            if (self->debugMode > APX_DEBUG_NONE)
-            {
-               apx_serverConnection_setDebugMode(newConnection, self->debugMode);
-            }
-   #endif
-            fileManager = apx_serverBaseConnection_getFileManager(&newConnection->base);
-            apx_server_trigger_connected_event_on_listeners(self, fileManager);
-            apx_serverSocketConnection_start(newConnection);
-
-         }
-         else
-         {
-   #ifndef UNIT_TEST
-            APX_LOG_ERROR("[APX_SERVER] %s", "apx_serverConnection_new() returned 0");
-   #endif
+            apx_server_attach_and_start_connection(self, (apx_serverConnectionBase_t*) newConnection);
          }
       }
    }
 }
 
 
-static apx_serverSocketConnection_t *apx_server_create_new_connection(apx_server_t *self, SOCKET_TYPE *sock)
+static void apx_server_attach_and_start_connection(apx_server_t *self, apx_serverConnectionBase_t *newConnection)
 {
-
-   uint32_t connectionId;
-   apx_serverSocketConnection_t *newConnection;
-
-   connectionId = apx_server_generate_connection_id(self);
-
-   newConnection = apx_serverSocketConnection_new(connectionId, sock, self);
-
-   if (newConnection != 0)
-   {
-      adt_list_insert(&self->connections, newConnection);
-   }
-   return newConnection;
+   apx_connectionManager_attach(&self->connectionManager, newConnection);
+   apx_server_trigger_connected_event_on_listeners(self, (apx_connectionBase_t*) newConnection);
+   apx_connectionBase_start(&newConnection->base);
 }
 
-#if 0
-static int8_t apx_server_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
-{
-   apx_serverConnection_t *clientConnection = (apx_serverConnection_t*) arg;
-   return apx_serverConnection_dataReceived(clientConnection, dataBuf, dataLen, parseLen);
-}
-
-/**
- * called by msocket worker thread when it detects a disconnect event on the msocket
- */
-static void apx_server_disconnected(void *arg)
-{
-   apx_serverConnection_t *connection = (apx_serverConnection_t*) arg;
-   if (connection != 0)
-   {
-      apx_server_t *server = connection->server;
-      assert(server->numConnections > 0);
-      MUTEX_LOCK(server->lock);
-      adt_list_remove(&server->connections, connection);
-      server->numConnections--;
-      apx_fileManager_stop(&connection->fileManager);
-      apx_nodeManager_detachFileManager(&server->nodeManager, &connection->fileManager);
-      apx_server_cleanup_connection(connection);
-      MUTEX_UNLOCK(server->lock);
-   }
-}
-
-
-static void apx_server_cleanup_connection(apx_serverBaseConnection_t *connection)
-{
-
-   switch (connection->socketObject->addressFamily)
-   {
-      APX_LOG_INFO("[APX_SERVER] Client (%p) disconnected", (void*)connection);
-      case AF_INET: //intentional fallthrough
-      case AF_INET6:
-         msocket_server_cleanup_connection(&connection->server->tcpServer, (void*) connection);
-         break;
-# ifndef _MSC_VER
-      case AF_LOCAL:
-         msocket_server_cleanup_connection(&connection->server->localServer, (void*) connection);
-         break;
-# endif
-      default:
-         break;
-   }
-}
-
-#endif //UNIT_TEST
-/**
- * Generates a unique connection ID by comparing ID candidates against its internal set data structure
- * This function assumes that APX_SERVER_MAX_CONCURRENT_CONNECTIONS is much less than 2^32-1 and that the caller has previously checked that
- * self->numConnections < APX_SERVER_MAX_CONCURRENT_CONNECTIONS
- */
-static uint32_t apx_server_generate_connection_id(apx_server_t *self)
-{
-   for(;;)
-   {
-      bool result = adt_u32Set_contains(&self->connectionIdSet, self->nextConnectionId);
-      if (result == false)
-      {
-         adt_u32Set_insert(&self->connectionIdSet, self->nextConnectionId);
-         break;
-      }
-      self->nextConnectionId++;
-   }
-   return self->nextConnectionId;
-}
-
-static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_fileManager_t *fileManager)
+static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_connectionBase_t *connection)
 {
    adt_list_elem_t *iter = adt_list_iter_first(&self->connectionEventListeners);
    while(iter != 0)
@@ -329,7 +234,7 @@ static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, 
       apx_connectionEventListener_t *listener = (apx_connectionEventListener_t*) iter->pItem;
       if ( (listener != 0) && (listener->connected != 0))
       {
-         listener->connected(listener, fileManager);
+         listener->connected(listener, connection);
       }
       iter = adt_list_iter_next(iter);
    }

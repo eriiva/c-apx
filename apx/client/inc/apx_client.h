@@ -6,6 +6,8 @@
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
 #include <stdbool.h>
+#include "apx_error.h"
+#include "apx_clientConnectionBase.h"
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -24,8 +26,7 @@ struct testsocket_tag;
 
 typedef struct apx_client_tag
 {
-   struct apx_clientConnection_tag *connection;
-   struct apx_nodeDataManager_tag *nodeDataManager;
+   apx_clientConnectionBase_t *connection;
    struct adt_list_tag *eventListeners; //weak references to apx_eventListenerBase_t
 }apx_client_t;
 
@@ -37,18 +38,18 @@ typedef struct apx_client_tag
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-int8_t apx_client_create(apx_client_t *self);
+apx_error_t apx_client_create(apx_client_t *self);
 void apx_client_destroy(apx_client_t *self);
 apx_client_t *apx_client_new(void);
 void apx_client_delete(apx_client_t *self);
 void apx_client_vdelete(void *arg);
 
 #ifdef UNIT_TEST
-int8_t apx_client_connect(apx_client_t *self, struct testsocket_tag *socketObject);
+apx_error_t apx_client_socketConnect(apx_client_t *self, struct testsocket_tag *socketObject);
 #else
-int8_t apx_client_connectTcp(apx_client_t *self, const char *address, uint16_t port);
+apx_error_t apx_client_tcpConnect(apx_client_t *self, const char *address, uint16_t port);
 # ifndef _WIN32
-int8_t apx_client_connectUnix(apx_client_t *self, const char *socketPath);
+apx_error_t apx_client_unixConnect(apx_client_t *self, const char *socketPath);
 # endif
 #endif
 void apx_client_disconnect(apx_client_t *self);
@@ -58,6 +59,10 @@ void apx_client_registerEventListener(apx_client_t *self, struct apx_connectionE
 //APX internal API
 void _apx_client_on_connect(apx_client_t *self, struct apx_fileManager_tag *fileManager);
 void _apx_client_on_disconnect(apx_client_t *self, struct apx_fileManager_tag *fileManager);
+
+#ifdef UNIT_TEST
+void apx_client_run(apx_client_t *self);
+#endif
 
 
 #endif //APX_CLIENT_H

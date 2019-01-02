@@ -10,13 +10,10 @@
 #else
 #include "msocket_server.h"
 #endif
-#include "apx_nodeManager.h"
-#include "apx_portDataMap.h"
+#include "apx_routingTable.h"
 #include "apx_eventListener.h"
-#include "apx_eventRecorderSrvRmfMgr.h"
-#include "adt_list.h"
-#include "adt_set.h"
-#include "apx_serverBaseConnection.h"
+#include "apx_connectionManager.h"
+
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -32,19 +29,13 @@ typedef struct apx_server_tag
    uint16_t tcpPort; //TCP port for tcpServer
    char *localServerFile; //path to socket file for unix domain sockets (used for localServer)
    msocket_server_t tcpServer; //tcp server
-   msocket_server_t localServer; //unix domain socket server (to be implemented later)
+   msocket_server_t localServer; //unix domain socket server
 #endif
-   MUTEX_T lock;
-   adt_list_t connections; //linked list of strong references to apx_serverBaseConnection_t
    adt_list_t connectionEventListeners; //weak references to apx_connectionEventListener_t
-   apx_portDataMap_t portDataMap;
-   int8_t debugMode;
-   adt_u32Set_t connectionIdSet;
-   uint32_t nextConnectionId;
-   uint32_t numConnections;
+   apx_routingTable_t routingTable; //routing table for APX port connections
+   apx_connectionManager_t connectionManager; //server connections
+   int8_t debugMode; //TODO: remove this
 }apx_server_t;
-
-#define APX_SERVER_MAX_CONCURRENT_CONNECTIONS 10000
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -63,10 +54,13 @@ void apx_server_destroy(apx_server_t *self);
 void apx_server_start(apx_server_t *self);
 void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode);
 void apx_server_registerConnectionEventListener(apx_server_t *self, apx_connectionEventListener_t *eventListener);
+void apx_server_acceptConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection);
+void apx_server_removeConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection);
+apx_routingTable_t* apx_server_getRoutingTable(apx_server_t *self);
 #ifdef UNIT_TEST
 void apx_server_run(apx_server_t *self);
 void apx_server_acceptTestSocket(apx_server_t *self, testsocket_t *socket);
-apx_serverBaseConnection_t *apx_server_getLastConnection(apx_server_t *self);
+apx_serverConnectionBase_t *apx_server_getLastConnection(apx_server_t *self);
 #endif
 
 

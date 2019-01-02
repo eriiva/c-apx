@@ -7,13 +7,16 @@
 #include <assert.h>
 #include <stdio.h>
 #include "apx_client.h"
-#include "apx_clientConnection.h"
+#include "apx_clientSocketConnection.h"
 #include "apx_nodeDataManager.h"
 #include "apx_fileManager.h"
 #include "msocket.h"
 #include "adt_list.h"
 #include "apx_nodeData.h"
 #include "apx_eventListener.h"
+#ifdef UNIT_TEST
+#include "testsocket.h"
+#endif
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -41,40 +44,29 @@ static void apx_client_triggerDisconnectedEventOnListeners(apx_client_t *self, a
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-int8_t apx_client_create(apx_client_t *self)
+apx_error_t apx_client_create(apx_client_t *self)
 {
    if( self != 0 )
    {
-      self->nodeDataManager = apx_nodeDataManager_new();
-      if (self->nodeDataManager == 0)
-      {
-         return -1;
-      }
-      self->connection = apx_clientConnection_new(self);
-      if (self->connection == 0)
-      {
-         apx_nodeDataManager_delete(self->nodeDataManager);
-         return -1;
-      }
+      self->connection = (apx_clientConnectionBase_t*) 0;
       self->eventListeners = adt_list_new((void (*)(void*)) 0);
       if (self->eventListeners == 0)
       {
-         apx_nodeDataManager_delete(self->nodeDataManager);
-         apx_clientConnection_delete(self->connection);
-         return -1;
+         return APX_MEM_ERROR;
       }
-      return 0;
+      return APX_NO_ERROR;
    }
-   errno=EINVAL;
-   return -1;
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 
 void apx_client_destroy(apx_client_t *self)
 {
    if (self != 0)
    {
-      apx_clientConnection_delete(self->connection);
-      apx_nodeDataManager_delete(self->nodeDataManager);
+      if (self->connection != 0)
+      {
+         apx_connectionBase_delete(&self->connection->base);
+      }
       adt_list_delete(self->eventListeners);
    }
 }
@@ -93,7 +85,7 @@ apx_client_t *apx_client_new(void)
    }
    else
    {
-      errno = ENOMEM;
+      apx_setError(APX_MEM_ERROR);
    }
    return self;
 }
@@ -113,16 +105,27 @@ void apx_client_vdelete(void *arg)
 }
 
 #ifdef UNIT_TEST
-int8_t apx_client_connect(apx_client_t *self, struct testsocket_tag *socketObject)
+apx_error_t apx_client_socketConnect(apx_client_t *self, struct testsocket_tag *socketObject)
 {
    if (self != 0)
    {
-      return apx_clientConnection_connect(self->connection, socketObject);
+      apx_clientSocketConnection_t *socketConnection = apx_clientSocketConnection_new(socketObject, self);
+      if (socketConnection)
+      {
+         apx_error_t result;
+         self->connection = (apx_clientConnectionBase_t*) socketConnection;
+         result = apx_clientSocketConnection_connect(socketConnection);
+         if (result == APX_NO_ERROR)
+         {
+            testsocket_onConnect(socketObject);
+         }
+         return result;
+      }
    }
-   return -1;
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 #else
-int8_t apx_client_connectTcp(apx_client_t *self, const char *address, uint16_t port)
+apx_error_t apx_client_tcpConnect(apx_client_t *self, const char *address, uint16_t port)
 {
    if (self != 0)
    {
@@ -132,7 +135,7 @@ int8_t apx_client_connectTcp(apx_client_t *self, const char *address, uint16_t p
 }
 
 # ifndef _WIN32
-int8_t apx_client_connectUnix(apx_client_t *self, const char *socketPath)
+apx_error_t apx_client_unixConnect(apx_client_t *self, const char *socketPath)
 {
    if (self != 0)
    {
@@ -146,9 +149,9 @@ int8_t apx_client_connectUnix(apx_client_t *self, const char *socketPath)
 
 void apx_client_disconnect(apx_client_t *self)
 {
-   if (self != 0)
+   if ( (self != 0) && (self->connection != 0))
    {
-      apx_clientConnection_disconnect(self->connection);
+      apx_connectionBase_close(&self->connection->base);
    }
 }
 
@@ -187,6 +190,24 @@ void _apx_client_on_disconnect(apx_client_t *self, struct apx_fileManager_tag *f
    }
 }
 
+#ifdef UNIT_TEST
+
+#define APX_CLIENT_RUN_CYCLES 10
+
+void apx_client_run(apx_client_t *self)
+{
+   if (self!=0 && (self->connection != 0))
+   {
+      int32_t i;
+      for(i=0;i<APX_CLIENT_RUN_CYCLES;i++)
+      {
+         apx_clientConnectionBase_run(self->connection);
+      }
+   }
+}
+#endif
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
@@ -199,7 +220,7 @@ static void apx_client_triggerConnectedEventOnListeners(apx_client_t *self, apx_
       apx_connectionEventListener_t *listener = (apx_connectionEventListener_t*) iter->pItem;
       if ( (listener != 0) && (listener->connected != 0))
       {
-         listener->connected(listener, fileManager);
+         listener->connected(listener, (apx_connectionBase_t*) self->connection);
       }
       iter = adt_list_iter_next(iter);
    }
@@ -213,7 +234,7 @@ static void apx_client_triggerDisconnectedEventOnListeners(apx_client_t *self, a
       apx_connectionEventListener_t *listener = (apx_connectionEventListener_t*) iter->pItem;
       if ( (listener != 0) && (listener->disconnected != 0))
       {
-         listener->disconnected(listener, fileManager);
+         listener->disconnected(listener, (apx_connectionBase_t*) self->connection);
       }
       iter = adt_list_iter_next(iter);
    }

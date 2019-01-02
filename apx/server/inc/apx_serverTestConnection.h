@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_eventLoop.h
+* \file      apx_serverTestConnection.h
 * \author    Conny Gustafsson
-* \date      2018-10-15
-* \brief     APX event loop
+* \date      2018-12-09
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,57 +23,41 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_EVENT_LOOP_H
-#define APX_EVENT_LOOP_H
+#ifndef APX_SERVER_TEST_CONNECTION_H
+#define APX_SERVER_TEST_CONNECTION_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_types.h"
+#include <stdbool.h>
 #include "apx_error.h"
-#include "apx_eventListener.h"
-#include "apx_event.h"
-#ifdef _WIN32
-# ifndef WIN32_LEAN_AND_MEAN
-# define WIN32_LEAN_AND_MEAN
-# endif
-# include <Windows.h>
-#else
-# include <pthread.h>
-# include <semaphore.h>
-#endif
-#include "osmacro.h"
-#include "adt_ringbuf.h"
-
+#include "apx_serverConnectionBase.h"
+#include "rmf.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-//forward declarations
-
-typedef struct apx_eventLoop_tag
+typedef struct apx_serverTestConnection_tag
 {
-   SPINLOCK_T lock;
-   SEMAPHORE_T semaphore;
-   adt_rbfh_t pendingEvents;
-   bool exitFlag;
-} apx_eventLoop_t;
-
+   apx_serverConnectionBase_t base;
+}apx_serverTestConnection_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-apx_error_t apx_eventLoop_create(apx_eventLoop_t *self);
-void apx_eventLoop_destroy(apx_eventLoop_t *self);
-apx_eventLoop_t *apx_eventLoop_new(void);
-void apx_eventLoop_delete(apx_eventLoop_t *self);
-void apx_eventLoop_setEventHandler(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandler, void *eventHandlerArg);
-//External events (handler implemented in this class)
-void apx_eventLoop_append(apx_eventLoop_t *self, apx_event_t *event);
-void apx_eventLoop_run(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandler, void *eventHandlerArg);
-void apx_eventLoop_exit(apx_eventLoop_t *self);
-#ifdef UNIT_TEST
-void apx_eventLoop_runAll(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandler, void *eventHandlerArg);
-#endif
+apx_error_t apx_serverTestConnection_create(apx_serverTestConnection_t *self, struct apx_server_tag *server);
+void apx_serverTestConnection_destroy(apx_serverTestConnection_t *self);
+void apx_serverTestConnection_vdestroy(void *arg);
+apx_serverTestConnection_t *apx_serverTestConnection_new(struct apx_server_tag *server);
+void apx_serverTestConnection_delete(apx_serverTestConnection_t *self);
+void apx_serverTestConnection_start(apx_serverTestConnection_t *self);
+void apx_serverTestConnection_vstart(void *arg);
+void apx_serverTestConnection_close(apx_serverTestConnection_t *self);
+void apx_serverTestConnection_vclose(void *arg);
 
-#endif //APX_EVENT_LOOP_H
+void apx_serverTestConnection_createRemoteFile(apx_serverTestConnection_t *self, const rmf_fileInfo_t *fileInfo);
+void apx_serverTestConnection_writeRemoteData(apx_serverTestConnection_t *self, uint32_t address, const uint8_t* dataBuf, uint32_t dataLen, bool more);
+void apx_serverTestConnection_openRemoteFile(apx_serverTestConnection_t *self, uint32_t address);
+void apx_serverTestConnection_runEventLoop(apx_serverTestConnection_t *self);
+
+#endif //APX_SERVER_TEST_CONNECTION_H

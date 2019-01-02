@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_eventLoop.h
+* \file      apx_connectionManager.h
 * \author    Conny Gustafsson
-* \date      2018-10-15
-* \brief     APX event loop
+* \date      2018-12-28
+* \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,57 +23,59 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_EVENT_LOOP_H
-#define APX_EVENT_LOOP_H
+#ifndef APX_CONNECTION_MANAGER_H
+#define APX_CONNECTION_MANAGER_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_types.h"
-#include "apx_error.h"
-#include "apx_eventListener.h"
-#include "apx_event.h"
-#ifdef _WIN32
-# ifndef WIN32_LEAN_AND_MEAN
-# define WIN32_LEAN_AND_MEAN
-# endif
-# include <Windows.h>
+#include "apx_serverConnectionBase.h"
+#include "adt_list.h"
+#include "adt_set.h"
+#ifdef _MSC_VER
+#include <Windows.h>
 #else
-# include <pthread.h>
-# include <semaphore.h>
+#include <pthread.h>
+#include <unistd.h> //needed for SLEEP macro
 #endif
 #include "osmacro.h"
-#include "adt_ringbuf.h"
+
 
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-//forward declarations
-
-typedef struct apx_eventLoop_tag
+typedef struct apx_connectionManager_tag
 {
-   SPINLOCK_T lock;
-   SEMAPHORE_T semaphore;
-   adt_rbfh_t pendingEvents;
-   bool exitFlag;
-} apx_eventLoop_t;
-
+   SPINLOCK_T lock; //thread lock
+   adt_u32Set_t connectionIdSet; //used to keep track of which connection IDs are in use
+   adt_list_t activeConnections; //linked list of strong references to apx_serverBaseConnection_t
+   adt_list_t inactiveConnections; //These are connections waiting to be cleaned up
+   uint32_t nextConnectionId;
+   uint32_t numConnections;
+   THREAD_T cleanupThread; //garbage collector thread
+   bool cleanupThreadRunning; //when false it's time do shut down
+   bool cleanupThreadValid; //true if cleanupThread is a valid variable
+#ifdef _MSC_VER
+   unsigned int threadId;
+#endif
+} apx_connectionManager_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-apx_error_t apx_eventLoop_create(apx_eventLoop_t *self);
-void apx_eventLoop_destroy(apx_eventLoop_t *self);
-apx_eventLoop_t *apx_eventLoop_new(void);
-void apx_eventLoop_delete(apx_eventLoop_t *self);
-void apx_eventLoop_setEventHandler(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandler, void *eventHandlerArg);
-//External events (handler implemented in this class)
-void apx_eventLoop_append(apx_eventLoop_t *self, apx_event_t *event);
-void apx_eventLoop_run(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandler, void *eventHandlerArg);
-void apx_eventLoop_exit(apx_eventLoop_t *self);
+void apx_connectionManager_create(apx_connectionManager_t *self);
+void apx_connectionManager_destroy(apx_connectionManager_t *self);
+void apx_connectionManager_start(apx_connectionManager_t *self);
+void apx_connectionManager_stop(apx_connectionManager_t *self);
+void apx_connectionManager_attach(apx_connectionManager_t *self, apx_serverConnectionBase_t *connection);
+void apx_connectionManager_shutdown(apx_connectionManager_t *self, apx_serverConnectionBase_t *connection);
+apx_serverConnectionBase_t* apx_connectionManager_getLastConnection(apx_connectionManager_t *self);
+uint32_t apx_connectionManager_getNumConnections(apx_connectionManager_t *self);
 #ifdef UNIT_TEST
-void apx_eventLoop_runAll(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandler, void *eventHandlerArg);
+void apx_connectionManager_run(apx_connectionManager_t *self);
 #endif
 
-#endif //APX_EVENT_LOOP_H
+
+#endif //APX_CONNECTION_MANAGER_H

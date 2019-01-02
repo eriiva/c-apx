@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_serverSocketConnection.c
+* \file      apx_clientSocketConnection.c
 * \author    Conny Gustafsson
-* \date      2018-09-26
+* \date      2018-12-31
 * \brief     Description
 *
-* Copyright (c) 2018 Conny Gustafsson
+* Copyright (c) 2018-2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -42,7 +42,7 @@
 #else
 #include "msocket.h"
 #endif
-#include "apx_serverSocketConnection.h"
+#include "apx_clientSocketConnection.h"
 #include "apx_logging.h"
 #include "apx_transmitHandler.h"
 #include "apx_fileManager.h"
@@ -65,8 +65,8 @@
 #define SOCKET_TYPE testsocket_t
 #define SOCKET_DELETE testsocket_delete
 #define SOCKET_START_IO(x)
-#define SOCKET_SET_HANDLER testsocket_setServerHandler
-#define SOCKET_SEND testsocket_serverSend
+#define SOCKET_SET_HANDLER testsocket_setClientHandler
+#define SOCKET_SEND testsocket_clientSend
 #else
 #define SOCKET_DELETE msocket_delete
 #define SOCKET_TYPE msocket_t
@@ -79,11 +79,13 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void apx_serverSocketConnection_registerTransmitHandler(apx_serverSocketConnection_t *self);
-static uint8_t *apx_serverSocketConnection_getSendBuffer(void *arg, int32_t msgLen);
-static int32_t apx_serverSocketConnection_send(void *arg, int32_t offset, int32_t msgLen);
-static int8_t apx_serverSocketConnection_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
-static void apx_serverSocketConnection_disconnected(void *arg);
+static void apx_clientSocketConnection_registerTransmitHandler(apx_clientSocketConnection_t *self);
+static void apx_clientSocketConnection_registerSocketHandler(apx_clientSocketConnection_t *self);
+static uint8_t *apx_clientSocketConnection_getSendBuffer(void *arg, int32_t msgLen);
+static int32_t apx_clientSocketConnection_send(void *arg, int32_t offset, int32_t msgLen);
+static void apx_clientSocketConnection_connected(void *arg, const char *addr, uint16_t port);
+static int8_t apx_clientSocketConnection_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
+static void apx_clientSocketConnection_disconnected(void *arg);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -92,18 +94,18 @@ static void apx_serverSocketConnection_disconnected(void *arg);
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-apx_error_t apx_serverSocketConnection_create(apx_serverSocketConnection_t *self, SOCKET_TYPE *socketObject, struct apx_server_tag *server)
+apx_error_t apx_clientSocketConnection_create(apx_clientSocketConnection_t *self, SOCKET_TYPE *socketObject, struct apx_client_tag *client)
 {
    if (self != 0)
    {
       apx_connectionBaseVTable_t vtable;
-      apx_connectionBaseVTable_create(&vtable, apx_serverSocketConnection_vdestroy, apx_serverSocketConnection_vstart, apx_serverSocketConnection_vclose);
-      apx_error_t result = apx_serverConnectionBase_create(&self->base, server, &vtable);
+      apx_connectionBaseVTable_create(&vtable, apx_clientSocketConnection_vdestroy, NULL, apx_clientSocketConnection_vclose);
+      apx_error_t result = apx_clientConnectionBase_create(&self->base, client, &vtable);
       if (result != APX_NO_ERROR)
       {
          return result;
       }
-      apx_serverSocketConnection_registerTransmitHandler(self);
+      apx_clientSocketConnection_registerTransmitHandler(self);
       adt_bytearray_create(&self->sendBuffer, SEND_BUFFER_GROW_SIZE);
       self->socketObject = socketObject;
       return APX_NO_ERROR;
@@ -111,97 +113,106 @@ apx_error_t apx_serverSocketConnection_create(apx_serverSocketConnection_t *self
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
-void apx_serverSocketConnection_destroy(apx_serverSocketConnection_t *self)
+void apx_clientSocketConnection_destroy(apx_clientSocketConnection_t *self)
 {
    if (self != 0)
    {
-      apx_serverConnectionBase_destroy(&self->base);
+      apx_clientConnectionBase_destroy(&self->base);
       adt_bytearray_destroy(&self->sendBuffer);
       SOCKET_DELETE(self->socketObject);
    }
 }
 
-void apx_serverSocketConnection_vdestroy(void *arg)
+void apx_clientSocketConnection_vdestroy(void *arg)
 {
-   apx_serverSocketConnection_destroy((apx_serverSocketConnection_t*) arg);
+   apx_clientSocketConnection_destroy((apx_clientSocketConnection_t*) arg);
 }
 
-apx_serverSocketConnection_t *apx_serverSocketConnection_new(SOCKET_TYPE *socketObject, struct apx_server_tag *server)
+apx_clientSocketConnection_t *apx_clientSocketConnection_new(SOCKET_TYPE *socketObject, struct apx_client_tag *client)
 {
-   apx_serverSocketConnection_t *self = (apx_serverSocketConnection_t*) malloc(sizeof(apx_serverSocketConnection_t));
+   apx_clientSocketConnection_t *self = (apx_clientSocketConnection_t*) malloc(sizeof(apx_clientSocketConnection_t));
    if (self != 0)
    {
-      int8_t result = apx_serverSocketConnection_create(self, socketObject, server);
+      int8_t result = apx_clientSocketConnection_create(self, socketObject, client);
       if (result != 0)
       {
          free(self);
-         self = (apx_serverSocketConnection_t*) 0;
+         self = (apx_clientSocketConnection_t*) 0;
       }
    }
    return self;
 }
 
-void apx_serverSocketConnection_delete(apx_serverSocketConnection_t *self)
+void apx_clientSocketConnection_delete(apx_clientSocketConnection_t *self)
 {
    if (self != 0)
    {
-      apx_serverSocketConnection_destroy(self);
+      apx_clientSocketConnection_destroy(self);
       free(self);
    }
 }
 
-void apx_serverSocketConnection_vdelete(void *arg)
+void apx_clientSocketConnection_vdelete(void *arg)
 {
-   apx_serverSocketConnection_delete((apx_serverSocketConnection_t*) arg);
+   apx_clientSocketConnection_delete((apx_clientSocketConnection_t*) arg);
 }
 
-void apx_serverSocketConnection_start(apx_serverSocketConnection_t *self)
+void apx_clientSocketConnection_close(apx_clientSocketConnection_t *self)
 {
-   if (self != 0)
+   printf("client close\n");
+}
+
+void apx_clientSocketConnection_vclose(void *arg)
+{
+   apx_clientSocketConnection_close((apx_clientSocketConnection_t*) arg);
+}
+
+#ifdef UNIT_TEST
+apx_error_t apx_clientSocketConnection_connect(apx_clientSocketConnection_t *self)
+{
+   if ( (self != 0) && (self->socketObject != 0) )
    {
-      msocket_handler_t handlerTable;
-      memset(&handlerTable,0,sizeof(handlerTable));
-      apx_serverConnectionBase_start(&self->base);
-      handlerTable.tcp_data = apx_serverSocketConnection_data;
-      handlerTable.tcp_disconnected = apx_serverSocketConnection_disconnected;
-      SOCKET_SET_HANDLER(self->socketObject, &handlerTable, self);
-      SOCKET_START_IO(self->socketObject);
+      apx_clientSocketConnection_registerSocketHandler(self);
+      return APX_NO_ERROR;
    }
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 
-void apx_serverSocketConnection_vstart(void *arg)
-{
-   apx_serverSocketConnection_start((apx_serverSocketConnection_t*) arg);
-}
-
-void apx_serverSocketConnection_close(apx_serverSocketConnection_t *self)
-{
-   printf("close\n");
-}
-
-void apx_serverSocketConnection_vclose(void *arg)
-{
-   apx_serverSocketConnection_close((apx_serverSocketConnection_t*) arg);
-}
+#else
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
-static void apx_serverSocketConnection_registerTransmitHandler(apx_serverSocketConnection_t *self)
+static void apx_clientSocketConnection_registerTransmitHandler(apx_clientSocketConnection_t *self)
 {
-   apx_transmitHandler_t serverTransmitHandler;
-   serverTransmitHandler.arg = self;
-   serverTransmitHandler.send = apx_serverSocketConnection_send;
-   serverTransmitHandler.getSendAvail = 0;
-   serverTransmitHandler.getSendBuffer = apx_serverSocketConnection_getSendBuffer;
-   apx_fileManager_setTransmitHandler(&self->base.base.fileManager, &serverTransmitHandler);
+   apx_transmitHandler_t clientTransmitHandler;
+   clientTransmitHandler.arg = self;
+   clientTransmitHandler.send = apx_clientSocketConnection_send;
+   clientTransmitHandler.getSendAvail = 0;
+   clientTransmitHandler.getSendBuffer = apx_clientSocketConnection_getSendBuffer;
+   apx_fileManager_setTransmitHandler(&self->base.base.fileManager, &clientTransmitHandler);
 }
 
-static uint8_t *apx_serverSocketConnection_getSendBuffer(void *arg, int32_t msgLen)
+static void apx_clientSocketConnection_registerSocketHandler(apx_clientSocketConnection_t *self)
 {
-   apx_serverSocketConnection_t *self = (apx_serverSocketConnection_t*) arg;
+   SOCKET_TYPE *socketObject = self->socketObject;
+   if (socketObject != 0)
+   {
+      msocket_handler_t handlerTable;
+      memset(&handlerTable,0,sizeof(handlerTable));
+      handlerTable.tcp_connected=apx_clientSocketConnection_connected;
+      handlerTable.tcp_data=apx_clientSocketConnection_data;
+      handlerTable.tcp_disconnected = apx_clientSocketConnection_disconnected;
+      SOCKET_SET_HANDLER(socketObject, &handlerTable, self);
+   }
+}
+
+static uint8_t *apx_clientSocketConnection_getSendBuffer(void *arg, int32_t msgLen)
+{
+   apx_clientSocketConnection_t *self = (apx_clientSocketConnection_t*) arg;
    if (self != 0)
    {
       int8_t result=0;
@@ -221,12 +232,11 @@ static uint8_t *apx_serverSocketConnection_getSendBuffer(void *arg, int32_t msgL
       }
    }
    return 0;
-
 }
 
-static int32_t apx_serverSocketConnection_send(void *arg, int32_t offset, int32_t msgLen)
+static int32_t apx_clientSocketConnection_send(void *arg, int32_t offset, int32_t msgLen)
 {
-   apx_serverSocketConnection_t *self = (apx_serverSocketConnection_t*) arg;
+   apx_clientSocketConnection_t *self = (apx_clientSocketConnection_t*) arg;
    if ( (self != 0) && (offset>=0) && (msgLen>=0))
    {
       int32_t sendBufferLen;
@@ -253,30 +263,11 @@ static int32_t apx_serverSocketConnection_send(void *arg, int32_t offset, int32_
          }
          else
          {
-            return -1; //not yet implemented
+            return -1; //16-bit header not yet implemented
          }
          //place header just before user data begin
          pBegin = sendBuffer+(self->base.base.numHeaderLen+offset-headerLen); //the part in the parenthesis is where the user data begins
          memcpy(pBegin, header, headerLen);
-#if 0
-         if (self->debugMode >= APX_DEBUG_4_HIGH)
-         {
-            int i;
-            char msg[MAX_DEBUG_MSG_SIZE];
-            char *pMsg = &msg[0];
-            char *pMsgEnd = pMsg + MAX_DEBUG_MSG_SIZE;
-            pMsg += sprintf(msg, "(%p) Sending %d+%d bytes:", (void*)self, (int)headerLen, (int)msgLen);
-            for (i = 0; i < MAX_DEBUG_BYTES; i++)
-            {
-               if ((i >= msgLen + headerLen) || ( (pMsg + HEX_DATA_LEN) > pMsgEnd))
-               {
-                  break;
-               }
-               pMsg += sprintf(pMsg, " %02X", (int)pBegin[i]);
-            }
-            APX_LOG_DEBUG("[APX_SRV_CONNECTION] %s", msg);
-         }
-#endif
          SOCKET_SEND(self->socketObject, pBegin, msgLen+headerLen);
          return 0;
       }
@@ -288,15 +279,25 @@ static int32_t apx_serverSocketConnection_send(void *arg, int32_t offset, int32_
    return -1;
 }
 
-static int8_t apx_serverSocketConnection_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
+static void apx_clientSocketConnection_connected(void *arg, const char *addr, uint16_t port)
 {
-   apx_serverSocketConnection_t *self = (apx_serverSocketConnection_t*) arg;
-   return apx_serverConnectionBase_dataReceived(&self->base, dataBuf, dataLen, parseLen);
+   (void) addr;
+   (void) port;
+   apx_clientSocketConnection_t *self = (apx_clientSocketConnection_t*) arg;
+   apx_clientConnectionBase_onConnected(&self->base);
 }
 
-static void apx_serverSocketConnection_disconnected(void *arg)
+
+static int8_t apx_clientSocketConnection_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
 {
-   apx_serverSocketConnection_t *self = (apx_serverSocketConnection_t*) arg;
+   apx_clientSocketConnection_t *self = (apx_clientSocketConnection_t*) arg;
+   return apx_clientConnectionBase_onDataReceived(&self->base, dataBuf, dataLen, parseLen);
+}
+
+static void apx_clientSocketConnection_disconnected(void *arg)
+{
+   apx_clientSocketConnection_t *self = (apx_clientSocketConnection_t*) arg;
+   apx_clientConnectionBase_onDisconnected(&self->base);
 }
 
 

@@ -85,7 +85,7 @@
 
 #define RMF_GREETING_MAX_LEN 127
 #define RMF_GREETING_START "RMFP/1.0\n"
-#define RMF_NUMHEADER_FORMAT "NumHeader-Format:"
+#define RMF_NUMHEADER_FORMAT_HDR "NumHeader-Format:"
 
 #define RMF_INVALID_ADDRESS (uint32_t) (0xFFFFFFFF)
 

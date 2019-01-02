@@ -29,7 +29,8 @@
 #include <assert.h>
 #include <malloc.h>
 #include <string.h>
-#include "apx_serverBaseConnection.h"
+#include <stdio.h> //debug only
+#include "apx_serverConnectionBase.h"
 #include "bstr.h"
 #include "numheader.h"
 #include "apx_fileManager.h"
@@ -37,6 +38,9 @@
 #include "apx_logging.h"
 #include "apx_file2.h"
 #include "rmf.h"
+#include "apx_portDataMap.h"
+#include "apx_server.h"
+#include "apx_routingTable.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -46,17 +50,18 @@
 // PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 #define MAX_HEADER_LEN 128
-#define APX_EXTENSION ".apx"
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void apx_serverBaseConnection_parseGreeting(apx_serverBaseConnection_t *self, const uint8_t *msgBuf, int32_t msgLen);
-static uint8_t apx_serverBaseConnection_parseMessage(apx_serverBaseConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
-static void apx_serverBaseConnection_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file);
-static void apx_serverBaseConnection_processNewApxFile(apx_serverBaseConnection_t *self, struct apx_file2_tag *file);
-static void apx_serverBaseConnection_onDefinitionDataWritten(void *arg, apx_nodeData_t *nodeData, uint32_t offset, uint32_t len);
-static apx_error_t apx_serverBaseConnection_createInPortDataFile(apx_serverBaseConnection_t *self, apx_nodeData_t *nodeData, apx_file2_t *definitionFile);
+static void apx_serverConnectionBase_parseGreeting(apx_serverConnectionBase_t *self, const uint8_t *msgBuf, int32_t msgLen);
+static uint8_t apx_serverConnectionBase_parseMessage(apx_serverConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
+static void apx_serverConnectionBase_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file);
+static void apx_serverConnectionBase_onFileOpen(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file);
+static void apx_serverConnectionBase_processNewApxFile(apx_serverConnectionBase_t *self, struct apx_file2_tag *file);
+static void apx_serverConnectionBase_processNewOutDataFile(apx_serverConnectionBase_t *self, struct apx_file2_tag *file);
+static void apx_serverConnectionBase_onDefinitionDataWritten(void *arg, apx_nodeData_t *nodeData, uint32_t offset, uint32_t len);
+static apx_error_t apx_serverConnectionBase_createInPortDataFile(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_file2_t *definitionFile);
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -66,70 +71,36 @@ static apx_error_t apx_serverBaseConnection_createInPortDataFile(apx_serverBaseC
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
-apx_error_t apx_serverBaseConnection_create(apx_serverBaseConnection_t *self, uint32_t connectionId, struct apx_server_tag *server, void (*destructor)(void *arg))
+apx_error_t apx_serverConnectionBase_create(apx_serverConnectionBase_t *self, struct apx_server_tag *server, apx_connectionBaseVTable_t *vtable)
 {
    if (self != 0)
    {
-      adt_buf_err_t bufResult;
-      int8_t i8result;
-      self->connectionId = connectionId;
+      apx_error_t result = apx_connectionBase_create(&self->base, APX_SERVER_MODE, vtable);
       self->server = server;
-      self->vtable.destructor = destructor;
-      self->numHeaderLen = (int8_t) sizeof(uint32_t);
-      apx_nodeDataManager_create(&self->nodeDataManager);
-      bufResult = apx_eventLoop_create(&self->eventLoop);
-      if (bufResult != BUF_E_OK)
-      {
-         apx_nodeDataManager_destroy(&self->nodeDataManager);
-         return APX_MEM_ERROR;
-      }
-      i8result = apx_fileManager_create(&self->fileManager, APX_FILEMANAGER_SERVER_MODE, connectionId, &self->eventLoop);
-      if (i8result != 0)
-      {
-         apx_nodeDataManager_destroy(&self->nodeDataManager);
-      }
-      return i8result;
+      apx_connectionBase_setEventHandler(&self->base, apx_serverConnectionBase_defaultEventHandler, (void*) self);
+      return result;
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
-void apx_serverBaseConnection_destroy(apx_serverBaseConnection_t *self)
+void apx_serverConnectionBase_destroy(apx_serverConnectionBase_t *self)
 {
    if (self != 0)
    {
-      apx_fileManager_destroy(&self->fileManager);
-      apx_eventLoop_destroy(&self->eventLoop);
-      apx_nodeDataManager_destroy(&self->nodeDataManager);
+      apx_connectionBase_destroy(&self->base);
    }
 }
 
-void apx_serverBaseConnection_delete(apx_serverBaseConnection_t *self)
-{
-   if(self != 0)
-   {
-      if (self->vtable.destructor != 0)
-      {
-         self->vtable.destructor((void*) self);
-      }
-      free(self);
-   }
-}
-
-void apx_serverBaseConnection_vdelete(void *arg)
-{
-   apx_serverBaseConnection_delete((apx_serverBaseConnection_t*) arg);
-}
-
-apx_fileManager_t *apx_serverBaseConnection_getFileManager(apx_serverBaseConnection_t *self)
+apx_fileManager_t *apx_serverConnectionBase_getFileManager(apx_serverConnectionBase_t *self)
 {
    if (self != 0)
    {
-      return &self->fileManager;
+      return &self->base.fileManager;
    }
    return (apx_fileManager_t*) 0;
 }
 
-int8_t apx_serverBaseConnection_dataReceived(apx_serverBaseConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
+int8_t apx_serverConnectionBase_dataReceived(apx_serverConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
 {
    if ( (self != 0) && (dataBuf != 0) && (parseLen != 0) )
    {
@@ -140,7 +111,7 @@ int8_t apx_serverBaseConnection_dataReceived(apx_serverBaseConnection_t *self, c
       {
          uint32_t internalParseLen = 0;
          uint8_t result;
-         result = apx_serverBaseConnection_parseMessage(self, pNext, remain, &internalParseLen);
+         result = apx_serverConnectionBase_parseMessage(self, pNext, remain, &internalParseLen);
          //check parse result
          if (result == 0)
          {
@@ -167,25 +138,89 @@ int8_t apx_serverBaseConnection_dataReceived(apx_serverBaseConnection_t *self, c
    return -1;
 }
 
-void apx_serverBaseConnection_start(apx_serverBaseConnection_t *self)
+void apx_serverConnectionBase_start(apx_serverConnectionBase_t *self)
 {
    if ( self != 0)
    {
       apx_fileManagerEventListener_t listener;
       memset(&listener, 0, sizeof(listener));
-      listener.fileCreate = apx_serverBaseConnection_onFileCreate;
+      listener.fileCreate = apx_serverConnectionBase_onFileCreate;
+      listener.fileOpen = apx_serverConnectionBase_onFileOpen;
       listener.arg = (void*) self;
-      apx_fileManager_start(&self->fileManager);
-      apx_fileManager_registerEventListener(&self->fileManager, &listener);
+      apx_fileManager_start(&self->base.fileManager);
+      apx_fileManager_registerEventListener(&self->base.fileManager, &listener);
    }
 }
 
-#ifdef UNIT_TEST
-void apx_serverBaseConnection_run(apx_serverBaseConnection_t *self)
+void apx_serverConnectionBase_defaultEventHandler(void *arg, apx_event_t *event)
+{
+   apx_serverConnectionBase_t *self = (apx_serverConnectionBase_t*) arg;
+   if (self != 0)
+   {
+      apx_connectionBase_defaultEventHandler(&self->base, event);
+   }
+}
+
+void apx_serverConnectionBase_setConnectionId(apx_serverConnectionBase_t *self, uint32_t connectionId)
 {
    if (self != 0)
    {
-      apx_eventLoop_run(&self->eventLoop);
+      return apx_connectionBase_setConnectionId(&self->base, connectionId);
+   }
+}
+
+uint32_t apx_serverConnectionBase_getConnectionId(apx_serverConnectionBase_t *self)
+{
+   if (self != 0)
+   {
+      return apx_connectionBase_getConnectionId(&self->base);
+   }
+   return 0;
+}
+
+void apx_serverConnectionBase_close(apx_serverConnectionBase_t *self)
+{
+   if (self != 0)
+   {
+      apx_connectionBase_close(&self->base);
+   }
+}
+
+void apx_serverConnectionBase_detachNodes(apx_serverConnectionBase_t *self)
+{
+   if (self != 0)
+   {
+      apx_routingTable_t *routingTable;
+
+      routingTable = apx_server_getRoutingTable(self->server);
+      if (routingTable != 0)
+      {
+         adt_ary_t *nodeDataList = adt_ary_new(NULL);
+         if (nodeDataList != 0)
+         {
+            int32_t numNodes;
+            int32_t i;
+            adt_hash_values(&self->base.nodeDataManager.nodeDataMap, nodeDataList);
+            numNodes = adt_ary_length(nodeDataList);
+            for(i=0;i<numNodes;i++)
+            {
+               apx_nodeData_t *nodeData = (apx_nodeData_t*) adt_ary_value(nodeDataList, i);
+               apx_routingTable_detachNodeData(routingTable, nodeData);
+            }
+            adt_ary_delete(nodeDataList);
+         }
+      }
+   }
+}
+
+
+#ifdef UNIT_TEST
+void apx_serverConnectionBase_run(apx_serverConnectionBase_t *self)
+{
+   if (self != 0)
+   {
+      apx_connectionBase_runAll(&self->base);
+      apx_fileManager_run(&self->base.fileManager);
    }
 }
 #endif
@@ -195,7 +230,7 @@ void apx_serverBaseConnection_run(apx_serverBaseConnection_t *self)
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static void apx_serverBaseConnection_parseGreeting(apx_serverBaseConnection_t *self, const uint8_t *msgBuf, int32_t msgLen)
+static void apx_serverConnectionBase_parseGreeting(apx_serverConnectionBase_t *self, const uint8_t *msgBuf, int32_t msgLen)
 {
    const uint8_t *pNext = msgBuf;
    const uint8_t *pEnd = msgBuf + msgLen;
@@ -213,7 +248,7 @@ static void apx_serverBaseConnection_parseGreeting(apx_serverBaseConnection_t *s
          if (lengthOfLine == 0)
          {
             //this ends the header
-            self->isGreetingParsed = true;
+            self->base.isGreetingParsed = true;
 #if 0
             if (self->debugMode > APX_DEBUG_NONE)
             {
@@ -224,7 +259,7 @@ static void apx_serverBaseConnection_parseGreeting(apx_serverBaseConnection_t *s
                APX_LOG_INFO("%s", "[APX_SRV_CONNECTION] Greeting parsed");
             }
 #endif
-            apx_fileManager_onHeaderReceived(&self->fileManager);
+            apx_fileManager_onHeaderReceived(&self->base.fileManager);
             break;
          }
          else
@@ -249,7 +284,7 @@ static void apx_serverBaseConnection_parseGreeting(apx_serverBaseConnection_t *s
 /**
  * a message consists of a message length (1 or 4 bytes) packed as binary integer (big endian). Then follows the message data followed by a new message length header etc.
  */
-static uint8_t apx_serverBaseConnection_parseMessage(apx_serverBaseConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
+static uint8_t apx_serverConnectionBase_parseMessage(apx_serverConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
 {
    uint32_t totalParsed=0;
    uint32_t msgLen;
@@ -285,13 +320,13 @@ static uint8_t apx_serverBaseConnection_parseMessage(apx_serverBaseConnection_t 
             APX_LOG_DEBUG("[APX_SRV_CONNECTION] %s", msg);
          }
 #endif
-         if (self->isGreetingParsed == false)
+         if (self->base.isGreetingParsed == false)
          {
-            apx_serverBaseConnection_parseGreeting(self, pNext, msgLen);
+            apx_serverConnectionBase_parseGreeting(self, pNext, msgLen);
          }
          else
          {
-            apx_fileManager_processMessage(&self->fileManager, pNext, msgLen);
+            apx_fileManager_processMessage(&self->base.fileManager, pNext, msgLen);
          }
       }
       else
@@ -307,27 +342,51 @@ static uint8_t apx_serverBaseConnection_parseMessage(apx_serverBaseConnection_t 
    return 0;
 }
 
-static void apx_serverBaseConnection_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file)
+static void apx_serverConnectionBase_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file)
 {
-   apx_serverBaseConnection_t *self = (apx_serverBaseConnection_t*) arg;
+   apx_serverConnectionBase_t *self = (apx_serverConnectionBase_t*) arg;
+   printf("file created: %s\n", file->fileInfo.name);
    if (self != 0)
    {
-      if ( strcmp(apx_file2_extension(file), APX_EXTENSION) == 0)
+      if ( strcmp(apx_file2_extension(file), APX_DEFINITION_FILE_EXT) == 0)
       {
-         apx_serverBaseConnection_processNewApxFile(self,  file);
+         apx_serverConnectionBase_processNewApxFile(self,  file);
+      }
+      else if ( strcmp(apx_file2_extension(file), APX_OUTDATA_FILE_EXT) == 0)
+      {
+         apx_serverConnectionBase_processNewOutDataFile(self, file);
       }
    }
 }
 
-#include <stdio.h>
-static void apx_serverBaseConnection_processNewApxFile(apx_serverBaseConnection_t *self, struct apx_file2_tag *file)
+
+static void apx_serverConnectionBase_onFileOpen(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file)
+{
+   apx_serverConnectionBase_t *self = (apx_serverConnectionBase_t*) arg;
+   if (self != 0)
+   {
+      const char *basename = apx_file2_basename(file);
+      apx_nodeData_t *nodeData = apx_nodeDataManager_find(&self->base.nodeDataManager, basename);
+      if (nodeData != 0)
+      {
+         bool isComplete = apx_nodeData_isComplete(nodeData);
+         if (isComplete == true)
+         {
+            apx_routingTable_attachNodeData(&self->server->routingTable, nodeData);
+         }
+      }
+   }
+}
+
+
+static void apx_serverConnectionBase_processNewApxFile(apx_serverConnectionBase_t *self, struct apx_file2_tag *file)
 {
    if (file->fileInfo.fileType == RMF_FILE_TYPE_FIXED)
    {
-      if (apx_nodeDataManager_find(&self->nodeDataManager, file->fileInfo.name) != 0)
+      if (apx_nodeDataManager_find(&self->base.nodeDataManager, apx_file2_basename(file)) != 0)
       {
          APX_LOG_WARNING("APX node already exits: %s", file->fileInfo.name);
-         apx_fileManager_sendFileAlreadyExistsError(&self->fileManager, file);
+         apx_fileManager_sendFileAlreadyExistsError(&self->base.fileManager, file);
       }
       else
       {
@@ -335,24 +394,41 @@ static void apx_serverBaseConnection_processNewApxFile(apx_serverBaseConnection_
          if (nodeData != 0)
          {
             apx_nodeDataEventListener_t eventListener;
+            apx_error_t result;
             memset(&eventListener, 0, sizeof(eventListener));
             eventListener.arg = (void*) self;
-            eventListener.definitionDataWritten = apx_serverBaseConnection_onDefinitionDataWritten;
+            eventListener.definitionDataWritten = apx_serverConnectionBase_onDefinitionDataWritten;
             apx_nodeData_setEventListener(nodeData, &eventListener);
             apx_nodeData_setDefinitionFile(nodeData, file);
-            assert(apx_nodeDataManager_attach(&self->nodeDataManager, nodeData) == APX_NO_ERROR);
-            apx_fileManager_openRemoteFile(&self->fileManager, file->fileInfo.address, (void*) self);
+            apx_nodeData_setConnection(nodeData, (apx_connectionBase_t*) self);
+            result = apx_nodeDataManager_attach(&self->base.nodeDataManager, nodeData);
+            if (result == APX_NO_ERROR)
+            {
+               apx_fileManager_openRemoteFile(&self->base.fileManager, file->fileInfo.address, (void*) self);
+            }
          }
       }
    }
 }
 
-static void apx_serverBaseConnection_onDefinitionDataWritten(void *arg, apx_nodeData_t *nodeData, uint32_t offset, uint32_t len)
+static void apx_serverConnectionBase_processNewOutDataFile(apx_serverConnectionBase_t *self, struct apx_file2_tag *file)
 {
-   apx_serverBaseConnection_t *self = (apx_serverBaseConnection_t*) arg;
+   if (file->fileInfo.fileType == RMF_FILE_TYPE_FIXED)
+   {
+      apx_nodeData_t *nodeData = apx_nodeDataManager_find(&self->base.nodeDataManager, apx_file2_basename(file));
+      if ( (nodeData != 0) && (nodeData->outPortDataBuf != 0))
+      {
+         printf("requesting opening of .out file\n");
+      }
+   }
+}
+
+static void apx_serverConnectionBase_onDefinitionDataWritten(void *arg, apx_nodeData_t *nodeData, uint32_t offset, uint32_t len)
+{
+   apx_serverConnectionBase_t *self = (apx_serverConnectionBase_t*) arg;
    if (self != 0)
    {
-      apx_error_t result = apx_nodeDataManager_parseDefinition(&self->nodeDataManager, nodeData);
+      apx_error_t result = apx_nodeDataManager_parseDefinition(&self->base.nodeDataManager, nodeData);
       if (result == APX_NO_ERROR)
       {
          result = apx_nodeData_createPortDataBuffers(nodeData);
@@ -368,21 +444,26 @@ static void apx_serverBaseConnection_onDefinitionDataWritten(void *arg, apx_node
                   if (inPortDataLen > 0)
                   {
                      //collect inPortData here
-                     result = apx_serverBaseConnection_createInPortDataFile(self, nodeData, definitionFile);
+                     result = apx_serverConnectionBase_createInPortDataFile(self, nodeData, definitionFile);
                   }
                   if (result == APX_NO_ERROR)
                   {
-
-                     uint32_t outPortDataLen = apx_nodeData_getOutPortDataLen(nodeData);
-                     if (outPortDataLen > 0)
+                     result = apx_nodeData_createPortDataMap(nodeData, APX_SERVER_MODE);
+                     if (result == APX_NO_ERROR)
                      {
-                        char fileName[RMF_MAX_FILE_NAME+1];
-                        strcpy(fileName, apx_file2_basename(definitionFile));
-                        strcat(fileName, APX_OUTDATA_FILE_EXT);
-                        apx_file2_t *outPortDataFile = apx_fileManager_findRemoteFileByName(&self->fileManager, fileName);
-                        if (outPortDataFile != 0)
+                        uint32_t outPortDataLen = apx_nodeData_getOutPortDataLen(nodeData);
+                        if (outPortDataLen > 0)
                         {
-                           apx_fileManager_openRemoteFile(&self->fileManager, outPortDataFile->fileInfo.address, self);
+                           char fileName[RMF_MAX_FILE_NAME+1];
+                           strcpy(fileName, apx_file2_basename(definitionFile));
+                           strcat(fileName, APX_OUTDATA_FILE_EXT);
+                           apx_file2_t *outPortDataFile = apx_fileManager_findRemoteFileByName(&self->base.fileManager, fileName);
+                           if (outPortDataFile != 0)
+                           {
+                              //TODO: Verify file length here
+                              apx_nodeData_setOutPortDataFile(nodeData, outPortDataFile);
+                              apx_fileManager_openRemoteFile(&self->base.fileManager, outPortDataFile->fileInfo.address, self);
+                           }
                         }
                      }
                   }
@@ -400,12 +481,13 @@ static void apx_serverBaseConnection_onDefinitionDataWritten(void *arg, apx_node
       }
       if (result != APX_NO_ERROR)
       {
-         apx_fileManager_sendApxErrorCode(&self->fileManager, (uint32_t) result);
+         printf("APX error %d\n", (int) result);
+         apx_fileManager_sendApxErrorCode(&self->base.fileManager, (uint32_t) result);
       }
    }
 }
 
-static apx_error_t apx_serverBaseConnection_createInPortDataFile(apx_serverBaseConnection_t *self, apx_nodeData_t *nodeData, apx_file2_t *definitionFile)
+static apx_error_t apx_serverConnectionBase_createInPortDataFile(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_file2_t *definitionFile)
 {
    apx_error_t retval = APX_NO_ERROR;
    rmf_fileInfo_t info;
@@ -420,7 +502,7 @@ static apx_error_t apx_serverBaseConnection_createInPortDataFile(apx_serverBaseC
    if (inPortDataFile != 0)
    {
       apx_nodeData_setInPortDataFile(nodeData, inPortDataFile);
-      apx_fileManager_attachLocalFile(&self->fileManager, inPortDataFile);
+      apx_fileManager_attachLocalFile(&self->base.fileManager, inPortDataFile, (void*) self);
    }
    else
    {

@@ -1,5 +1,5 @@
 /*****************************************************************************
-* \file      apx_srvBaseConnection.h
+* \file      apx_serverConnectionBase.h
 * \author    Conny Gustafsson
 * \date      2018-09-26
 * \brief     Description
@@ -23,53 +23,42 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_SERVER_BASE_CONNECTION_H
-#define APX_SERVER_BASE_CONNECTION_H
+#ifndef APX_SERVER_CONNECTION_BASE_H
+#define APX_SERVER_CONNECTION_BASE_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_types.h"
-#include "apx_error.h"
-#include "apx_fileManager.h"
-#include "apx_nodeDataManager.h"
-#include "apx_eventLoop.h"
-
+#include "apx_connectionBase.h"
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 struct apx_server_tag;
 
-typedef struct apx_serverBaseConnection_tag
+typedef struct apx_serverConnectionBase_tag
 {
-   apx_fileManager_t fileManager;
-   apx_nodeDataManager_t nodeDataManager;
-   apx_eventLoop_t eventLoop;
-   uint32_t connectionId;
+   apx_connectionBase_t base;
    struct apx_server_tag *server;
-   bool isGreetingParsed;
-   uint8_t numHeaderLen; //0, 2 or 4
-   struct
-   {
-      void (*destructor)(void *arg);
-   }vtable;
-}apx_serverBaseConnection_t;
+}apx_serverConnectionBase_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-apx_error_t apx_serverBaseConnection_create(apx_serverBaseConnection_t *self, uint32_t connectionId, struct apx_server_tag *server, void (*destructor)(void *arg));
-void apx_serverBaseConnection_destroy(apx_serverBaseConnection_t *self);
-//apx_serverBaseConnection_t *apx_serverBaseConnection_new(void);
-void apx_serverBaseConnection_delete(apx_serverBaseConnection_t *self);
-void apx_serverBaseConnection_vdelete(void *arg);
+apx_error_t apx_serverConnectionBase_create(apx_serverConnectionBase_t *self, struct apx_server_tag *server, apx_connectionBaseVTable_t *vtable);
+void apx_serverConnectionBase_destroy(apx_serverConnectionBase_t *self);
+//This class has no delete functions as it is an abstract base class
 
-apx_fileManager_t *apx_serverBaseConnection_getFileManager(apx_serverBaseConnection_t *self);
-int8_t apx_serverBaseConnection_dataReceived(apx_serverBaseConnection_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
-void apx_serverBaseConnection_start(apx_serverBaseConnection_t *self);
+apx_fileManager_t *apx_serverConnectionBase_getFileManager(apx_serverConnectionBase_t *self);
+int8_t apx_serverConnectionBase_dataReceived(apx_serverConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
+void apx_serverConnectionBase_start(apx_serverConnectionBase_t *self);
+void apx_serverConnectionBase_defaultEventHandler(void *arg, apx_event_t *event);
+void apx_serverConnectionBase_setConnectionId(apx_serverConnectionBase_t *self, uint32_t connectionId);
+uint32_t apx_serverConnectionBase_getConnectionId(apx_serverConnectionBase_t *self);
+void apx_serverConnectionBase_close(apx_serverConnectionBase_t *self);
+void apx_serverConnectionBase_detachNodes(apx_serverConnectionBase_t *self);
 
 #ifdef UNIT_TEST
-void apx_serverBaseConnection_run(apx_serverBaseConnection_t *self);
+void apx_serverConnectionBase_run(apx_serverConnectionBase_t *self);
 #endif
 
-#endif //APX_SERVER_BASE_CONNECTION_H
+#endif //APX_SERVER_CONNECTION_BASE_H
