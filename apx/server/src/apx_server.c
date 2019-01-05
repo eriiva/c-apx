@@ -180,13 +180,16 @@ static void apx_server_create_socket_servers(apx_server_t *self, uint16_t tcpPor
    msocket_handler_t serverHandler;
    self->tcpPort = tcpPort;
    memset(&serverHandler,0,sizeof(serverHandler));
-   msocket_server_create(&self->tcpServer, AF_INET, apx_serverConnection_vdelete);
-# ifndef _MSC_VER
-   msocket_server_create(&self->localServer, AF_LOCAL, apx_serverConnection_vdelete);
-# endif
    serverHandler.tcp_accept = apx_server_accept;
+   msocket_server_create(&self->tcpServer, AF_INET, NULL);
+   msocket_server_disable_cleanup(&self->tcpServer); //we will use our own garbage collector
    msocket_server_sethandler(&self->tcpServer, &serverHandler, self);
-#endif
+# ifndef _MSC_VER
+   msocket_server_create(&self->localServer, AF_LOCAL, NULL);
+   msocket_server_disable_cleanup(&self->localServer);
+   msocket_server_sethandler(&self->localServer, &serverHandler, self);
+# endif //_MSC_VER
+#endif //UNIT_TEST
 }
 
 static void apx_server_destroy_socket_servers(apx_server_t *self)

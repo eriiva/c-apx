@@ -314,13 +314,13 @@ static apx_error_t apx_connectionBase_startWorkerThread(apx_connectionBase_t *se
    if( self->workerThreadValid == false ){
       self->workerThreadValid = true;
 # ifdef _MSC_VER
-      THREAD_CREATE(self->workerThread, workerThread, self, self->threadId);
+      THREAD_CREATE(self->workerThread, eventHandlerWorkThread, self, self->threadId);
       if(self->workerThread == INVALID_HANDLE_VALUE){
          self->workerThreadValid = false;
          return APX_THREAD_CREATE_ERROR;
       }
 # else
-      int rc = THREAD_CREATE(self->workerThread, workerThread, self);
+      int rc = THREAD_CREATE(self->workerThread, eventHandlerWorkThread, self);
       if(rc != 0){
          self->workerThreadValid = false;
          return APX_THREAD_CREATE_ERROR;
@@ -377,7 +377,7 @@ static THREAD_PROTO(eventHandlerWorkThread,arg)
    apx_connectionBase_t *self = (apx_connectionBase_t*) arg;
    if(self != 0)
    {
-      apx_eventLoop_run(self->eventLoop, self->eventHandler, self->eventHandlerArg); //This function will not return until someone calls apx_connectionBase_stop
+      apx_eventLoop_run(&self->eventLoop, self->eventHandler, self->eventHandlerArg); //This function will not return until someone calls apx_connectionBase_stop
    }
    THREAD_RETURN(0);
 }
