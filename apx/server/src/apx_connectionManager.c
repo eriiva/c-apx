@@ -227,7 +227,7 @@ THREAD_PROTO(cleanupTask,arg)
    {
       while(1)
       {
-         int8_t rc;
+         //int8_t rc;
          bool isRunning;
          int32_t numInactiveConnections;
          SLEEP(CLEANUP_WAIT_TIME);

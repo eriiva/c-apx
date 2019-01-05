@@ -15,6 +15,8 @@
 #ifndef memleak_h
 #define memleak_h
 
+
+
 /* Used for tracking allocations */
 extern void* XWBMalloc (
     unsigned int iSize,
@@ -47,6 +49,8 @@ extern void  XWBReportFinal (void);
 /* Used for detecting FMW */
 extern void  XWBNoFree (void);
 extern void  XWBPreallocate (const int iInitialAllocations);
+void vfree(void*);
+
 
 #ifdef MEM_LEAK_CHECK
 #define malloc(x) XWBMalloc((x), __FILE__, __LINE__)
@@ -58,7 +62,7 @@ extern void  XWBPreallocate (const int iInitialAllocations);
 #define strdup(x) XWBStrDup(x, __FILE__, __LINE__)
 #endif
 #define calloc(num,size) XWBCalloc((num), (size), __FILE__, __LINE__)
-#endif
+#endif //MEM_LEAK_CHECK
 
 #endif
 

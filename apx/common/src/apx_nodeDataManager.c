@@ -29,6 +29,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <stddef.h>
+#include <assert.h>
 #include "apx_nodeDataManager.h"
 #include "apx_node.h"
 #ifdef MEM_LEAK_CHECK
@@ -67,6 +68,7 @@ void apx_nodeDataManager_create(apx_nodeDataManager_t *self)
       apx_istream_handler.parse_error = apx_parser_vparse_error;
       apx_istream_create(&self->apx_istream, &apx_istream_handler);
       apx_parser_create(&self->parser);
+      self->lastAttached = (apx_nodeData_t*) 0;
       adt_hash_create(&self->nodeDataMap, apx_nodeDataManager_mapDestructor);
       MUTEX_INIT(self->mutex);
    }
@@ -106,7 +108,12 @@ apx_error_t apx_nodeDataManager_getLastError(apx_nodeDataManager_t *self)
 {
    if (self != 0)
    {
-      return apx_parser_getLastError(&self->parser);
+      apx_error_t errorCode = apx_parser_getLastError(&self->parser);
+      if (errorCode == APX_NO_ERROR)
+      {
+         errorCode = apx_getLastError();
+      }
+      return errorCode;
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }
@@ -190,7 +197,25 @@ apx_error_t apx_nodeDataManager_attach(apx_nodeDataManager_t *self, apx_nodeData
          return APX_NODE_ALREADY_EXISTS_ERROR;
       }
       adt_hash_set(&self->nodeDataMap, name, nodeData);
+      self->lastAttached = nodeData;
       return APX_NO_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+apx_error_t apx_nodeDataManager_attachFromString(apx_nodeDataManager_t *self, const char *apx_text)
+{
+   if ( (self != 0) &&  (apx_text != 0) )
+   {
+      apx_nodeData_t *nodeData = apx_nodeData_makeFromString(&self->parser, apx_text);
+      if (nodeData != 0)
+      {
+         return apx_nodeDataManager_attach(self, nodeData);
+      }
+      else
+      {
+         return apx_nodeDataManager_getLastError(self);
+      }
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }
@@ -206,6 +231,33 @@ apx_nodeData_t *apx_nodeDataManager_find(apx_nodeDataManager_t *self, const char
       }
    }
    return (apx_nodeData_t*) 0;
+}
+
+apx_nodeData_t *apx_nodeDataManager_getLastAttached(apx_nodeDataManager_t *self)
+{
+   if (self != 0)
+   {
+      return self->lastAttached;
+   }
+   return (apx_nodeData_t*) 0;
+}
+
+int32_t apx_nodeDataManager_length(apx_nodeDataManager_t *self)
+{
+   if (self != 0)
+   {
+      return adt_hash_length(&self->nodeDataMap);
+   }
+   return -1;
+}
+
+int32_t apx_nodeDataManager_getNodeNames(apx_nodeDataManager_t *self, adt_ary_t* array)
+{
+   if (self != 0)
+   {
+      return adt_hash_keys(&self->nodeDataMap, array);
+   }
+   return -1;
 }
 
 //////////////////////////////////////////////////////////////////////////////

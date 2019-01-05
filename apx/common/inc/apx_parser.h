@@ -48,6 +48,8 @@ typedef struct apx_parser_tag
 //////////////////////////////////////////////////////////////////////////////
 void apx_parser_create(apx_parser_t *self);
 void apx_parser_destroy(apx_parser_t *self);
+apx_parser_t* apx_parser_new(void);
+void apx_parser_delete(apx_parser_t *self);
 int32_t apx_parser_getNumNodes(apx_parser_t *self);
 apx_node_t *apx_parser_getNode(apx_parser_t *self, int32_t index);
 int32_t apx_parser_getLastError(apx_parser_t *self);

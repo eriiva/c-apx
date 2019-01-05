@@ -40,6 +40,7 @@ typedef struct apx_clientConnectionBase_tag
 {
    apx_connectionBase_t base;
    struct apx_client_tag *client;
+   bool isAcknowledgeSeen;
 }apx_clientConnectionBase_t;
 
 //////////////////////////////////////////////////////////////////////////////

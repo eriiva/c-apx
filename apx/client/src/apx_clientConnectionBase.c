@@ -41,8 +41,11 @@
 #include "apx_portDataMap.h"
 #include "apx_server.h"
 #include "apx_routingTable.h"
+#include "apx_client.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
+#else
+#define vfree free
 #endif
 
 
@@ -54,9 +57,10 @@
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void apx_clientConnectionBase_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file);
-static uint8_t apx_clientConnectionBase_parseMessage(apx_clientConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
+static apx_error_t apx_clientConnectionBase_parseMessage(apx_clientConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
 static void apx_clientConnectionBase_processNewInDataFile(apx_clientConnectionBase_t *self, struct apx_file2_tag *file);
 static void apx_clientConnectionBase_sendGreeting(apx_clientConnectionBase_t *self);
+static void apx_clientConnectionBase_registerLocalFiles(apx_clientConnectionBase_t *self);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -71,6 +75,7 @@ apx_error_t apx_clientConnectionBase_create(apx_clientConnectionBase_t *self, st
    {
       apx_error_t result = apx_connectionBase_create(&self->base, APX_CLIENT_MODE, vtable);
       self->client = client;
+      self->isAcknowledgeSeen = false;
       apx_connectionBase_setEventHandler(&self->base, apx_clientConnectionBase_defaultEventHandler, (void*) self);
       return result;
    }
@@ -96,13 +101,20 @@ apx_fileManager_t *apx_clientConnectionBase_getFileManager(apx_clientConnectionB
 
 void apx_clientConnectionBase_onConnected(apx_clientConnectionBase_t *self)
 {
+   self->isAcknowledgeSeen = false;
+   if (self->client != 0)
+   {
+      (void) _apx_client_internalAttachLocalNodes(self->client, &self->base.nodeDataManager);
+      //TODO: check error code
+   }
+   apx_clientConnectionBase_registerLocalFiles(self);
    apx_clientConnectionBase_sendGreeting(self);
    apx_connectionBase_start(&self->base);
 }
 
 void apx_clientConnectionBase_onDisconnected(apx_clientConnectionBase_t *self)
 {
-
+   self->isAcknowledgeSeen = false;
 }
 
 int8_t apx_clientConnectionBase_onDataReceived(apx_clientConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
@@ -115,10 +127,10 @@ int8_t apx_clientConnectionBase_onDataReceived(apx_clientConnectionBase_t *self,
       while(totalParseLen<dataLen)
       {
          uint32_t internalParseLen = 0;
-         uint8_t result;
-         result = apx_clientConnectionBase_parseMessage(self, pNext, remain, &internalParseLen);
+         apx_error_t errorCode;
+         errorCode = apx_clientConnectionBase_parseMessage(self, pNext, remain, &internalParseLen);
          //check parse result
-         if (result == 0)
+         if (errorCode == APX_NO_ERROR)
          {
             //printf("\tinternalParseLen(%s): %d\n",parseFunc, internalParseLen);
             assert(internalParseLen<=dataLen);
@@ -132,7 +144,8 @@ int8_t apx_clientConnectionBase_onDataReceived(apx_clientConnectionBase_t *self,
          }
          else
          {
-            return result;
+            //TODO: deal with errorCode here
+            return -1;
          }
       }
       //no more complete messages can be parsed. There may be a partial message left in buffer, but we ignore it until more data has been recevied.
@@ -216,9 +229,65 @@ static void apx_clientConnectionBase_onFileCreate(void *arg, apx_fileManager_t *
    }
 }
 
-static uint8_t apx_clientConnectionBase_parseMessage(apx_clientConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
+static apx_error_t apx_clientConnectionBase_parseMessage(apx_clientConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
 {
-   return 0;
+   uint32_t msgLen;
+   const uint8_t *pBegin = dataBuf;
+   const uint8_t *pResult;
+   const uint8_t *pEnd = dataBuf+dataLen;
+   const uint8_t *pNext = pBegin;
+   pResult = numheader_decode32(pNext, pEnd, &msgLen);
+   if (pResult>pNext)
+   {
+      uint32_t headerLen = (uint32_t) (pResult-pNext);
+      if (msgLen > APX_MAX_MESSAGE_SIZE)
+      {
+         return APX_MSG_TOO_LONG_ERROR;
+      }
+      pNext = pResult;
+      if (pNext+msgLen<=pEnd)
+      {
+         if (parseLen != 0)
+         {
+            *parseLen=headerLen+msgLen;
+         }
+         if (self->isAcknowledgeSeen == false)
+         {
+            if (msgLen == 8)
+            {
+               if ( (pNext[0] == 0xbf) &&
+                    (pNext[1] == 0xff) &&
+                    (pNext[2] == 0xfc) &&
+                    (pNext[3] == 0x00) &&
+                    (pNext[4] == 0x00) &&
+                    (pNext[5] == 0x00) &&
+                    (pNext[6] == 0x00) &&
+                    (pNext[7] == 0x00) )
+               {
+                  self->isAcknowledgeSeen = true;
+                  apx_fileManager_onHeaderAccepted(&self->base.fileManager);
+               }
+            }
+         }
+         else
+         {
+            int32_t result = apx_fileManager_processMessage(&self->base.fileManager, pNext, msgLen);
+            if (result != msgLen)
+            {
+               //TODO: do error handling here
+            }
+         }
+      }
+      else
+      {
+         //we have to wait until entire message is in the buffer
+      }
+   }
+   else
+   {
+      //there is not enough bytes in buffer to parse header
+   }
+   return APX_NO_ERROR;
 }
 
 static void apx_clientConnectionBase_processNewInDataFile(apx_clientConnectionBase_t *self, struct apx_file2_tag *file)
@@ -252,4 +321,41 @@ static void apx_clientConnectionBase_sendGreeting(apx_clientConnectionBase_t *se
          fprintf(stderr, "Failed to acquire sendBuffer while trying to send greeting\n");
       }
    }
+}
+
+static void apx_clientConnectionBase_registerLocalFiles(apx_clientConnectionBase_t *self)
+{
+   adt_ary_t nodeNames;
+   int32_t numNodes;
+   int32_t i;
+   adt_ary_create(&nodeNames, vfree);
+   numNodes = apx_nodeDataManager_getNodeNames(&self->base.nodeDataManager, &nodeNames);
+   for(i=0;i<numNodes;i++)
+   {
+      apx_nodeData_t *nodeData;
+      const char *nodeName = (const char*) adt_ary_value(&nodeNames, i);
+      nodeData = apx_nodeDataManager_find(&self->base.nodeDataManager, nodeName);
+      if (nodeData != 0)
+      {
+         if (nodeData->definitionDataBuf != 0)
+         {
+            apx_file2_t *outDataFile;
+            apx_file2_t *definitionFile = apx_nodeData_createLocalDefinitionFile(nodeData);
+            if (definitionFile != 0)
+            {
+               apx_fileManager_t *fileManager = &self->base.fileManager;
+               apx_nodeData_setFileManager(nodeData, fileManager);
+               apx_fileManager_attachLocalFile(fileManager, definitionFile, (void*) self);
+            }
+            outDataFile  = apx_nodeData_createLocalOutPortDataFile(nodeData);
+            if (outDataFile != 0)
+            {
+               apx_fileManager_t *fileManager = &self->base.fileManager;
+               apx_nodeData_setFileManager(nodeData, fileManager);
+               apx_fileManager_attachLocalFile(fileManager, outDataFile, (void*) self);
+            }
+         }
+      }
+   }
+   adt_ary_destroy(&nodeNames);
 }

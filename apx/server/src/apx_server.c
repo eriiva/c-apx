@@ -6,7 +6,6 @@
 #include "apx_logging.h"
 #include "apx_fileManager.h"
 #include "apx_eventListener.h"
-#include "apx_eventRecorderSrvRmf.h"
 #include "apx_serverSocketConnection.h"
 #include <assert.h>
 #ifdef MEM_LEAK_CHECK

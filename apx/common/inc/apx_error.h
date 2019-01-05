@@ -35,10 +35,11 @@
 #define APX_NAME_TOO_LONG_ERROR       23 //RMF code: 523
 #define APX_NOT_FOUND_ERROR           24 //RMF code: 524
 #define APX_THREAD_CREATE_ERROR       25 //RMF code: 525
+#define APX_MSG_TOO_LONG_ERROR        26 //RMF code: 526
 
 #define RMF_APX_NO_ERROR                  500
-#define RMF_APX_INVALID_ARGUMENT_ERROR    501
-#define RMF_APX_MEM_ERROR                 502
+#define RMF_APX_INVALID_ARGUMENT_ERROR    RMF_APX_NO_ERROR+APX_INVALID_ARGUMENT_ERROR
+#define RMF_APX_MEM_ERROR                 RMF_APX_NO_ERROR+APX_MEM_ERROR
 #define RMF_APX_PARSE_ERROR               503
 #define RMF_APX_DATA_SIGNATURE_ERROR      504
 #define RMF_APX_VALUE_ERROR               505
@@ -62,6 +63,7 @@
 #define RMF_APX_NAME_TOO_LONG_ERROR       523
 #define RMF_APX_NOT_FOUND_ERROR           524
 #define RMF_APX_THREAD_CREATE_ERROR       525
+#define RMF_APX_MSG_TOO_LONG_ERROR        526
 
 typedef int32_t apx_error_t;
 

@@ -12,8 +12,16 @@
 
 ********************************************************************************
 */
-
 #include "CMemLeak.h"
+
+/*******************************************************************************
+* Helper functions (added by Conny Gustafsson 2019-01-04)
+*******************************************************************************/
+void vfree(void *arg)
+{
+   free(arg);
+}
+
 #undef malloc
 #undef realloc
 #undef free
@@ -122,6 +130,7 @@ static void XWBMemInsert (
     const unsigned int iSize,
     const char* iFile,
     const unsigned int iLine);
+
 /*******************************************************************************
 * New node
 *******************************************************************************/
@@ -465,3 +474,6 @@ void* XWBCalloc (unsigned int iNum, unsigned int iSize, const char* iFile, const
     memset (result, 0, actual);
     return result;
 }
+
+
+

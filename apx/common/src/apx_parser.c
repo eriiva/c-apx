@@ -74,7 +74,25 @@ void apx_parser_destroy(apx_parser_t *self)
          apx_node_delete(self->currentNode);
       }
       adt_ary_destroy(&self->nodeList);
+   }
+}
 
+apx_parser_t* apx_parser_new(void)
+{
+   apx_parser_t *self = (apx_parser_t*) malloc(sizeof(apx_parser_t));
+   if (self != 0)
+   {
+      apx_parser_create(self);
+   }
+   return self;
+}
+
+void apx_parser_delete(apx_parser_t *self)
+{
+   if (self != 0)
+   {
+      apx_parser_destroy(self);
+      free(self);
    }
 }
 

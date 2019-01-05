@@ -45,14 +45,16 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define APX_NODE_DATA_FACTORY_NO_ERROR 0u
+//forward declarations
+struct apx_node_tag;
 
 typedef struct apx_nodeDataManager_tag
 {
    apx_parser_t parser;
    apx_istream_t apx_istream; //helper structure for parser
-   adt_hash_t nodeDataMap; //references to apx_nodeData_t
+   adt_hash_t nodeDataMap; //references to apx_nodeData_t (can be either weak or strong)
    MUTEX_T mutex; //locking mechanism
+   apx_nodeData_t *lastAttached; //weak reference
 }apx_nodeDataManager_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -67,6 +69,10 @@ int32_t apx_nodeDataManager_getErrorLine(apx_nodeDataManager_t *self);
 
 apx_error_t apx_nodeDataManager_parseDefinition(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData);
 apx_error_t apx_nodeDataManager_attach(apx_nodeDataManager_t *self, apx_nodeData_t *nodeData);
+apx_error_t apx_nodeDataManager_attachFromString(apx_nodeDataManager_t *self, const char *apx_text);
 apx_nodeData_t *apx_nodeDataManager_find(apx_nodeDataManager_t *self, const char *name);
+apx_nodeData_t *apx_nodeDataManager_getLastAttached(apx_nodeDataManager_t *self);
+int32_t apx_nodeDataManager_length(apx_nodeDataManager_t *self);
+int32_t apx_nodeDataManager_getNodeNames(apx_nodeDataManager_t *self, adt_ary_t* array);
 
 #endif //APX_NODE_DATA_MANAGER_H

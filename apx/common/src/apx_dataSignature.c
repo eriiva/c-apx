@@ -266,6 +266,27 @@ const char *apx_dataSignature_getDerivedString(apx_dataSignature_t *self)
    return (const char*) 0;
 }
 
+apx_dataElement_t *apx_dataSignature_getDerivedDataElement(apx_dataSignature_t *self)
+{
+   if ( (self != 0) && (self->dataElement != 0) )
+   {
+      apx_dataElement_t *dataElement = self->dataElement;
+      if (dataElement->baseType != APX_BASE_TYPE_NONE)
+      {
+         if (dataElement->baseType == APX_BASE_TYPE_REF_PTR)
+         {
+            apx_datatype_t *dataType = dataElement->typeRef.ptr;
+            return apx_dataSignature_getDerivedDataElement(dataType->dataSignature);
+         }
+         else
+         {
+            return dataElement;
+         }
+      }
+   }
+   return (apx_dataElement_t*) 0;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////

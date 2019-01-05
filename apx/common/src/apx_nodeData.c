@@ -229,22 +229,21 @@ void apx_nodeData_vdelete(void *arg)
 }
 
 /**
- * Helper functions that fully creates an apx_nodeData structure from a definition.
- * This is primarily used during unit testing
+ * Helper functions that fully creates an apx_nodeData structure from an APX text string.
  */
-apx_nodeData_t *apx_nodeData_make_from_cstr(struct apx_parser_tag *parser, const char* apx_text)
+apx_nodeData_t *apx_nodeData_makeFromString(struct apx_parser_tag *parser, const char* apx_text)
 {
    apx_node_t *node = apx_parser_parseString(parser, apx_text);
    if (node != 0)
    {
-      apx_error_t result = APX_NO_ERROR;
+      apx_error_t errorCode = APX_NO_ERROR;
       apx_nodeData_t *nodeData;
       nodeData = apx_nodeData_new((uint32_t) strlen(apx_text));
       if (nodeData != 0){
          apx_parser_clearNodes(parser);
          apx_nodeData_setNode(nodeData, node);
-         result = apx_nodeData_createPortDataBuffers(nodeData);
-         if (result == APX_NO_ERROR)
+         errorCode = apx_nodeData_createPortDataBuffers(nodeData);
+         if (errorCode == APX_NO_ERROR)
          {
             apx_portDataMap_t *portDataMap = apx_portDataMap_new(nodeData);
             if (portDataMap != 0)
@@ -259,6 +258,7 @@ apx_nodeData_t *apx_nodeData_make_from_cstr(struct apx_parser_tag *parser, const
          }
          else
          {
+            apx_setError(errorCode);
             apx_nodeData_delete(nodeData);
             nodeData = (apx_nodeData_t*) 0;
          }
@@ -610,6 +610,67 @@ void apx_nodeData_decOutPortConnectionCount(apx_nodeData_t *self, apx_portId_t p
 
 
 #ifndef APX_EMBEDDED
+
+/**
+ * Creates a new APX definition file based on contents on length of definition buffer
+ */
+struct apx_file2_tag *apx_nodeData_createLocalDefinitionFile(apx_nodeData_t *self)
+{
+   if ( (self != 0) && (self->definitionDataBuf != 0) && (self->definitionDataLen > 0) )
+   {
+      rmf_fileInfo_t info;
+      apx_file2_t *definitionFile = (apx_file2_t*) 0;
+      char fileName[RMF_MAX_FILE_NAME+1];
+      const char *nodeName;
+      apx_file_handler_t handler = {0, apx_nodeData_readDefinitionFile, apx_nodeData_writeDefinitionFile};
+      handler.arg = (void*) self;
+      nodeName = apx_nodeData_getName(self);
+      if (nodeName != 0)
+      {
+         strcpy(fileName, nodeName);
+         strcat(fileName, APX_DEFINITION_FILE_EXT);
+         rmf_fileInfo_create(&info, fileName, RMF_INVALID_ADDRESS, self->definitionDataLen, RMF_FILE_TYPE_FIXED);
+         definitionFile = apx_file2_newLocal(&info, &handler);
+         if (definitionFile != 0)
+         {
+            self->definitionFile = definitionFile;
+         }
+      }
+      return definitionFile;
+   }
+   return (apx_file2_t*) 0;
+}
+
+/**
+ * Creates a new APX out port data file based on length of out port data buffer
+ */
+struct apx_file2_tag *apx_nodeData_createLocalOutPortDataFile(apx_nodeData_t *self)
+{
+   if ( (self != 0) && (self->outPortDataBuf != 0) && (self->outPortDataLen > 0) )
+   {
+      rmf_fileInfo_t info;
+      apx_file2_t *outPortDataFile = (apx_file2_t*) 0;
+      char fileName[RMF_MAX_FILE_NAME+1];
+      const char *nodeName;
+      apx_file_handler_t handler = {0, apx_nodeData_readOutPortDataFile, apx_nodeData_writeOutPortDataFile};
+      handler.arg = (void*) self;
+      nodeName = apx_nodeData_getName(self);
+      if (nodeName != 0)
+      {
+         strcpy(fileName, nodeName);
+         strcat(fileName, APX_OUTDATA_FILE_EXT);
+         rmf_fileInfo_create(&info, fileName, RMF_INVALID_ADDRESS, self->outPortDataLen, RMF_FILE_TYPE_FIXED);
+         outPortDataFile = apx_file2_newLocal(&info, &handler);
+         if (outPortDataFile != 0)
+         {
+            self->outPortDataFile = outPortDataFile;
+         }
+      }
+      return outPortDataFile;
+   }
+   return (apx_file2_t*) 0;
+}
+
 apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
 {
    if ( (self != 0) && (self->isWeakref == false) && (self->node != 0) )

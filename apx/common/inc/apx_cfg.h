@@ -23,6 +23,10 @@
 # define APX_DEFAULT_THREAD_STACK_SIZE 0x100000 //1MB
 #endif
 
+#ifndef APX_MAX_MESSAGE_SIZE
+#define APX_MAX_MESSAGE_SIZE 0x8000000 //128MB
+#endif
+
 #ifndef APX_PORT_ID_TYPE
 # define APX_PORT_ID_TYPE int32_t //valid selections are: int8_t, int16_t and int32_t. int32_t is default
 #endif
@@ -49,6 +53,6 @@
 # define APX_CONNECTION_COUNT_MAX  UINT16_MAX //This define must match limit of selected data type APX_CONNECTION_COUNT_TYPE
 #endif
 
-#define APX_SERVER_MAX_CONCURRENT_CONNECTIONS 10000 //maximum number of connections the server will accept
+#define APX_SERVER_MAX_CONCURRENT_CONNECTIONS 4000 //maximum number of connections the server will accept
 
 #endif //APX_CFG_H

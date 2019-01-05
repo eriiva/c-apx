@@ -35,6 +35,8 @@
 //////////////////////////////////////////////////////////////////////////////
 #define APX_TESTNODE1_IN_DATA_LEN  1
 #define APX_TESTNODE1_OUT_DATA_LEN 4
+#define APX_TESTNODE2_IN_DATA_LEN  1
+#define APX_TESTNODE2_OUT_DATA_LEN 3
 #define APX_TESTNODE5_IN_DATA_LEN  3
 #define APX_TESTNODE5_OUT_DATA_LEN 1
 

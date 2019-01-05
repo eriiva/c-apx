@@ -107,12 +107,13 @@ void apx_nodeData_destroy(apx_nodeData_t *self);
 apx_nodeData_t *apx_nodeData_new(uint32_t definitionDataLen);
 void apx_nodeData_delete(apx_nodeData_t *self);
 void apx_nodeData_vdelete(void *arg);
-apx_nodeData_t *apx_nodeData_make_from_cstr(struct apx_parser_tag *parser, const char* apx_text);
+apx_nodeData_t *apx_nodeData_makeFromString(struct apx_parser_tag *parser, const char* apx_text);
 #endif
 apx_error_t apx_nodeData_setChecksumData(apx_nodeData_t *self, uint8_t checksumType, uint8_t *checksumData);
 bool apx_nodeData_isOutPortDataOpen(apx_nodeData_t *self);
 void apx_nodeData_setEventListener(apx_nodeData_t *self, apx_nodeDataEventListener_t *eventListener);
 void apx_nodeData_setApxNodeCallback(apx_nodeData_t *self, apx_nodeData_nodeCbkFunc* cbk);
+
 apx_error_t apx_nodeData_readDefinitionData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len);
 apx_error_t apx_nodeData_readOutPortData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len);
 apx_error_t apx_nodeData_readInPortData(apx_nodeData_t *self, uint8_t *dest, uint32_t offset, uint32_t len);
@@ -140,9 +141,13 @@ void apx_nodeData_incOutPortConnectionCount(apx_nodeData_t *self, apx_portId_t p
 void apx_nodeData_decInPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId);
 void apx_nodeData_decOutPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId);
 
+
 #ifdef APX_EMBEDDED
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_es_fileManager_tag *fileManager);
 #else
+struct apx_file2_tag *apx_nodeData_createLocalDefinitionFile(apx_nodeData_t *self);
+struct apx_file2_tag *apx_nodeData_createLocalOutPortDataFile(apx_nodeData_t *self);
+
 void apx_nodeData_setFileManager(apx_nodeData_t *self, struct apx_fileManager_tag *fileManager);
 apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self);
 

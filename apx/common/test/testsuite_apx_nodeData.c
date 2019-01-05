@@ -74,7 +74,7 @@ static void test_apx_nodeData_outPortConnectionCount(CuTest* tc)
    apx_parser_create(&parser);
    apx_nodeData_t *nodeData;
 
-   nodeData = apx_nodeData_make_from_cstr(&parser, g_apx_test_node1); //This APX node has 3 output ports and 1 input port
+   nodeData = apx_nodeData_makeFromString(&parser, g_apx_test_node1); //This APX node has 3 output ports and 1 input port
    CuAssertPtrNotNull(tc, nodeData);
 
    CuAssertUIntEquals(tc, 0, apx_nodeData_getOutPortConnectionCount(nodeData, 0));
@@ -111,7 +111,7 @@ static void test_apx_nodeData_inPortConnectionCount(CuTest* tc)
    apx_parser_create(&parser);
    apx_nodeData_t *nodeData;
 
-   nodeData = apx_nodeData_make_from_cstr(&parser, g_apx_test_node4); //This APX node has 0 output ports and 3 input ports
+   nodeData = apx_nodeData_makeFromString(&parser, g_apx_test_node4); //This APX node has 0 output ports and 3 input ports
    CuAssertPtrNotNull(tc, nodeData);
 
    CuAssertUIntEquals(tc, 0, apx_nodeData_getInPortConnectionCount(nodeData, 0));

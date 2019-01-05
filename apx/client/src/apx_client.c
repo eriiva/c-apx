@@ -1,3 +1,28 @@
+/*****************************************************************************
+* \file      apx_client.c
+* \author    Conny Gustafsson
+* \date      2017-02-20
+* \brief     APX client class
+*
+* Copyright (c) 2017-2018 Conny Gustafsson
+* Permission is hereby granted, free of charge, to any person obtaining a copy of
+* this software and associated documentation files (the "Software"), to deal in
+* the Software without restriction, including without limitation the rights to
+* use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+* the Software, and to permit persons to whom the Software is furnished to do so,
+* subject to the following conditions:
+
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+* FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+* IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+* CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*
+******************************************************************************/
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
@@ -7,13 +32,17 @@
 #include <assert.h>
 #include <stdio.h>
 #include "apx_client.h"
+#include "apx_clientConnectionBase.h"
 #include "apx_clientSocketConnection.h"
 #include "apx_nodeDataManager.h"
 #include "apx_fileManager.h"
+#include "apx_parser.h"
 #include "msocket.h"
+#include "adt_ary.h"
 #include "adt_list.h"
 #include "apx_nodeData.h"
 #include "apx_eventListener.h"
+#include "apx_nodeInfo.h"
 #ifdef UNIT_TEST
 #include "testsocket.h"
 #endif
@@ -48,12 +77,15 @@ apx_error_t apx_client_create(apx_client_t *self)
 {
    if( self != 0 )
    {
-      self->connection = (apx_clientConnectionBase_t*) 0;
       self->eventListeners = adt_list_new((void (*)(void*)) 0);
       if (self->eventListeners == 0)
       {
          return APX_MEM_ERROR;
       }
+      self->connection = (apx_clientConnectionBase_t*) 0;
+      self->nodeDataList = (adt_ary_t*) 0;
+      self->nodeInfoList = (adt_ary_t*) 0;
+      self->parser = (apx_parser_t*) 0;
       return APX_NO_ERROR;
    }
    return APX_INVALID_ARGUMENT_ERROR;
@@ -63,11 +95,23 @@ void apx_client_destroy(apx_client_t *self)
 {
    if (self != 0)
    {
+      adt_list_delete(self->eventListeners);
       if (self->connection != 0)
       {
          apx_connectionBase_delete(&self->connection->base);
       }
-      adt_list_delete(self->eventListeners);
+      if (self->nodeDataList != 0)
+      {
+         adt_ary_delete(self->nodeDataList);
+      }
+      if (self->nodeInfoList != 0)
+      {
+         adt_ary_delete(self->nodeInfoList);
+      }
+      if (self->parser != 0)
+      {
+         apx_parser_delete(self->parser);
+      }
    }
 }
 
@@ -158,12 +202,61 @@ void apx_client_disconnect(apx_client_t *self)
 /**
  * attached the nodeData to the local nodeManager in the client
  */
-void apx_client_attachLocalNode(apx_client_t *self, apx_nodeData_t *nodeData)
+apx_error_t apx_client_attachLocalNode(apx_client_t *self, struct apx_nodeData_tag *nodeData)
 {
    if ( (self != 0) && (nodeData != 0) )
    {
-      //apx_nodeManager_attachLocalNode(self->nodeManager, nodeData);
+      if (self->nodeDataList != 0)
+      {
+         self->nodeDataList = adt_ary_new((void (*)(void*)) 0);
+      }
+      if (self->nodeDataList != 0)
+      {
+         adt_ary_push(self->nodeDataList, nodeData);
+         return APX_NO_ERROR;
+      }
+      return APX_MEM_ERROR;
    }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+apx_error_t apx_client_attachLocalNodeFromString(apx_client_t *self, const char *apx_text)
+{
+   if ( (self != 0) && (apx_text != 0) )
+   {
+      apx_nodeInfo_t *nodeInfo;
+      if (self->parser == 0)
+      {
+         self->parser = apx_parser_new();
+      }
+      if (self->parser == 0)
+      {
+         return APX_MEM_ERROR;
+      }
+      if (self->nodeInfoList == 0)
+      {
+         self->nodeInfoList = adt_ary_new(apx_nodeInfo_vdelete);
+      }
+      if (self->nodeInfoList == 0)
+      {
+         return APX_MEM_ERROR;
+      }
+      nodeInfo = apx_nodeInfo_new();
+      if (nodeInfo == 0)
+      {
+         return APX_MEM_ERROR;
+      }
+      else
+      {
+         apx_error_t errorCode = apx_nodeInfo_updateFromString(nodeInfo, self->parser, apx_text);
+         if (errorCode == APX_NO_ERROR)
+         {
+            adt_ary_push(self->nodeInfoList, nodeInfo);
+         }
+         return errorCode;
+      }
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 
 void apx_client_registerEventListener(apx_client_t *self, struct apx_connectionEventListener_tag *eventListener)
@@ -174,7 +267,8 @@ void apx_client_registerEventListener(apx_client_t *self, struct apx_connectionE
    }
 }
 
-void _apx_client_on_connect(apx_client_t *self, struct apx_fileManager_tag *fileManager)
+//Client internal API
+void _apx_client_internalOnConnect(apx_client_t *self, struct apx_fileManager_tag *fileManager)
 {
    if ( (self != 0) && (fileManager != 0) )
    {
@@ -182,12 +276,37 @@ void _apx_client_on_connect(apx_client_t *self, struct apx_fileManager_tag *file
    }
 }
 
-void _apx_client_on_disconnect(apx_client_t *self, struct apx_fileManager_tag *fileManager)
+void _apx_client_internalOnDisconnect(apx_client_t *self, struct apx_fileManager_tag *fileManager)
 {
    if ( (self != 0) && (fileManager != 0) )
    {
       apx_client_triggerDisconnectedEventOnListeners(self, fileManager);
    }
+}
+
+apx_error_t _apx_client_internalAttachLocalNodes(apx_client_t *self, struct apx_nodeDataManager_tag *nodeDataManager)
+{
+   if ( (self != 0) && (nodeDataManager != 0) )
+   {
+      if (self->nodeInfoList != 0)
+      {
+         int32_t i;
+         int32_t len = adt_ary_length(self->nodeInfoList);
+         for (i=0;i<len;i++)
+         {
+            apx_error_t errorCode;
+            apx_nodeInfo_t *nodeInfo = (apx_nodeInfo_t*) adt_ary_value(self->nodeInfoList, i);
+            assert(nodeInfo != 0);
+            errorCode = apx_nodeDataManager_attachFromString(nodeDataManager, nodeInfo->text);
+            if (errorCode != APX_NO_ERROR)
+            {
+               return errorCode;
+            }
+         }
+      }
+      return APX_NO_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 
 #ifdef UNIT_TEST
@@ -207,8 +326,23 @@ void apx_client_run(apx_client_t *self)
 }
 #endif
 
-
-
+int32_t apx_client_getNumLocalNodes(apx_client_t *self)
+{
+   if (self != 0)
+   {
+      int32_t result = 0;
+      if (self->nodeDataList != 0)
+      {
+         result+=adt_ary_length(self->nodeDataList);
+      }
+      if(self->nodeInfoList != 0)
+      {
+         result+=adt_ary_length(self->nodeInfoList);
+      }
+      return result;
+   }
+   return -1;
+}
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
