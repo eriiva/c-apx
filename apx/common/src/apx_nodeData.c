@@ -238,7 +238,8 @@ apx_nodeData_t *apx_nodeData_makeFromString(struct apx_parser_tag *parser, const
    {
       apx_error_t errorCode = APX_NO_ERROR;
       apx_nodeData_t *nodeData;
-      nodeData = apx_nodeData_new((uint32_t) strlen(apx_text));
+      uint32_t definitionLen = (uint32_t) strlen(apx_text);
+      nodeData = apx_nodeData_new(definitionLen);
       if (nodeData != 0){
          apx_parser_clearNodes(parser);
          apx_nodeData_setNode(nodeData, node);
@@ -255,6 +256,8 @@ apx_nodeData_t *apx_nodeData_makeFromString(struct apx_parser_tag *parser, const
                apx_nodeData_delete(nodeData);
                nodeData = (apx_nodeData_t*) 0;
             }
+            assert((nodeData->definitionDataBuf != 0) && (nodeData->definitionDataLen == definitionLen));
+            memcpy(nodeData->definitionDataBuf, apx_text, definitionLen);
          }
          else
          {
@@ -737,15 +740,21 @@ apx_error_t apx_nodeData_createPortDataMap(apx_nodeData_t *self, uint8_t mode)
       }
       if (mode == APX_SERVER_MODE)
       {
-         result = apx_portDataMap_initProvidePortByteMap(self->portDataMap, self->node);
-         if (result == APX_NO_ERROR)
+         if (self->outPortDataLen > 0)
          {
-            result = apx_portDataMap_initPortTriggerList(self->portDataMap);
+            result = apx_portDataMap_initProvidePortByteMap(self->portDataMap, self->node);
+            if (result == APX_NO_ERROR)
+            {
+               result = apx_portDataMap_initPortTriggerList(self->portDataMap);
+            }
          }
       }
       else //APX_CLIENT_MODE
       {
-         result = apx_portDataMap_initRequirePortByteMap(self->portDataMap, self->node);
+         if (self->inPortDataLen > 0)
+         {
+            result = apx_portDataMap_initRequirePortByteMap(self->portDataMap, self->node);
+         }
       }
       if (result != APX_NO_ERROR)
       {

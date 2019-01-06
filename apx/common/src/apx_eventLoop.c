@@ -126,6 +126,7 @@ void apx_eventLoop_exit(apx_eventLoop_t *self)
 void apx_eventLoop_run(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandler, void *eventHandlerArg)
 {
    bool exitFlag = false;
+   printf("Starting event loop\n");
    while(exitFlag == false)
    {
       apx_event_t event;
@@ -144,12 +145,14 @@ void apx_eventLoop_run(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandl
             adt_rbfh_remove(&self->pendingEvents,(uint8_t*) &event);
          }
          SPINLOCK_LEAVE(self->lock);
-         if (exitFlag == true)
+         if (exitFlag == false)
          {
+            printf("Processing event\n");
             apx_eventLoop_processEvent(self, &event, eventHandler, eventHandlerArg);
          }
       }
    }
+   printf("Stopping event loop\n");
 }
 
 

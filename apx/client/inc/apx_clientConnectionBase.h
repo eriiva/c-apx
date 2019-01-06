@@ -57,6 +57,8 @@ int8_t apx_clientConnectionBase_onDataReceived(apx_clientConnectionBase_t *self,
 void apx_clientConnectionBase_start(apx_clientConnectionBase_t *self);
 void apx_clientConnectionBase_defaultEventHandler(void *arg, apx_event_t *event);
 void apx_clientConnectionBase_close(apx_clientConnectionBase_t *self);
+uint32_t apx_clientConnectionBase_getTotalBytesReceived(apx_clientConnectionBase_t *self);
+uint32_t apx_clientConnectionBase_getTotalBytesSent(apx_clientConnectionBase_t *self);
 
 #ifdef UNIT_TEST
 void apx_clientConnectionBase_run(apx_clientConnectionBase_t *self);

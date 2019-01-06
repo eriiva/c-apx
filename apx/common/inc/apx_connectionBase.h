@@ -61,13 +61,14 @@ typedef struct apx_connectionBase_tag
    apx_nodeDataManager_t nodeDataManager;
    apx_eventLoop_t eventLoop;
    uint32_t connectionId;
-   bool isGreetingParsed;
    uint8_t numHeaderLen; //0, 2 or 4
    apx_connectionBaseVTable_t vtable;
    THREAD_T workerThread;
    bool workerThreadValid;
    apx_eventHandlerFunc_t *eventHandler;
    void *eventHandlerArg;
+   uint32_t totalBytesReceived;
+   uint32_t totalBytesSent;
 }apx_connectionBase_t;
 
 

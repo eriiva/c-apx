@@ -17,11 +17,6 @@
 /*******************************************************************************
 * Helper functions (added by Conny Gustafsson 2019-01-04)
 *******************************************************************************/
-void vfree(void *arg)
-{
-   free(arg);
-}
-
 #undef malloc
 #undef realloc
 #undef free

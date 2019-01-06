@@ -474,6 +474,7 @@ void apx_fileManager_createHeaderCompleteEvent(apx_event_t *event, apx_fileManag
 
 void apx_fileManager_createFileCreatedEvent(apx_event_t *event, apx_fileManager_t *fileManager, apx_file2_t *file, const void *caller)
 {
+   printf("apx_fileManager_createFileCreatedEvent\n");
    if (event != 0)
    {
       memset(event, 0, APX_EVENT_SIZE);

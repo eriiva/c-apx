@@ -77,6 +77,7 @@ apx_error_t apx_serverConnectionBase_create(apx_serverConnectionBase_t *self, st
    {
       apx_error_t result = apx_connectionBase_create(&self->base, APX_SERVER_MODE, vtable);
       self->server = server;
+      self->isGreetingParsed = false;
       apx_connectionBase_setEventHandler(&self->base, apx_serverConnectionBase_defaultEventHandler, (void*) self);
       return result;
    }
@@ -107,6 +108,8 @@ int8_t apx_serverConnectionBase_dataReceived(apx_serverConnectionBase_t *self, c
       uint32_t totalParseLen = 0;
       uint32_t remain = dataLen;
       const uint8_t *pNext = dataBuf;
+      self->base.totalBytesReceived+=dataLen;
+      printf("total received: %d\n", self->base.totalBytesReceived);
       while(totalParseLen<dataLen)
       {
          uint32_t internalParseLen = 0;
@@ -248,7 +251,7 @@ static void apx_serverConnectionBase_parseGreeting(apx_serverConnectionBase_t *s
          if (lengthOfLine == 0)
          {
             //this ends the header
-            self->base.isGreetingParsed = true;
+            self->isGreetingParsed = true;
 #if 0
             if (self->debugMode > APX_DEBUG_NONE)
             {
@@ -320,7 +323,7 @@ static uint8_t apx_serverConnectionBase_parseMessage(apx_serverConnectionBase_t 
             APX_LOG_DEBUG("[APX_SRV_CONNECTION] %s", msg);
          }
 #endif
-         if (self->base.isGreetingParsed == false)
+         if (self->isGreetingParsed == false)
          {
             apx_serverConnectionBase_parseGreeting(self, pNext, msgLen);
          }

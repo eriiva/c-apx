@@ -32,6 +32,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "apx_error.h"
+#include "apx_clientConnectionBase.h"
 
 
 
@@ -39,7 +40,6 @@
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 //forward declarations
-struct apx_clientConnectionBase_tag;
 struct apx_nodeData_tag;
 struct adt_ary_tag;
 struct adt_list_tag;
@@ -54,7 +54,7 @@ struct testsocket_tag;
 
 typedef struct apx_client_tag
 {
-   struct apx_clientConnectionBase_tag *connection;
+   apx_clientConnectionBase_t *connection;
    struct adt_ary_tag *nodeDataList; //weak references to apx_nodeData_t. This is used to store external nodeData objects attached with apx_client_attachLocalNode
    struct adt_ary_tag *nodeInfoList; //strong references to apx_nodeInfo_t. This is used when nodeData objects are created dynamically from string or file.
    struct adt_list_tag *eventListeners; //weak references to apx_eventListenerBase_t
@@ -78,9 +78,9 @@ void apx_client_vdelete(void *arg);
 #ifdef UNIT_TEST
 apx_error_t apx_client_socketConnect(apx_client_t *self, struct testsocket_tag *socketObject);
 #else
-apx_error_t apx_client_tcpConnect(apx_client_t *self, const char *address, uint16_t port);
+apx_error_t apx_client_connectTcp(apx_client_t *self, const char *address, uint16_t port);
 # ifndef _WIN32
-apx_error_t apx_client_unixConnect(apx_client_t *self, const char *socketPath);
+apx_error_t apx_client_connectUnix(apx_client_t *self, const char *socketPath);
 # endif
 #endif
 void apx_client_disconnect(apx_client_t *self);
@@ -88,6 +88,7 @@ apx_error_t apx_client_attachLocalNode(apx_client_t *self, struct apx_nodeData_t
 apx_error_t apx_client_attachLocalNodeFromString(apx_client_t *self, const char *apx_text);
 void apx_client_registerEventListener(apx_client_t *self, struct apx_connectionEventListener_tag *eventListener);
 int32_t apx_client_getNumLocalNodes(apx_client_t *self);
+apx_clientConnectionBase_t *apx_client_getConnection(apx_client_t *self);
 
 //Client internal API (do not call as end-user)
 void _apx_client_internalOnConnect(apx_client_t *self, struct apx_fileManager_tag *fileManager);

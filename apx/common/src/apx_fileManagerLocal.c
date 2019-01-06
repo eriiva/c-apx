@@ -130,6 +130,7 @@ void apx_fileManagerLocal_sendFileInfo(apx_fileManagerLocal_t *self)
          while (iter != 0)
          {
             apx_file2_t *file = (apx_file2_t*)iter->pItem;
+            printf("Sending FileInfo for %s\n", file->fileInfo.name);
             self->shared->sendFileInfo(self->shared->arg, file);
             iter = adt_list_iter_next(iter);
          }

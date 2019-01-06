@@ -45,7 +45,6 @@
 //////////////////////////////////////////////////////////////////////////////
 static apx_error_t apx_connectionBase_startWorkerThread(apx_connectionBase_t *self);
 static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self);
-static apx_error_t apx_connectionBase_startWorkerThread(apx_connectionBase_t *self);
 static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self);
 #ifndef UNIT_TEST
 static THREAD_PROTO(eventHandlerWorkThread,arg);
@@ -87,6 +86,8 @@ apx_error_t apx_connectionBase_create(apx_connectionBase_t *self, apx_mode_t mod
       self->numHeaderLen = (int8_t) sizeof(uint32_t);
       self->eventHandler = (apx_eventHandlerFunc_t*) 0;
       self->eventHandlerArg = (void*) 0;
+      self->totalBytesReceived = 0u;
+      self->totalBytesSent = 0u;
 
       apx_nodeDataManager_create(&self->nodeDataManager);
 #ifdef _WIN32
@@ -158,10 +159,13 @@ void apx_connectionBase_setEventHandler(apx_connectionBase_t *self, apx_eventHan
 
 void apx_connectionBase_start(apx_connectionBase_t *self)
 {
-   if ( (self != 0) && (self->vtable.start != 0) )
+   if ( self != 0 )
    {
       apx_connectionBase_startWorkerThread(self);
-      self->vtable.start((void*) self);
+      if ( self->vtable.start != 0 )
+      {
+         self->vtable.start((void*) self);
+      }
    }
 }
 

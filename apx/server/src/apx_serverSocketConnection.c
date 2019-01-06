@@ -157,7 +157,7 @@ void apx_serverSocketConnection_vdelete(void *arg)
 
 void apx_serverSocketConnection_start(apx_serverSocketConnection_t *self)
 {
-   if (self != 0)
+   if ( (self != 0) && (self->socketObject != 0))
    {
       msocket_handler_t handlerTable;
       memset(&handlerTable,0,sizeof(handlerTable));
@@ -166,6 +166,7 @@ void apx_serverSocketConnection_start(apx_serverSocketConnection_t *self)
       handlerTable.tcp_disconnected = apx_serverSocketConnection_disconnected;
       SOCKET_SET_HANDLER(self->socketObject, &handlerTable, self);
       SOCKET_START_IO(self->socketObject);
+      printf("socket started\n");
    }
 }
 
@@ -291,6 +292,7 @@ static int32_t apx_serverSocketConnection_send(void *arg, int32_t offset, int32_
 static int8_t apx_serverSocketConnection_data(void *arg, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
 {
    apx_serverSocketConnection_t *self = (apx_serverSocketConnection_t*) arg;
+   printf("data %d\n", (int) dataLen);
    return apx_serverConnectionBase_dataReceived(&self->base, dataBuf, dataLen, parseLen);
 }
 

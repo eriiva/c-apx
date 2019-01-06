@@ -169,23 +169,45 @@ apx_error_t apx_client_socketConnect(apx_client_t *self, struct testsocket_tag *
    return APX_INVALID_ARGUMENT_ERROR;
 }
 #else
-apx_error_t apx_client_tcpConnect(apx_client_t *self, const char *address, uint16_t port)
+
+/**
+ * On connection error, the user can retreive the actual error using errno on Linux and WSAGetLastError on Windows
+ */
+apx_error_t apx_client_connectTcp(apx_client_t *self, const char *address, uint16_t port)
 {
    if (self != 0)
    {
-      return apx_clientConnection_connectTcp(self->connection, address, port);
+      apx_clientSocketConnection_t *socketConnection = apx_clientSocketConnection_new((msocket_t*) 0, self);
+      if (socketConnection != 0)
+      {
+         self->connection = (apx_clientConnectionBase_t*)socketConnection;
+         return apx_clientConnection_tcp_connect(socketConnection, address, port);
+      }
+      else
+      {
+         return APX_MEM_ERROR;
+      }
    }
-   return -1;
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 
 # ifndef _WIN32
-apx_error_t apx_client_unixConnect(apx_client_t *self, const char *socketPath)
+apx_error_t apx_client_connectUnix(apx_client_t *self, const char *socketPath)
 {
    if (self != 0)
    {
-      return apx_clientConnection_connectUnix(self->connection, socketPath);
+      apx_clientSocketConnection_t *socketConnection = apx_clientSocketConnection_new((msocket_t*) 0, self);
+      if (socketConnection != 0)
+      {
+         self->connection = (apx_clientConnectionBase_t*)socketConnection;
+         return apx_clientConnection_unix_connect(socketConnection, socketPath);
+      }
+      else
+      {
+         return APX_MEM_ERROR;
+      }
    }
-   return -1;
+   return APX_INVALID_ARGUMENT_ERROR;
 }
 # endif
 
@@ -342,6 +364,15 @@ int32_t apx_client_getNumLocalNodes(apx_client_t *self)
       return result;
    }
    return -1;
+}
+
+apx_clientConnectionBase_t *apx_client_getConnection(apx_client_t *self)
+{
+   if (self != 0)
+   {
+      return self->connection;
+   }
+   return (apx_clientConnectionBase_t*) 0;
 }
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS

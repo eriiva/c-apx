@@ -39,6 +39,7 @@ typedef struct apx_serverConnectionBase_tag
 {
    apx_connectionBase_t base;
    struct apx_server_tag *server;
+   bool isGreetingParsed;
 }apx_serverConnectionBase_t;
 
 //////////////////////////////////////////////////////////////////////////////

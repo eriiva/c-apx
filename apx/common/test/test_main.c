@@ -31,7 +31,6 @@ CuSuite* testSuite_apx_nodeDataManager(void);
 CuSuite* testsuite_apx_datatype(void);
 CuSuite* testSuite_apx_bytePortMap(void);
 CuSuite* testSuite_apx_eventLoop(void);
-CuSuite* testSuite_apx_globalPortMap(void);
 CuSuite* testSuite_apx_portTriggerList(void);
 CuSuite* testSuite_apx_port_routing(void);
 CuSuite* testSuite_apx_compiler(void);
@@ -84,7 +83,7 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testSuite_apx_portTriggerList());
 
    CuSuiteAddSuite(suite, testSuite_apx_clientSocketConnection());
-   //CuSuiteAddSuite(suite, testSuite_apx_port_routing());
+   CuSuiteAddSuite(suite, testSuite_apx_port_routing());
    CuSuiteAddSuite(suite, testSuite_apx_compiler());
    CuSuiteAddSuite(suite, testSuite_apx_nodeInfo());
 
@@ -107,4 +106,9 @@ int main(void)
 {
    RunAllTests();
    return 0;
+}
+
+void vfree(void *arg)
+{
+   free(arg);
 }

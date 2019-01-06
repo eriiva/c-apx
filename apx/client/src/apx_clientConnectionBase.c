@@ -39,7 +39,6 @@
 #include "apx_file2.h"
 #include "rmf.h"
 #include "apx_portDataMap.h"
-#include "apx_server.h"
 #include "apx_routingTable.h"
 #include "apx_client.h"
 #ifdef MEM_LEAK_CHECK
@@ -73,11 +72,19 @@ apx_error_t apx_clientConnectionBase_create(apx_clientConnectionBase_t *self, st
 {
    if (self != 0)
    {
-      apx_error_t result = apx_connectionBase_create(&self->base, APX_CLIENT_MODE, vtable);
+      apx_error_t errorCode = apx_connectionBase_create(&self->base, APX_CLIENT_MODE, vtable);
       self->client = client;
       self->isAcknowledgeSeen = false;
+      if ( (errorCode == APX_NO_ERROR) && (self->client != 0))
+      {
+         errorCode = _apx_client_internalAttachLocalNodes(self->client, &self->base.nodeDataManager);
+         if (errorCode == APX_NO_ERROR)
+         {
+            apx_clientConnectionBase_registerLocalFiles(self);
+         }
+      }
       apx_connectionBase_setEventHandler(&self->base, apx_clientConnectionBase_defaultEventHandler, (void*) self);
-      return result;
+      return errorCode;
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }
@@ -102,14 +109,7 @@ apx_fileManager_t *apx_clientConnectionBase_getFileManager(apx_clientConnectionB
 void apx_clientConnectionBase_onConnected(apx_clientConnectionBase_t *self)
 {
    self->isAcknowledgeSeen = false;
-   if (self->client != 0)
-   {
-      (void) _apx_client_internalAttachLocalNodes(self->client, &self->base.nodeDataManager);
-      //TODO: check error code
-   }
-   apx_clientConnectionBase_registerLocalFiles(self);
    apx_clientConnectionBase_sendGreeting(self);
-   apx_connectionBase_start(&self->base);
 }
 
 void apx_clientConnectionBase_onDisconnected(apx_clientConnectionBase_t *self)
@@ -124,6 +124,7 @@ int8_t apx_clientConnectionBase_onDataReceived(apx_clientConnectionBase_t *self,
       uint32_t totalParseLen = 0;
       uint32_t remain = dataLen;
       const uint8_t *pNext = dataBuf;
+      self->base.totalBytesReceived+=dataLen;
       while(totalParseLen<dataLen)
       {
          uint32_t internalParseLen = 0;
@@ -203,6 +204,25 @@ void apx_clientConnectionBase_close(apx_clientConnectionBase_t *self)
    }
 }
 
+uint32_t apx_clientConnectionBase_getTotalBytesReceived(apx_clientConnectionBase_t *self)
+{
+   if (self != 0)
+   {
+      return self->base.totalBytesReceived;
+   }
+   return 0;
+}
+
+uint32_t apx_clientConnectionBase_getTotalBytesSent(apx_clientConnectionBase_t *self)
+{
+   if (self != 0)
+   {
+      return self->base.totalBytesSent;
+   }
+   return 0;
+}
+
+
 #ifdef UNIT_TEST
 void apx_clientConnectionBase_run(apx_clientConnectionBase_t *self)
 {
@@ -236,6 +256,7 @@ static apx_error_t apx_clientConnectionBase_parseMessage(apx_clientConnectionBas
    const uint8_t *pResult;
    const uint8_t *pEnd = dataBuf+dataLen;
    const uint8_t *pNext = pBegin;
+
    pResult = numheader_decode32(pNext, pEnd, &msgLen);
    if (pResult>pNext)
    {
@@ -271,6 +292,7 @@ static apx_error_t apx_clientConnectionBase_parseMessage(apx_clientConnectionBas
          }
          else
          {
+            printf("processing %d bytes\n", msgLen);
             int32_t result = apx_fileManager_processMessage(&self->base.fileManager, pNext, msgLen);
             if (result != msgLen)
             {
@@ -292,7 +314,7 @@ static apx_error_t apx_clientConnectionBase_parseMessage(apx_clientConnectionBas
 
 static void apx_clientConnectionBase_processNewInDataFile(apx_clientConnectionBase_t *self, struct apx_file2_tag *file)
 {
-
+   printf("apx_clientConnectionBase_processNewInDataFile\n");
 }
 
 static void apx_clientConnectionBase_sendGreeting(apx_clientConnectionBase_t *self)

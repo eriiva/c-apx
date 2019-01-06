@@ -56,15 +56,12 @@ apx_error_t apx_clientSocketConnection_create(apx_clientSocketConnection_t *self
 void apx_clientSocketConnection_destroy(apx_clientSocketConnection_t *self);
 void apx_clientSocketConnection_vdestroy(void *arg);
 apx_clientSocketConnection_t *apx_clientSocketConnection_new(SOCKET_TYPE *socketObject, struct apx_client_tag *client);
-void apx_clientSocketConnection_delete(apx_clientSocketConnection_t *self);
-void apx_clientSocketConnection_vdelete(void *arg);
-void apx_clientSocketConnection_start(apx_clientSocketConnection_t *self);
-void apx_clientSocketConnection_vstart(void *arg);
-void apx_clientSocketConnection_close(apx_clientSocketConnection_t *self);
-void apx_clientSocketConnection_vclose(void *arg);
 
 #ifdef UNIT_TEST
 apx_error_t apx_clientSocketConnection_connect(apx_clientSocketConnection_t *self);
+#else
+apx_error_t apx_clientConnection_tcp_connect(apx_clientSocketConnection_t *self, const char *address, uint16_t port);
+apx_error_t apx_clientConnection_unix_connect(apx_clientSocketConnection_t *self, const char *socketPath);
 #endif
 
 #undef SOCKET_TYPE
