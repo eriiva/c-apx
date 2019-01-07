@@ -110,7 +110,7 @@ apx_error_t apx_nodeInfo_updateFromString(apx_nodeInfo_t *self, struct apx_parse
       {
          apx_parser_clearNodes(parser);
          self->textLen = (uint32_t) strlen(apx_text);
-         self->text = (uint8_t*) malloc(self->textLen+1);
+         self->text = (char*) malloc(self->textLen+1);
          if (self->text != 0)
          {
             memcpy(self->text, apx_text, self->textLen+1);

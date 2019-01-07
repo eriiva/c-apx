@@ -57,7 +57,7 @@
 //////////////////////////////////////////////////////////////////////////////
 static void apx_clientConnectionBase_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file);
 static apx_error_t apx_clientConnectionBase_parseMessage(apx_clientConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen);
-static void apx_clientConnectionBase_processNewInDataFile(apx_clientConnectionBase_t *self, struct apx_file2_tag *file);
+static void apx_clientConnectionBase_processNewInPortDataFile(apx_clientConnectionBase_t *self, struct apx_file2_tag *file);
 static void apx_clientConnectionBase_sendGreeting(apx_clientConnectionBase_t *self);
 static void apx_clientConnectionBase_registerLocalFiles(apx_clientConnectionBase_t *self);
 
@@ -244,7 +244,7 @@ static void apx_clientConnectionBase_onFileCreate(void *arg, apx_fileManager_t *
    {
       if ( strcmp(apx_file2_extension(file), APX_INDATA_FILE_EXT) == 0)
       {
-         apx_clientConnectionBase_processNewInDataFile(self,  file);
+         apx_clientConnectionBase_processNewInPortDataFile(self,  file);
       }
    }
 }
@@ -312,9 +312,18 @@ static apx_error_t apx_clientConnectionBase_parseMessage(apx_clientConnectionBas
    return APX_NO_ERROR;
 }
 
-static void apx_clientConnectionBase_processNewInDataFile(apx_clientConnectionBase_t *self, struct apx_file2_tag *file)
+static void apx_clientConnectionBase_processNewInPortDataFile(apx_clientConnectionBase_t *self, struct apx_file2_tag *inPortDataFile)
 {
-   printf("apx_clientConnectionBase_processNewInDataFile\n");
+   if (inPortDataFile->fileInfo.fileType == RMF_FILE_TYPE_FIXED)
+   {
+      apx_nodeData_t *nodeData = apx_nodeDataManager_find(&self->base.nodeDataManager, apx_file2_basename(inPortDataFile));
+      if ( (nodeData != 0) && (nodeData->inPortDataBuf != 0))
+      {
+         //TODO: Check length
+         apx_nodeData_setOutPortDataFile(nodeData, inPortDataFile);
+         apx_fileManager_openRemoteFile(&self->base.fileManager, inPortDataFile->fileInfo.address, self);
+      }
+   }
 }
 
 static void apx_clientConnectionBase_sendGreeting(apx_clientConnectionBase_t *self)
