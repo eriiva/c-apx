@@ -319,9 +319,15 @@ static void apx_clientConnectionBase_processNewInPortDataFile(apx_clientConnecti
       apx_nodeData_t *nodeData = apx_nodeDataManager_find(&self->base.nodeDataManager, apx_file2_basename(inPortDataFile));
       if ( (nodeData != 0) && (nodeData->inPortDataBuf != 0))
       {
-         //TODO: Check length
-         apx_nodeData_setOutPortDataFile(nodeData, inPortDataFile);
-         apx_fileManager_openRemoteFile(&self->base.fileManager, inPortDataFile->fileInfo.address, self);
+         if (inPortDataFile->fileInfo.length == nodeData->inPortDataLen)
+         {
+            apx_nodeData_setInPortDataFile(nodeData, inPortDataFile);
+            apx_fileManager_openRemoteFile(&self->base.fileManager, inPortDataFile->fileInfo.address, self);
+            if (apx_nodeData_isComplete(nodeData))
+            {
+               apx_connectionBase_emitNodeComplete(&self->base, nodeData);
+            }
+         }
       }
    }
 }

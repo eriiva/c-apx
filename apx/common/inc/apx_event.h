@@ -71,13 +71,14 @@ typedef struct apx_event_tag
 //Remote file data events
 #define APX_EVENT_RMF_FILE_WRITE           9 //evData1: apx_file2_t *file, evData2: *u8Data, evData5: offset, evData6: len
 
-#define APX_EVENT_NODE_PORT_CONNECTED      10 //evData1: *localPortDataRef, evData2: *remotePortDataRef
 //APX node events
+#define APX_EVENT_NODE_PORT_CONNECTED      10 //evData1: *localPortDataRef, evData2: *remotePortDataRef
+#define APX_EVENT_NODE_COMPLETE            11 //evData1:*arg, evData2:*nodeData
+
 /*
 #define APX_EVENT_NODE_DEFINITION_WRITE    8  //evData1:*arg, evData2:*nodeData, evData4: offset, evData5: len
 #define APX_EVENT_NODE_INDATA_WRITE        9  //evData1:*arg, evData2:*nodeData, evData4: offset, evData5: len
 #define APX_EVENT_NODE_OUTATA_WRITE        10 //evData1:*arg, evData2:*nodeData, evData4: offset, evData5: len
-#define APX_EVENT_NODE_COMPLETE            11 //evData1:*arg, evData2:*nodeData
 */
 
 

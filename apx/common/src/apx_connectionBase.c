@@ -28,6 +28,7 @@
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_connectionBase.h"
 #include "apx_portDataRef.h"
+#include "apx_nodeData.h"
 #include "apx_logging.h"
 #include <string.h>
 #include <stdio.h> //DEBUG only
@@ -46,6 +47,7 @@
 static apx_error_t apx_connectionBase_startWorkerThread(apx_connectionBase_t *self);
 static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self);
 static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self);
+static void apx_connectionBase_createNodeCompleteEvent(apx_event_t *event, apx_nodeData_t *nodeData);
 #ifndef UNIT_TEST
 static THREAD_PROTO(eventHandlerWorkThread,arg);
 #endif
@@ -255,6 +257,16 @@ void apx_connectionBase_emitNodePortConnectedEvent(apx_connectionBase_t *self, s
    }
 }
 
+void apx_connectionBase_emitNodeComplete(apx_connectionBase_t *self, struct apx_nodeData_tag *nodeData)
+{
+   if (self != 0)
+   {
+      apx_event_t event;
+      apx_connectionBase_createNodeCompleteEvent(&event, nodeData);
+      apx_eventLoop_append(&self->eventLoop, &event);
+   }
+}
+
 void apx_connectionBase_defaultEventHandler(apx_connectionBase_t *self, apx_event_t *event)
 {
    if ( (event->evFlags & APX_EVENT_FLAG_FILE_MANAGER_EVENT) != 0)
@@ -265,9 +277,14 @@ void apx_connectionBase_defaultEventHandler(apx_connectionBase_t *self, apx_even
    }
    else
    {
-      if (event->evType == APX_EVENT_NODE_PORT_CONNECTED)
+      switch(event->evType)
       {
+      case APX_EVENT_NODE_PORT_CONNECTED:
          printf("Port connection event!\n");
+         break;
+      case APX_EVENT_NODE_COMPLETE:
+         printf("Node complete!\n");
+         break;
       }
    }
 }
@@ -373,6 +390,13 @@ static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self)
    #endif
    self->workerThreadValid = false;
    }
+}
+
+static void apx_connectionBase_createNodeCompleteEvent(apx_event_t *event, apx_nodeData_t *nodeData)
+{
+   memset(event, 0, APX_EVENT_SIZE);
+   event->evType = APX_EVENT_NODE_COMPLETE;
+   event->evData1 = (void*) nodeData;
 }
 
 #ifndef UNIT_TEST

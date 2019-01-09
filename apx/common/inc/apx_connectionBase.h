@@ -48,6 +48,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+//forward declarations
+struct apx_nodeData_tag;
+
 typedef struct apx_connectionBaseVTable_tag
 {
    void (*destructor)(void *arg);
@@ -93,6 +96,7 @@ void apx_connectionBase_emitFileCreatedEvent(apx_connectionBase_t *self, struct 
 void apx_connectionBase_emitFileRevokedEvent(apx_connectionBase_t *self, struct apx_file2_tag *file, const void *caller);
 void apx_connectionBase_emitFileOpenedEvent(apx_connectionBase_t *self, struct apx_file2_tag *file, const void *caller);
 void apx_connectionBase_emitNodePortConnectedEvent(apx_connectionBase_t *self, struct apx_portDataRef_tag *localPortRef, struct apx_portDataRef_tag *remotePortRef);
+void apx_connectionBase_emitNodeComplete(apx_connectionBase_t *self, struct apx_nodeData_tag *nodeData);
 void apx_connectionBase_defaultEventHandler(apx_connectionBase_t *self, apx_event_t *event);
 void apx_connectionBase_setConnectionId(apx_connectionBase_t *self, uint32_t connectionId);
 uint32_t apx_connectionBase_getConnectionId(apx_connectionBase_t *self);
