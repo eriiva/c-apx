@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_serverTestConnection.c
+* \file      apx_clientTestConnection.c
 * \author    Conny Gustafsson
-* \date      2018-12-09
-* \brief     Programmable server connection for the purpose of unit testing
+* \date      2019-01-09
+* \brief     Test connection for APX clients
 *
-* Copyright (c) 2018-2019 Conny Gustafsson
+* Copyright (c) 2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -28,7 +28,8 @@
 //////////////////////////////////////////////////////////////////////////////
 #include <malloc.h>
 #include <stdio.h> //debug only
-#include "apx_serverTestConnection.h"
+#include "apx_clientTestConnection.h"
+#include "apx_clientInternal.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -49,37 +50,37 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-apx_error_t apx_serverTestConnection_create(apx_serverTestConnection_t *self, struct apx_server_tag *server)
+apx_error_t apx_clientTestConnection_create(apx_clientTestConnection_t *self, struct apx_client_tag *client)
 {
    if (self != 0)
    {
       apx_connectionBaseVTable_t vtable;
-      apx_connectionBaseVTable_create(&vtable, apx_serverTestConnection_vdestroy, apx_serverTestConnection_vstart, apx_serverTestConnection_vclose);
-      apx_error_t result = apx_serverConnectionBase_create(&self->base, server, &vtable);
+      apx_connectionBaseVTable_create(&vtable, apx_clientTestConnection_vdestroy, apx_clientTestConnection_vstart, apx_clientTestConnection_vclose);
+      apx_error_t result = apx_clientConnectionBase_create(&self->base, client, &vtable);
       return result;
    }
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
-void apx_serverTestConnection_destroy(apx_serverTestConnection_t *self)
+void apx_clientTestConnection_destroy(apx_clientTestConnection_t *self)
 {
    if (self != 0)
    {
-      apx_serverConnectionBase_destroy(&self->base);
+      apx_clientConnectionBase_destroy(&self->base);
    }
 }
 
-void apx_serverTestConnection_vdestroy(void *arg)
+void apx_clientTestConnection_vdestroy(void *arg)
 {
-   apx_serverTestConnection_destroy((apx_serverTestConnection_t*) arg);
+   apx_clientTestConnection_destroy((apx_clientTestConnection_t*) arg);
 }
 
-apx_serverTestConnection_t *apx_serverTestConnection_new(struct apx_server_tag *server)
+apx_clientTestConnection_t *apx_clientTestConnection_new(struct apx_client_tag *client)
 {
-   apx_serverTestConnection_t *self = (apx_serverTestConnection_t*) malloc(sizeof(apx_serverTestConnection_t));
+   apx_clientTestConnection_t *self = (apx_clientTestConnection_t*) malloc(sizeof(apx_clientTestConnection_t));
    if (self != 0)
    {
-      apx_error_t result = apx_serverTestConnection_create(self, server);
+      apx_error_t result = apx_clientTestConnection_create(self, client);
       if (result != APX_NO_ERROR)
       {
          apx_setError(result);
@@ -94,41 +95,40 @@ apx_serverTestConnection_t *apx_serverTestConnection_new(struct apx_server_tag *
    return self;
 }
 
-void apx_serverTestConnection_delete(apx_serverTestConnection_t *self)
+void apx_clientTestConnection_delete(apx_clientTestConnection_t *self)
 {
    if (self != 0)
    {
-      apx_serverTestConnection_destroy(self);
+      apx_clientTestConnection_destroy(self);
       free(self);
    }
 }
 
-void apx_serverTestConnection_start(apx_serverTestConnection_t *self)
+void apx_clientTestConnection_start(apx_clientTestConnection_t *self)
 {
-   printf("start %d\n", self->base.base.connectionId);
-   apx_serverConnectionBase_start(&self->base);
+   apx_clientConnectionBase_start(&self->base);
 }
 
-void apx_serverTestConnection_vstart(void *arg)
+void apx_clientTestConnection_vstart(void *arg)
 {
-   apx_serverTestConnection_start((apx_serverTestConnection_t*) arg);
+   apx_clientTestConnection_start((apx_clientTestConnection_t*) arg);
 }
 
-void apx_serverTestConnection_close(apx_serverTestConnection_t *self)
+void apx_clientTestConnection_close(apx_clientTestConnection_t *self)
 {
 
 }
 
-void apx_serverTestConnection_vclose(void *arg)
+void apx_clientTestConnection_vclose(void *arg)
 {
-   apx_serverTestConnection_close((apx_serverTestConnection_t*) arg);
+   apx_clientTestConnection_close((apx_clientTestConnection_t*) arg);
 }
 
 
 /**
  * Remote side has created a new remote file
  */
-void apx_serverTestConnection_createRemoteFile(apx_serverTestConnection_t *self, const rmf_fileInfo_t *fileInfo)
+void apx_clientTestConnection_createRemoteFile(apx_clientTestConnection_t *self, const rmf_fileInfo_t *fileInfo)
 {
    if ( (self != 0) && (fileInfo != 0) )
    {
@@ -139,7 +139,7 @@ void apx_serverTestConnection_createRemoteFile(apx_serverTestConnection_t *self,
 /**
  * Writes raw data to a remote address
  */
-void apx_serverTestConnection_writeRemoteData(apx_serverTestConnection_t *self, uint32_t address, const uint8_t* dataBuf, uint32_t dataLen, bool more)
+void apx_clientTestConnection_writeRemoteData(apx_clientTestConnection_t *self, uint32_t address, const uint8_t* dataBuf, uint32_t dataLen, bool more)
 {
    if ( (self != 0) && (dataBuf != 0) )
    {
@@ -147,7 +147,7 @@ void apx_serverTestConnection_writeRemoteData(apx_serverTestConnection_t *self, 
    }
 }
 
-void apx_serverTestConnection_openRemoteFile(apx_serverTestConnection_t *self, uint32_t address)
+void apx_clientTestConnection_openRemoteFile(apx_clientTestConnection_t *self, uint32_t address)
 {
    if (self != 0)
    {
@@ -155,13 +155,29 @@ void apx_serverTestConnection_openRemoteFile(apx_serverTestConnection_t *self, u
    }
 }
 
-void apx_serverTestConnection_runEventLoop(apx_serverTestConnection_t *self)
+void apx_clientTestConnection_runEventLoop(apx_clientTestConnection_t *self)
 {
    if (self != 0)
    {
 #ifdef UNIT_TEST
       apx_connectionBase_runAll(&self->base.base);
 #endif
+   }
+}
+
+void apx_clientTestConnection_connect(apx_clientTestConnection_t *self)
+{
+   if (self != 0)
+   {
+      apx_clientConnectionBase_onConnected(&self->base);
+   }
+}
+
+void apx_clientTestConnection_disconnect(apx_clientTestConnection_t *self)
+{
+   if (self != 0)
+   {
+      apx_clientConnectionBase_onDisconnected(&self->base);
    }
 }
 

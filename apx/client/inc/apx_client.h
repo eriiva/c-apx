@@ -43,7 +43,7 @@
 struct apx_nodeData_tag;
 struct adt_ary_tag;
 struct adt_list_tag;
-struct apx_connectionEventListener_tag;
+struct apx_clientEventListener_tag;
 struct apx_fileManager_tag;
 struct apx_parser_tag;
 struct apx_nodeDataManager_tag;
@@ -57,7 +57,7 @@ typedef struct apx_client_tag
    apx_clientConnectionBase_t *connection;
    struct adt_ary_tag *nodeDataList; //weak references to apx_nodeData_t. This is used to store external nodeData objects attached with apx_client_attachLocalNode
    struct adt_ary_tag *nodeInfoList; //strong references to apx_nodeInfo_t. This is used when nodeData objects are created dynamically from string or file.
-   struct adt_list_tag *eventListeners; //weak references to apx_eventListenerBase_t
+   struct adt_list_tag *eventListeners; //weak references to apx_clientEventListener_t
    struct apx_parser_tag *parser;
 }apx_client_t;
 
@@ -86,14 +86,12 @@ apx_error_t apx_client_connectUnix(apx_client_t *self, const char *socketPath);
 void apx_client_disconnect(apx_client_t *self);
 apx_error_t apx_client_attachLocalNode(apx_client_t *self, struct apx_nodeData_tag *nodeData);
 apx_error_t apx_client_attachLocalNodeFromString(apx_client_t *self, const char *apx_text);
-void apx_client_registerEventListener(apx_client_t *self, struct apx_connectionEventListener_tag *eventListener);
+void apx_client_registerEventListener(apx_client_t *self, struct apx_clientEventListener_tag *eventListener);
 int32_t apx_client_getNumLocalNodes(apx_client_t *self);
+void apx_client_attachConnection(apx_client_t *self, apx_clientConnectionBase_t *connection);
 apx_clientConnectionBase_t *apx_client_getConnection(apx_client_t *self);
 
-//Client internal API (do not call as end-user)
-void _apx_client_internalOnConnect(apx_client_t *self, struct apx_fileManager_tag *fileManager);
-void _apx_client_internalOnDisconnect(apx_client_t *self, struct apx_fileManager_tag *fileManager);
-apx_error_t _apx_client_internalAttachLocalNodes(apx_client_t *self, struct apx_nodeDataManager_tag *nodeDataManager);
+
 
 #ifdef UNIT_TEST
 void apx_client_run(apx_client_t *self);

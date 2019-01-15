@@ -26,9 +26,10 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
+#include <string.h>
 #include "ApxNode_TestNode1.h"
 #include "apx_client.h"
-#include "testsocket.h"
+#include "apx_clientTestConnection.h"
 #include "CuTest.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
@@ -42,16 +43,19 @@
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_client_create(CuTest* tc);
-static void test_apx_client_connect(CuTest* tc);
+static void test_apx_client_connect_disconnect(CuTest* tc);
 static void test_apx_client_attachLocalNode(CuTest* tc);
+static void test_apx_client_connection_events(CuTest *tc);
 
-//////////////////////////////////////////////////////////////////////////////
-// GLOBAL VARIABLES
-//////////////////////////////////////////////////////////////////////////////
+static void mock_reset(void);
+static void mock_onConnected(void *arg, apx_clientConnectionBase_t *connection);
+static void mock_onDisconnected(void *arg, apx_clientConnectionBase_t *connection);
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
+static int32_t m_clientConnectCount = 0;
+static int32_t m_clientDisconnectCount = 0;
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -59,13 +63,14 @@ static void test_apx_client_attachLocalNode(CuTest* tc);
 //////////////////////////////////////////////////////////////////////////////
 
 
-CuSuite* testSuite_apx_client(void)
+CuSuite* testSuite_apx_client_testConnection(void)
 {
    CuSuite* suite = CuSuiteNew();
 
    SUITE_ADD_TEST(suite, test_apx_client_create);
-   SUITE_ADD_TEST(suite, test_apx_client_connect);
-   SUITE_ADD_TEST(suite, test_apx_client_attachLocalNode);
+   SUITE_ADD_TEST(suite, test_apx_client_connect_disconnect);
+//   SUITE_ADD_TEST(suite, test_apx_client_attachLocalNode);
+//   SUITE_ADD_TEST(suite, test_apx_client_connection_events);
 
    return suite;
 }
@@ -78,18 +83,35 @@ static void test_apx_client_create(CuTest* tc)
 {
    apx_client_t *client = apx_client_new();
    CuAssertPtrNotNull(tc, client);
-   CuAssertPtrNotNull(tc, client->nodeDataManager);
    apx_client_delete(client);
 }
 
-static void test_apx_client_connect(CuTest* tc)
+static void test_apx_client_connect_disconnect(CuTest* tc)
 {
-   testsocket_t *sock;
-   apx_client_t *client = apx_client_new();
-   sock = testsocket_new();
+   apx_clientTestConnection_t *connection;
+   apx_client_t *client;
+   apx_clientEventListener_t eventListener;
+   mock_reset();
+   memset(&eventListener, 0, sizeof(eventListener));
+   eventListener.clientConnected = mock_onConnected;
+   eventListener.clientDisconnected = mock_onDisconnected;
+   client = apx_client_new();
    CuAssertPtrNotNull(tc, client);
+   apx_client_registerEventListener(client, &eventListener);
+   connection = apx_clientTestConnection_new(client);
+   CuAssertPtrNotNull(tc, connection);
+   apx_client_attachConnection(client, &connection->base);
+   apx_clientTestConnection_connect(connection);
+   CuAssertIntEquals(tc, 0, m_clientConnectCount);
+   apx_client_run(client);
+   CuAssertIntEquals(tc, 1, m_clientConnectCount);
+
+   apx_clientTestConnection_disconnect(connection);
+   CuAssertIntEquals(tc, 0, m_clientDisconnectCount);
+   apx_client_run(client);
+   CuAssertIntEquals(tc, 1, m_clientDisconnectCount);
+
    apx_client_delete(client);
-   testsocket_delete(sock);
 }
 
 static void test_apx_client_attachLocalNode(CuTest* tc)
@@ -101,4 +123,27 @@ static void test_apx_client_attachLocalNode(CuTest* tc)
    CuAssertPtrNotNull(tc, node);
    apx_client_attachLocalNode(client, node);
    apx_client_delete(client);
+}
+
+static void test_apx_client_connection_events(CuTest *tc)
+{
+   apx_client_t *client = apx_client_new();
+   CuAssertPtrNotNull(tc, client);
+   apx_client_delete(client);
+}
+
+static void mock_reset(void)
+{
+   m_clientConnectCount = 0;
+   m_clientDisconnectCount = 0;
+}
+
+static void mock_onConnected(void *arg, apx_clientConnectionBase_t *connection)
+{
+   m_clientConnectCount++;
+}
+
+static void mock_onDisconnected(void *arg, apx_clientConnectionBase_t *connection)
+{
+   m_clientDisconnectCount++;
 }

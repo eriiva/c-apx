@@ -41,7 +41,7 @@ static void apx_server_create_socket_servers(apx_server_t *self, uint16_t tcpPor
 static void apx_server_destroy_socket_servers(apx_server_t *self);
 static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_TYPE *sock);
 static void apx_server_attach_and_start_connection(apx_server_t *self, apx_serverConnectionBase_t *newConnection);
-static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_connectionBase_t *connection);
+static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_serverConnectionBase_t *connection);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -110,7 +110,7 @@ void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode)
    }
 }
 
-void apx_server_registerConnectionEventListener(apx_server_t *self, apx_connectionEventListener_t *eventListener)
+void apx_server_registerConnectionEventListener(apx_server_t *self, apx_serverConnectionEventListener_t *eventListener)
 {
    if (self != 0)
    {
@@ -224,19 +224,19 @@ static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_
 static void apx_server_attach_and_start_connection(apx_server_t *self, apx_serverConnectionBase_t *newConnection)
 {
    apx_connectionManager_attach(&self->connectionManager, newConnection);
-   apx_server_trigger_connected_event_on_listeners(self, (apx_connectionBase_t*) newConnection);
+   apx_server_trigger_connected_event_on_listeners(self, newConnection);
    apx_connectionBase_start(&newConnection->base);
 }
 
-static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_connectionBase_t *connection)
+static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_serverConnectionBase_t *serverConnection)
 {
    adt_list_elem_t *iter = adt_list_iter_first(&self->connectionEventListeners);
    while(iter != 0)
    {
-      apx_connectionEventListener_t *listener = (apx_connectionEventListener_t*) iter->pItem;
-      if ( (listener != 0) && (listener->connected != 0))
+      apx_serverConnectionEventListener_t *listener = (apx_serverConnectionEventListener_t*) iter->pItem;
+      if ( (listener != 0) && (listener->serverConnected != 0) )
       {
-         listener->connected(listener, connection);
+         listener->serverConnected(listener->arg, serverConnection);
       }
       iter = adt_list_iter_next(iter);
    }

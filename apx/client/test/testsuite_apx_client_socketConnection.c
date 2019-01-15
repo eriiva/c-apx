@@ -57,7 +57,7 @@ static void testsocket_helper_send_acknowledge(testsocket_t *sock);
 //////////////////////////////////////////////////////////////////////////////
 
 
-CuSuite* testSuite_apx_clientSocketConnection(void)
+CuSuite* testSuite_apx_client_socketConnection(void)
 {
    CuSuite* suite = CuSuiteNew();
    SUITE_ADD_TEST(suite, test_apx_clientSocketConnection_create);
@@ -98,7 +98,7 @@ static void test_apx_clientSocketConnection_transmitHandlerSetup(CuTest* tc)
    CuAssertPtrNotNull(tc, conn);
    fileManager = &conn->base.base.fileManager;
    CuAssertPtrNotNull(tc, fileManager->transmitHandler.send);
-   apx_clientSocketConnection_delete(conn);
+   apx_connectionBase_delete(&conn->base.base); //always delete using the base pointer
    testsocket_spy_destroy();
 }
 
@@ -118,6 +118,7 @@ static void test_apx_clientSocketConnection_sendGreetingOnConnect(CuTest* tc)
    CuAssertIntEquals(tc, 0, testsocket_spy_getServerConnectedCount());
    apx_client_socketConnect(client, sock);
    CLIENT_RUN(client, sock);
+   CuAssertIntEquals(tc, 1, testsocket_spy_getServerConnectedCount());
    data = (const char*) testsocket_spy_getReceivedData(&len);
    CuAssertIntEquals(tc, 31, len);
    CuAssertIntEquals(tc, 30, data[0]);

@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_serverTestConnection.h
+* \file      apx_clientInternal.h
 * \author    Conny Gustafsson
-* \date      2018-12-09
-* \brief     Description
+* \date      2019-01-15
+* \brief     apx_client internal API (Implemented by apx_client.c)
 *
-* Copyright (c) 2018-2019 Conny Gustafsson
+* Copyright (c) 2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -23,41 +23,31 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_SERVER_TEST_CONNECTION_H
-#define APX_SERVER_TEST_CONNECTION_H
+#ifndef APX_CLIENT_INTERNAL_H
+#define APX_CLIENT_INTERNAL_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <stdbool.h>
-#include "apx_error.h"
-#include "apx_serverConnectionBase.h"
-#include "rmf.h"
+#include "apx_client.h"
+#include "apx_nodeData.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_serverTestConnection_tag
-{
-   apx_serverConnectionBase_t base;
-}apx_serverTestConnection_t;
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC VARIABLES
+//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-apx_error_t apx_serverTestConnection_create(apx_serverTestConnection_t *self, struct apx_server_tag *server);
-void apx_serverTestConnection_destroy(apx_serverTestConnection_t *self);
-void apx_serverTestConnection_vdestroy(void *arg);
-apx_serverTestConnection_t *apx_serverTestConnection_new(struct apx_server_tag *server);
-void apx_serverTestConnection_delete(apx_serverTestConnection_t *self);
-void apx_serverTestConnection_start(apx_serverTestConnection_t *self);
-void apx_serverTestConnection_vstart(void *arg);
-void apx_serverTestConnection_close(apx_serverTestConnection_t *self);
-void apx_serverTestConnection_vclose(void *arg);
+//Client internal API (do not call as end-user)
+void apx_clientInternal_onConnect(apx_client_t *self, apx_clientConnectionBase_t *connection);
+void apx_clientInternal_onDisconnect(apx_client_t *self, apx_clientConnectionBase_t *connection);
+apx_error_t apx_clientInternal_attachLocalNodes(apx_client_t *self, struct apx_nodeDataManager_tag *nodeDataManager);
+void apx_clientInternal_onNodeComplete(apx_client_t *self, apx_nodeData_t *nodeData);
 
-void apx_serverTestConnection_createRemoteFile(apx_serverTestConnection_t *self, const rmf_fileInfo_t *fileInfo);
-void apx_serverTestConnection_writeRemoteData(apx_serverTestConnection_t *self, uint32_t address, const uint8_t* dataBuf, uint32_t dataLen, bool more);
-void apx_serverTestConnection_openRemoteFile(apx_serverTestConnection_t *self, uint32_t address);
-void apx_serverTestConnection_runEventLoop(apx_serverTestConnection_t *self);
 
-#endif //APX_SERVER_TEST_CONNECTION_H
+#endif //APX_CLIENT_INTERNAL_H

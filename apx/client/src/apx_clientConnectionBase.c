@@ -40,7 +40,7 @@
 #include "rmf.h"
 #include "apx_portDataMap.h"
 #include "apx_routingTable.h"
-#include "apx_client.h"
+#include "apx_clientInternal.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #else
@@ -77,7 +77,7 @@ apx_error_t apx_clientConnectionBase_create(apx_clientConnectionBase_t *self, st
       self->isAcknowledgeSeen = false;
       if ( (errorCode == APX_NO_ERROR) && (self->client != 0))
       {
-         errorCode = _apx_client_internalAttachLocalNodes(self->client, &self->base.nodeDataManager);
+         errorCode = apx_clientInternal_attachLocalNodes(self->client, &self->base.nodeDataManager);
          if (errorCode == APX_NO_ERROR)
          {
             apx_clientConnectionBase_registerLocalFiles(self);
@@ -108,13 +108,19 @@ apx_fileManager_t *apx_clientConnectionBase_getFileManager(apx_clientConnectionB
 
 void apx_clientConnectionBase_onConnected(apx_clientConnectionBase_t *self)
 {
+   apx_event_t event;
    self->isAcknowledgeSeen = false;
    apx_clientConnectionBase_sendGreeting(self);
+   apx_event_create_clientConnected(&event, self);
+   apx_eventLoop_append(&self->base.eventLoop, &event);
 }
 
 void apx_clientConnectionBase_onDisconnected(apx_clientConnectionBase_t *self)
 {
+   apx_event_t event;
    self->isAcknowledgeSeen = false;
+   apx_event_create_clientDisconnected(&event, self);
+   apx_eventLoop_append(&self->base.eventLoop, &event);
 }
 
 int8_t apx_clientConnectionBase_onDataReceived(apx_clientConnectionBase_t *self, const uint8_t *dataBuf, uint32_t dataLen, uint32_t *parseLen)
@@ -175,7 +181,22 @@ void apx_clientConnectionBase_defaultEventHandler(void *arg, apx_event_t *event)
    apx_clientConnectionBase_t *self = (apx_clientConnectionBase_t*) arg;
    if (self != 0)
    {
-      apx_connectionBase_defaultEventHandler(&self->base, event);
+      apx_nodeData_t *nodeData;
+      switch(event->evType)
+      {
+      case APX_EVENT_CLIENT_CONNECTED:
+         apx_clientInternal_onConnect(self->client, self);
+         break;
+      case APX_EVENT_CLIENT_DISCONNECTED:
+         apx_clientInternal_onDisconnect(self->client, self);
+         break;
+      case APX_EVENT_NODE_COMPLETE:
+         nodeData = (apx_nodeData_t*) event->evData1;
+         apx_clientInternal_onNodeComplete(self->client, nodeData);
+         break;
+      default:
+         apx_connectionBase_defaultEventHandler(&self->base, event);
+      }
    }
 }
 

@@ -22,8 +22,8 @@ CuSuite* testSuite_apx_fileManagerShared(void);
 CuSuite* testSuite_apx_fileManagerRemote(void);
 CuSuite* testSuite_apx_fileManagerLocal(void);
 CuSuite* testSuite_apx_fileManager(void);
-CuSuite* testSuite_apx_clientSocketConnection(void);
-//CuSuite* testSuite_apx_client(void);
+CuSuite* testSuite_apx_client_socketConnection(void);
+CuSuite* testSuite_apx_client_testConnection(void);
 //CuSuite* testSuite_apx_nodeManager(void);
 //CuSuite* testSuite_apx_eventRecorderSrvRmf(void);
 CuSuite* testSuite_apx_file2(void);
@@ -82,7 +82,8 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testSuite_apx_eventLoop());
    CuSuiteAddSuite(suite, testSuite_apx_portTriggerList());
 
-   CuSuiteAddSuite(suite, testSuite_apx_clientSocketConnection());
+   CuSuiteAddSuite(suite, testSuite_apx_client_socketConnection());
+   CuSuiteAddSuite(suite, testSuite_apx_client_testConnection());
    CuSuiteAddSuite(suite, testSuite_apx_port_routing());
    CuSuiteAddSuite(suite, testSuite_apx_compiler());
    CuSuiteAddSuite(suite, testSuite_apx_nodeInfo());

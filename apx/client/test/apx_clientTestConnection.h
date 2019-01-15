@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_serverTestConnection.h
+* \file      apx_clientTestConnection.h
 * \author    Conny Gustafsson
-* \date      2018-12-09
-* \brief     Description
+* \date      2018-01-15
+* \brief     Test connection for APX clients
 *
-* Copyright (c) 2018-2019 Conny Gustafsson
+* Copyright (c) 2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -23,41 +23,46 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_SERVER_TEST_CONNECTION_H
-#define APX_SERVER_TEST_CONNECTION_H
+#ifndef APX_CLIENT_TEST_CONNECTION_H
+#define APX_CLIENT_TEST_CONNECTION_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include <stdbool.h>
 #include "apx_error.h"
-#include "apx_serverConnectionBase.h"
+#include "apx_clientConnectionBase.h"
 #include "rmf.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_serverTestConnection_tag
+//forward declarations
+struct apx_client_tag;
+
+typedef struct apx_clientTestConnection_tag
 {
-   apx_serverConnectionBase_t base;
-}apx_serverTestConnection_t;
+   apx_clientConnectionBase_t base;
+}apx_clientTestConnection_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-apx_error_t apx_serverTestConnection_create(apx_serverTestConnection_t *self, struct apx_server_tag *server);
-void apx_serverTestConnection_destroy(apx_serverTestConnection_t *self);
-void apx_serverTestConnection_vdestroy(void *arg);
-apx_serverTestConnection_t *apx_serverTestConnection_new(struct apx_server_tag *server);
-void apx_serverTestConnection_delete(apx_serverTestConnection_t *self);
-void apx_serverTestConnection_start(apx_serverTestConnection_t *self);
-void apx_serverTestConnection_vstart(void *arg);
-void apx_serverTestConnection_close(apx_serverTestConnection_t *self);
-void apx_serverTestConnection_vclose(void *arg);
+apx_error_t apx_clientTestConnection_create(apx_clientTestConnection_t *self, struct apx_client_tag *client);
+void apx_clientTestConnection_destroy(apx_clientTestConnection_t *self);
+void apx_clientTestConnection_vdestroy(void *arg);
+apx_clientTestConnection_t *apx_clientTestConnection_new(struct apx_client_tag *client);
+void apx_clientTestConnection_delete(apx_clientTestConnection_t *self);
+void apx_clientTestConnection_start(apx_clientTestConnection_t *self);
+void apx_clientTestConnection_vstart(void *arg);
+void apx_clientTestConnection_close(apx_clientTestConnection_t *self);
+void apx_clientTestConnection_vclose(void *arg);
 
-void apx_serverTestConnection_createRemoteFile(apx_serverTestConnection_t *self, const rmf_fileInfo_t *fileInfo);
-void apx_serverTestConnection_writeRemoteData(apx_serverTestConnection_t *self, uint32_t address, const uint8_t* dataBuf, uint32_t dataLen, bool more);
-void apx_serverTestConnection_openRemoteFile(apx_serverTestConnection_t *self, uint32_t address);
-void apx_serverTestConnection_runEventLoop(apx_serverTestConnection_t *self);
+void apx_clientTestConnection_createRemoteFile(apx_clientTestConnection_t *self, const rmf_fileInfo_t *fileInfo);
+void apx_clientTestConnection_writeRemoteData(apx_clientTestConnection_t *self, uint32_t address, const uint8_t* dataBuf, uint32_t dataLen, bool more);
+void apx_clientTestConnection_openRemoteFile(apx_clientTestConnection_t *self, uint32_t address);
+void apx_clientTestConnection_runEventLoop(apx_clientTestConnection_t *self);
+void apx_clientTestConnection_connect(apx_clientTestConnection_t *self);
+void apx_clientTestConnection_disconnect(apx_clientTestConnection_t *self);
 
-#endif //APX_SERVER_TEST_CONNECTION_H
+#endif //APX_CLIENT_TEST_CONNECTION_H

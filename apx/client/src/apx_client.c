@@ -59,8 +59,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void apx_client_triggerConnectedEventOnListeners(apx_client_t *self, apx_fileManager_t *fileManager);
-static void apx_client_triggerDisconnectedEventOnListeners(apx_client_t *self, apx_fileManager_t *fileManager);
+static void apx_client_triggerConnectedEventOnListeners(apx_client_t *self, apx_clientConnectionBase_t *connection);
+static void apx_client_triggerDisconnectedEventOnListeners(apx_client_t *self, apx_clientConnectionBase_t *connection);
+static void apx_client_triggerNodeCompleteEvent(apx_client_t *self, apx_nodeData_t *nodeData);
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -281,7 +282,7 @@ apx_error_t apx_client_attachLocalNodeFromString(apx_client_t *self, const char 
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
-void apx_client_registerEventListener(apx_client_t *self, struct apx_connectionEventListener_tag *eventListener)
+void apx_client_registerEventListener(apx_client_t *self, struct apx_clientEventListener_tag *eventListener)
 {
    if (self != 0)
    {
@@ -290,23 +291,23 @@ void apx_client_registerEventListener(apx_client_t *self, struct apx_connectionE
 }
 
 //Client internal API
-void _apx_client_internalOnConnect(apx_client_t *self, struct apx_fileManager_tag *fileManager)
+void apx_clientInternal_onConnect(apx_client_t *self, apx_clientConnectionBase_t *connection)
 {
-   if ( (self != 0) && (fileManager != 0) )
+   if ( (self != 0) && (connection != 0) )
    {
-      apx_client_triggerConnectedEventOnListeners(self, fileManager);
+      apx_client_triggerConnectedEventOnListeners(self, connection);
    }
 }
 
-void _apx_client_internalOnDisconnect(apx_client_t *self, struct apx_fileManager_tag *fileManager)
+void apx_clientInternal_onDisconnect(apx_client_t *self, apx_clientConnectionBase_t *connection)
 {
-   if ( (self != 0) && (fileManager != 0) )
+   if ( (self != 0) && (connection != 0) )
    {
-      apx_client_triggerDisconnectedEventOnListeners(self, fileManager);
+      apx_client_triggerDisconnectedEventOnListeners(self, connection);
    }
 }
 
-apx_error_t _apx_client_internalAttachLocalNodes(apx_client_t *self, struct apx_nodeDataManager_tag *nodeDataManager)
+apx_error_t apx_clientInternal_attachLocalNodes(apx_client_t *self, struct apx_nodeDataManager_tag *nodeDataManager)
 {
    if ( (self != 0) && (nodeDataManager != 0) )
    {
@@ -329,6 +330,14 @@ apx_error_t _apx_client_internalAttachLocalNodes(apx_client_t *self, struct apx_
       return APX_NO_ERROR;
    }
    return APX_INVALID_ARGUMENT_ERROR;
+}
+
+void apx_clientInternal_onNodeComplete(apx_client_t *self, apx_nodeData_t *nodeData)
+{
+   if ( (self != 0) && (nodeData != 0) )
+   {
+      apx_client_triggerNodeCompleteEvent(self, nodeData);
+   }
 }
 
 #ifdef UNIT_TEST
@@ -366,6 +375,18 @@ int32_t apx_client_getNumLocalNodes(apx_client_t *self)
    return -1;
 }
 
+void apx_client_attachConnection(apx_client_t *self, apx_clientConnectionBase_t *connection)
+{
+   if ( (self != 0) && (connection != 0) )
+   {
+      self->connection = connection;
+      if (connection->client != self)
+      {
+         connection->client = self;
+      }
+   }
+}
+
 apx_clientConnectionBase_t *apx_client_getConnection(apx_client_t *self)
 {
    if (self != 0)
@@ -374,32 +395,48 @@ apx_clientConnectionBase_t *apx_client_getConnection(apx_client_t *self)
    }
    return (apx_clientConnectionBase_t*) 0;
 }
+
+
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static void apx_client_triggerConnectedEventOnListeners(apx_client_t *self, apx_fileManager_t *fileManager)
+static void apx_client_triggerConnectedEventOnListeners(apx_client_t *self, apx_clientConnectionBase_t *connection)
 {
    adt_list_elem_t *iter = adt_list_iter_first(self->eventListeners);
    while(iter != 0)
    {
-      apx_connectionEventListener_t *listener = (apx_connectionEventListener_t*) iter->pItem;
-      if ( (listener != 0) && (listener->connected != 0))
+      apx_clientEventListener_t *listener = (apx_clientEventListener_t*) iter->pItem;
+      if ( (listener != 0) && (listener->clientConnected != 0))
       {
-         listener->connected(listener, (apx_connectionBase_t*) self->connection);
+         listener->clientConnected(listener->arg, connection);
       }
       iter = adt_list_iter_next(iter);
    }
 }
 
-static void apx_client_triggerDisconnectedEventOnListeners(apx_client_t *self, apx_fileManager_t *fileManager)
+static void apx_client_triggerDisconnectedEventOnListeners(apx_client_t *self, apx_clientConnectionBase_t *connection)
 {
    adt_list_elem_t *iter = adt_list_iter_first(self->eventListeners);
    while(iter != 0)
    {
-      apx_connectionEventListener_t *listener = (apx_connectionEventListener_t*) iter->pItem;
-      if ( (listener != 0) && (listener->disconnected != 0))
+      apx_clientEventListener_t *listener = (apx_clientEventListener_t*) iter->pItem;
+      if ( (listener != 0) && (listener->clientDisconnected != 0))
       {
-         listener->disconnected(listener, (apx_connectionBase_t*) self->connection);
+         listener->clientDisconnected(listener->arg, connection);
+      }
+      iter = adt_list_iter_next(iter);
+   }
+}
+
+static void apx_client_triggerNodeCompleteEvent(apx_client_t *self, apx_nodeData_t *nodeData)
+{
+   adt_list_elem_t *iter = adt_list_iter_first(self->eventListeners);
+   while(iter != 0)
+   {
+      apx_clientEventListener_t *listener = (apx_clientEventListener_t*) iter->pItem;
+      if ( (listener != 0) && (listener->nodeCompleted != 0))
+      {
+         listener->nodeCompleted(listener->arg, nodeData);
       }
       iter = adt_list_iter_next(iter);
    }

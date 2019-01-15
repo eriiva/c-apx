@@ -35,13 +35,32 @@
 struct apx_file2_tag;
 struct apx_fileManager_tag;
 struct apx_nodeData_tag;
-struct apx_connectionBase_tag;
+struct apx_serverConnectionBase_tag;
+struct apx_clientConnectionBase_tag;
 
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 
+typedef struct apx_clientEventListener_tag
+{
+   void *arg;
+   void (*clientConnected)(void *arg, struct apx_clientConnectionBase_tag *clientConnection);
+   void (*clientDisconnected)(void *arg, struct apx_clientConnectionBase_tag *clientConnection);
+   void (*nodeCompleted)(void *arg, struct apx_nodeData_tag *nodeData);
+}apx_clientEventListener_t;
+
+typedef struct apx_serverConnectionEventListener_tag
+{
+   void *arg;
+   void (*serverConnected)(void *arg, struct apx_serverConnectionBase_tag *connection);
+   void (*serverDisconnected)(void *arg, struct apx_serverConnectionBase_tag *connection);
+   void (*nodeCompleted)(void *arg, struct apx_nodeData_tag *nodeData);
+}apx_serverConnectionEventListener_t;
+
+
+/*
 typedef void (apx_eventListener_apxConnectionEventFunc_t)(void *arg, struct apx_connectionBase_tag *connection);
 typedef struct apx_connectionEventListener_tag
 {
@@ -49,6 +68,7 @@ typedef struct apx_connectionEventListener_tag
    apx_eventListener_apxConnectionEventFunc_t *connected;
    apx_eventListener_apxConnectionEventFunc_t *disconnected;
 } apx_connectionEventListener_t;
+*/
 
 typedef void (apx_eventListener_fileManagerEventFunc_t)(void *arg, struct apx_fileManager_tag *fileManager);
 typedef void (apx_eventListener_fileManagerFileEventFunc_t)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file2_tag *file);
