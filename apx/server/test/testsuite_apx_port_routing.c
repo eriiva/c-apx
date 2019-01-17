@@ -145,7 +145,7 @@ static void attachTestNode5(apx_server_t *pServer, apx_serverTestConnection_t *p
 
 static void detachTestNode(apx_server_t *pServer, apx_serverTestConnection_t *pConnection)
 {
-   apx_server_removeConnection(pServer, (apx_serverConnectionBase_t*) pConnection);
+   apx_server_closeConnection(pServer, (apx_serverConnectionBase_t*) pConnection);
    apx_server_run(pServer);
 
 }

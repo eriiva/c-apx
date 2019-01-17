@@ -48,6 +48,7 @@
 #include "apx_fileManager.h"
 #include "numheader.h"
 #include "bstr.h"
+#include "apx_server.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -67,12 +68,14 @@
 #define SOCKET_START_IO(x)
 #define SOCKET_SET_HANDLER testsocket_setServerHandler
 #define SOCKET_SEND testsocket_serverSend
+#define SOCKET_OBJECT_CLOSE(x)
 #else
 #define SOCKET_DELETE msocket_delete
 #define SOCKET_TYPE msocket_t
 #define SOCKET_START_IO(x) msocket_start_io(x)
 #define SOCKET_SET_HANDLER msocket_sethandler
 #define SOCKET_SEND msocket_send
+#define SOCKET_OBJECT_CLOSE(x) msocket_close(x)
 #endif
 
 
@@ -177,7 +180,10 @@ void apx_serverSocketConnection_vstart(void *arg)
 
 void apx_serverSocketConnection_close(apx_serverSocketConnection_t *self)
 {
-   printf("close\n");
+   if (self != 0)
+   {
+      SOCKET_OBJECT_CLOSE(self->socketObject);
+   }
 }
 
 void apx_serverSocketConnection_vclose(void *arg)
@@ -299,6 +305,10 @@ static int8_t apx_serverSocketConnection_data(void *arg, const uint8_t *dataBuf,
 static void apx_serverSocketConnection_disconnected(void *arg)
 {
    apx_serverSocketConnection_t *self = (apx_serverSocketConnection_t*) arg;
+   if (self != 0)
+   {
+      apx_server_closeConnection(self->base.server, &self->base);
+   }
 }
 
 

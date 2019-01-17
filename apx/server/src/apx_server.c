@@ -126,11 +126,11 @@ void apx_server_acceptConnection(apx_server_t *self, apx_serverConnectionBase_t 
    }
 }
 
-void apx_server_removeConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection)
+void apx_server_closeConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection)
 {
    if ( (self != 0) && (serverConnection != 0))
    {
-      apx_connectionManager_shutdown(&self->connectionManager, serverConnection);
+      apx_connectionManager_closeConnection(&self->connectionManager, serverConnection);
    }
 }
 

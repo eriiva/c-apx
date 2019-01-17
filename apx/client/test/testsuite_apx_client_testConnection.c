@@ -45,7 +45,7 @@
 static void test_apx_client_create(CuTest* tc);
 static void test_apx_client_connect_disconnect(CuTest* tc);
 static void test_apx_client_attachLocalNode(CuTest* tc);
-static void test_apx_client_connection_events(CuTest *tc);
+
 
 static void mock_reset(void);
 static void mock_onConnected(void *arg, apx_clientConnectionBase_t *connection);
@@ -69,8 +69,7 @@ CuSuite* testSuite_apx_client_testConnection(void)
 
    SUITE_ADD_TEST(suite, test_apx_client_create);
    SUITE_ADD_TEST(suite, test_apx_client_connect_disconnect);
-//   SUITE_ADD_TEST(suite, test_apx_client_attachLocalNode);
-//   SUITE_ADD_TEST(suite, test_apx_client_connection_events);
+   SUITE_ADD_TEST(suite, test_apx_client_attachLocalNode);
 
    return suite;
 }
@@ -125,12 +124,7 @@ static void test_apx_client_attachLocalNode(CuTest* tc)
    apx_client_delete(client);
 }
 
-static void test_apx_client_connection_events(CuTest *tc)
-{
-   apx_client_t *client = apx_client_new();
-   CuAssertPtrNotNull(tc, client);
-   apx_client_delete(client);
-}
+
 
 static void mock_reset(void)
 {

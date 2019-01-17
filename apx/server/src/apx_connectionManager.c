@@ -84,6 +84,8 @@ void apx_connectionManager_start(apx_connectionManager_t *self)
 {
    if (self != 0)
    {
+      self->cleanupThreadRunning = true;
+      self->cleanupThreadValid = true;
 #ifdef _WIN32
       THREAD_CREATE(self->cleanupThread, cleanupTask, (void*) self, self->cleanupThreadId);
 #else
@@ -125,7 +127,7 @@ void apx_connectionManager_attach(apx_connectionManager_t *self, apx_serverConne
    }
 }
 
-void apx_connectionManager_shutdown(apx_connectionManager_t *self, apx_serverConnectionBase_t *connection)
+void apx_connectionManager_closeConnection(apx_connectionManager_t *self, apx_serverConnectionBase_t *connection)
 {
    if (self != 0)
    {
@@ -134,7 +136,6 @@ void apx_connectionManager_shutdown(apx_connectionManager_t *self, apx_serverCon
       iter = adt_list_find(&self->activeConnections, connection);
       if (iter != 0)
       {
-         apx_serverConnectionBase_close(connection);
          adt_list_erase(&self->activeConnections, iter);
          adt_list_insert(&self->inactiveConnections, connection);
       }
@@ -225,9 +226,9 @@ THREAD_PROTO(cleanupTask,arg)
    apx_connectionManager_t *self = (apx_connectionManager_t*) arg;
    if(self != 0)
    {
+      printf("Starting cleanupTask\n");
       while(1)
       {
-         //int8_t rc;
          bool isRunning;
          int32_t numInactiveConnections;
          SLEEP(CLEANUP_WAIT_TIME);
@@ -240,39 +241,8 @@ THREAD_PROTO(cleanupTask,arg)
             break;
          }
          apx_connectionManager_cleanupTask_run(self, numInactiveConnections);
-
-
-#if 0
-         rc = _sem_test(&self->sem);
-         if(rc < 0)
-         {
-            //failure
-            printf("Error in cleanupTask, errno=%d\n",errno);
-            break; //break while-loop
-         }
-         else if(rc > 0)
-         {
-            //successfully decreased semaphore, this means that there must be something in the array
-            void *item;
-            MUTEX_LOCK(self->mutex);
-            assert(adt_ary_length(&self->cleanupItems)>0);
-            item = adt_ary_shift(&self->cleanupItems);
-            self->pDestructor(item);
-            MUTEX_UNLOCK(self->mutex);
-         }
-         else
-         {
-            //failed to decrease semaphore, check if time to close
-            MUTEX_LOCK(self->mutex);
-            stopThread = self->cleanupStop;
-            MUTEX_UNLOCK(self->mutex);
-            if(stopThread)
-            {
-               break; //break while-loop
-            }
-         }
-#endif
       }
+      printf("Stopping cleanupTask\n");
    }
    THREAD_RETURN(0);
 }
@@ -284,13 +254,16 @@ static void apx_connectionManager_cleanupTask_run(apx_connectionManager_t *self,
 {
    if (numInactiveConnections > 0)
    {
-
+      SPINLOCK_ENTER(self->lock);
       adt_list_elem_t *iter = adt_list_iter_first(&self->inactiveConnections);
-      printf("Inactive connections: %d\n", numInactiveConnections);
       apx_serverConnectionBase_t *baseConnection = (apx_serverConnectionBase_t*) iter->pItem;
       adt_list_erase(&self->inactiveConnections, iter);
+      printf("[CONNECTION_MANAGER] Cleaning up %d\n", (int) baseConnection->base.connectionId);
+      apx_serverConnectionBase_close(baseConnection);
       apx_serverConnectionBase_detachNodes(baseConnection);
       apx_connectionBase_delete(&baseConnection->base);
+      printf("[CONNECTION_MANAGER] Cleanup complete\n");
+      SPINLOCK_LEAVE(self->lock);
    }
 }
 

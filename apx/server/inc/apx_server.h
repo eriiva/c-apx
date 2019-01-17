@@ -55,7 +55,7 @@ void apx_server_start(apx_server_t *self);
 void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode);
 void apx_server_registerConnectionEventListener(apx_server_t *self, apx_serverConnectionEventListener_t *eventListener);
 void apx_server_acceptConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection);
-void apx_server_removeConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection);
+void apx_server_closeConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection);
 apx_routingTable_t* apx_server_getRoutingTable(apx_server_t *self);
 #ifdef UNIT_TEST
 void apx_server_run(apx_server_t *self);
