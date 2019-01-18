@@ -348,7 +348,7 @@ static uint8_t apx_serverConnectionBase_parseMessage(apx_serverConnectionBase_t 
 static void apx_serverConnectionBase_onFileCreate(void *arg, apx_fileManager_t *fileManager, struct apx_file2_tag *file)
 {
    apx_serverConnectionBase_t *self = (apx_serverConnectionBase_t*) arg;
-   printf("file created: %s\n", file->fileInfo.name);
+   //printf("file created: %s\n", file->fileInfo.name);
    if (self != 0)
    {
       if ( strcmp(apx_file2_extension(file), APX_DEFINITION_FILE_EXT) == 0)
@@ -375,7 +375,7 @@ static void apx_serverConnectionBase_onFileOpen(void *arg, apx_fileManager_t *fi
          bool isComplete = apx_nodeData_isComplete(nodeData);
          if (isComplete == true)
          {
-            apx_routingTable_attachNodeData(&self->server->routingTable, nodeData);
+            printf("Node comlete: %s\n", apx_nodeData_getName(nodeData));
          }
       }
    }
@@ -443,15 +443,21 @@ static void apx_serverConnectionBase_onDefinitionDataWritten(void *arg, apx_node
             {
                if (strlen(definitionFile->fileInfo.name)<=RMF_MAX_FILE_NAME)
                {
-                  uint32_t inPortDataLen = apx_nodeData_getInPortDataLen(nodeData);
-                  if (inPortDataLen > 0)
-                  {
-                     //collect inPortData here
-                     result = apx_serverConnectionBase_createInPortDataFile(self, nodeData, definitionFile);
-                  }
+                  result = apx_nodeData_createPortDataMap(nodeData, APX_SERVER_MODE);
                   if (result == APX_NO_ERROR)
                   {
-                     result = apx_nodeData_createPortDataMap(nodeData, APX_SERVER_MODE);
+                     uint32_t inPortDataLen;
+                     apx_routingTable_attachNodeData(&self->server->routingTable, nodeData);
+                     inPortDataLen = apx_nodeData_getInPortDataLen(nodeData);
+                     if (inPortDataLen > 0)
+                     {
+                        result = apx_serverConnectionBase_createInPortDataFile(self, nodeData, definitionFile);
+                        if (result == APX_NO_ERROR)
+                        {
+                           apx_routingTable_copyInitData(&self->server->routingTable, nodeData);
+                           apx_fileManager_attachLocalFile(&self->base.fileManager, apx_nodeData_getInPortDataFile(nodeData), (void*) self);
+                        }
+                     }
                      if (result == APX_NO_ERROR)
                      {
                         uint32_t outPortDataLen = apx_nodeData_getOutPortDataLen(nodeData);
@@ -505,7 +511,6 @@ static apx_error_t apx_serverConnectionBase_createInPortDataFile(apx_serverConne
    if (inPortDataFile != 0)
    {
       apx_nodeData_setInPortDataFile(nodeData, inPortDataFile);
-      apx_fileManager_attachLocalFile(&self->base.fileManager, inPortDataFile, (void*) self);
    }
    else
    {

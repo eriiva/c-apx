@@ -30,6 +30,7 @@
 #include "apx_routingTable.h"
 #include "apx_nodeData.h"
 #include "apx_node.h"
+#include <assert.h>
 #include <stdio.h> //DEBUG ONLY
 
 //////////////////////////////////////////////////////////////////////////////
@@ -216,6 +217,11 @@ void apx_routingTable_detachNodeData(apx_routingTable_t *self, struct apx_nodeDa
    }
 }
 
+void apx_routingTable_copyInitData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData)
+{
+   printf("Copying init data for all require ports\n");
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
@@ -234,6 +240,7 @@ static void apx_routingTable_attachPort(apx_routingTable_t *self, apx_nodeData_t
       if (entry != 0)
       {
          portDataRef = apx_routingTable_getPortDataRef(nodeData, port);
+         assert(portDataRef != 0);
          apx_routingTableEntry_attachPortDataRef(entry, portDataRef);
       }
    }

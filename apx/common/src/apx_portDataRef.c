@@ -101,6 +101,15 @@ void apx_portDataRef_createPortConnectedEvent(apx_event_t *event, apx_portDataRe
    }
 }
 
+apx_portId_t apx_portDataRef_getPortId(apx_portDataRef_t *self)
+{
+   if (self != 0)
+   {
+      return self->portId & APX_PORT_ID_MASK;
+   }
+   return -1;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////

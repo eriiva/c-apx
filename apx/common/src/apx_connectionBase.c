@@ -48,6 +48,7 @@ static apx_error_t apx_connectionBase_startWorkerThread(apx_connectionBase_t *se
 static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self);
 static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self);
 static void apx_connectionBase_createNodeCompleteEvent(apx_event_t *event, apx_nodeData_t *nodeData);
+static void apx_connectionBase_portConnectedHandler(apx_connectionBase_t *self, apx_portDataRef_t *localPortDataRef, apx_portDataRef_t *remotePortDataRef);
 #ifndef UNIT_TEST
 static THREAD_PROTO(eventHandlerWorkThread,arg);
 #endif
@@ -277,10 +278,14 @@ void apx_connectionBase_defaultEventHandler(apx_connectionBase_t *self, apx_even
    }
    else
    {
+      apx_portDataRef_t *localPortDataRef;
+      apx_portDataRef_t *remotePortDataRef;
       switch(event->evType)
       {
       case APX_EVENT_NODE_PORT_CONNECTED:
-         printf("Port connection event!\n");
+         localPortDataRef = (apx_portDataRef_t*) event->evData1;
+         remotePortDataRef = (apx_portDataRef_t*) event->evData2;
+         apx_connectionBase_portConnectedHandler(self, localPortDataRef, remotePortDataRef);
          break;
       case APX_EVENT_NODE_COMPLETE:
          printf("Node complete!\n");
@@ -410,3 +415,19 @@ static THREAD_PROTO(eventHandlerWorkThread,arg)
    THREAD_RETURN(0);
 }
 #endif
+
+static void apx_connectionBase_portConnectedHandler(apx_connectionBase_t *self, apx_portDataRef_t *localPortDataRef, apx_portDataRef_t *remotePortDataRef)
+{
+   if (apx_fileManager_isClientMode(&self->fileManager))
+   {
+      apx_portId_t portId = apx_portDataRef_getPortId(localPortDataRef);
+      if (apx_portDataRef_isProvidePortRef(localPortDataRef))
+      {
+         apx_nodeData_incProvidePortConnectionCount(localPortDataRef->nodeData, portId);
+      }
+      else
+      {
+         apx_nodeData_incRequirePortConnectionCount(localPortDataRef->nodeData, portId);
+      }
+   }
+}

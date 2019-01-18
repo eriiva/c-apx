@@ -547,7 +547,7 @@ struct apx_file2_tag *apx_nodeData_getOutPortDataFile(apx_nodeData_t *self)
 }
 
 //Connection count API
-apx_connectionCount_t apx_nodeData_getInPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+apx_connectionCount_t apx_nodeData_getRequirePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
    apx_connectionCount_t retval = 0;
    if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numInPorts) )
@@ -557,7 +557,7 @@ apx_connectionCount_t apx_nodeData_getInPortConnectionCount(apx_nodeData_t *self
    return retval;
 }
 
-apx_connectionCount_t apx_nodeData_getOutPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+apx_connectionCount_t apx_nodeData_getProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
    apx_connectionCount_t retval = 0;
    if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numOutPorts) )
@@ -567,7 +567,7 @@ apx_connectionCount_t apx_nodeData_getOutPortConnectionCount(apx_nodeData_t *sel
    return retval;
 }
 
-void apx_nodeData_incInPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+void apx_nodeData_incRequirePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
    if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numInPorts) )
    {
@@ -578,7 +578,7 @@ void apx_nodeData_incInPortConnectionCount(apx_nodeData_t *self, apx_portId_t po
    }
 }
 
-void apx_nodeData_incOutPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+void apx_nodeData_incProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
    if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numOutPorts) )
    {
@@ -589,7 +589,7 @@ void apx_nodeData_incOutPortConnectionCount(apx_nodeData_t *self, apx_portId_t p
    }
 }
 
-void apx_nodeData_decInPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+void apx_nodeData_decRequirePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
    if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numInPorts) )
    {
@@ -600,7 +600,7 @@ void apx_nodeData_decInPortConnectionCount(apx_nodeData_t *self, apx_portId_t po
    }
 }
 
-void apx_nodeData_decOutPortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
+void apx_nodeData_decProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
    if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numOutPorts) )
    {

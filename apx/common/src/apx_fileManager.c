@@ -232,6 +232,11 @@ bool apx_fileManager_isServerMode(apx_fileManager_t *self)
    return false;
 }
 
+bool apx_fileManager_isClientMode(apx_fileManager_t *self)
+{
+   return !apx_fileManager_isServerMode(self);
+}
+
 int32_t apx_fileManager_processMessage(apx_fileManager_t *self, const uint8_t *msgBuf, int32_t msgLen)
 {
    if (self != 0)

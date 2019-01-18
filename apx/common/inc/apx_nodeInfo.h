@@ -42,7 +42,7 @@ struct apx_parser_tag;
 typedef struct apx_nodeInfo_tag
 {
    apx_node_t *node; //strong reference
-   char *text; //strone reference
+   char *text; //strong reference
    uint32_t textLen;
 }apx_nodeInfo_t;
 

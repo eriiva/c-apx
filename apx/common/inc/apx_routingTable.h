@@ -69,5 +69,6 @@ void apx_routingTable_unlock(apx_routingTable_t *self);
 int32_t apx_routingTable_length(apx_routingTable_t *self);
 void apx_routingTable_attachNodeData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData);
 void apx_routingTable_detachNodeData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData);
+void apx_routingTable_copyInitData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData);
 
 #endif //APX_ROUTING_TABLE_H
