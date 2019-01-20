@@ -32,6 +32,7 @@
 #include "CuTest.h"
 #include "apx_routingTable.h"
 #include "apx_parser.h"
+#include "apx_nodeData.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -39,12 +40,25 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define ERROR_SIZE 15
+static const char *m_node_text1 =
+      "APX/1.2\n"
+      "N\"LocalTestNode1\"\n"
+      "R\"VehicleSpeed\"S:=65535\n"
+      "R\"VehicleMode\"C(0,7):=7\n"
+      "R\"SelectedGear\"C(0,15):=15\n";
+
+static const char *m_node_text2 =
+      "APX/1.2\n"
+      "N\"LocalTestNode1\"\n"
+      "P\"VehicleSpeed\"S:=65535\n"
+      "P\"VehicleMode\"C(0,7):=7\n"
+      "P\"SelectedGear\"C(0,15):=15\n";
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_routingTable_create(CuTest* tc);
+static void test_apx_routingTable_unconnectedRequirePortShallGetDefaultValues(CuTest* tc);
+static void test_apx_routingTable_connectedRequirePortShallGetSenderValues(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -57,7 +71,8 @@ CuSuite* testSuite_apx_routingTable(void)
 {
    CuSuite* suite = CuSuiteNew();
 
-   SUITE_ADD_TEST(suite, test_apx_routingTable_create);
+   SUITE_ADD_TEST(suite, test_apx_routingTable_unconnectedRequirePortShallGetDefaultValues);
+   SUITE_ADD_TEST(suite, test_apx_routingTable_connectedRequirePortShallGetSenderValues);
 
    return suite;
 }
@@ -65,7 +80,51 @@ CuSuite* testSuite_apx_routingTable(void)
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_routingTable_create(CuTest* tc)
+static void test_apx_routingTable_unconnectedRequirePortShallGetDefaultValues(CuTest* tc)
 {
+   uint8_t dataBuf[4] = {0,0,0,0};
+   apx_routingTable_t routingTable;
+   apx_parser_t *parser = apx_parser_new();
+   apx_nodeData_t *nodeData = apx_nodeData_makeFromString(parser, m_node_text1);
+   CuAssertPtrNotNull(tc, nodeData);
+   apx_routingTable_create(&routingTable);
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_createPortDataMap(nodeData, APX_SERVER_MODE));
+   apx_routingTable_attachNodeData(&routingTable, nodeData);
+   CuAssertIntEquals(tc, 4, apx_nodeData_getInPortDataLen(nodeData));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_readInPortData(nodeData, dataBuf, 0, 4));
+   CuAssertUIntEquals(tc, 255, dataBuf[0]);
+   CuAssertUIntEquals(tc, 255, dataBuf[1]);
+   CuAssertUIntEquals(tc, 7, dataBuf[2]);
+   CuAssertUIntEquals(tc, 15, dataBuf[3]);
+   apx_routingTable_destroy(&routingTable);
+   apx_nodeData_delete(nodeData);
+   apx_parser_delete(parser);
+}
 
+static void test_apx_routingTable_connectedRequirePortShallGetSenderValues(CuTest* tc)
+{
+   uint8_t provideDataBuf[4] = {0x12, 0x34, 4, 2};
+   uint8_t requireDataBuf[4] = {0,0,0,0};
+   apx_routingTable_t routingTable;
+   apx_parser_t *parser = apx_parser_new();
+   apx_nodeData_t *destNodeData = apx_nodeData_makeFromString(parser, m_node_text1);
+   apx_nodeData_t *srcNodeData = apx_nodeData_makeFromString(parser, m_node_text2);
+   CuAssertPtrNotNull(tc, destNodeData);
+   CuAssertPtrNotNull(tc, srcNodeData);
+   apx_routingTable_create(&routingTable);
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_createPortDataMap(destNodeData, APX_SERVER_MODE));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_createPortDataMap(srcNodeData, APX_SERVER_MODE));
+   apx_routingTable_attachNodeData(&routingTable, srcNodeData); //attach node with provide ports first
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_writeOutPortData(srcNodeData, &provideDataBuf[0], 0, 4)); //update provide port data
+   apx_routingTable_attachNodeData(&routingTable, destNodeData); //attach node with require ports second, init data should now be copied
+
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_readInPortData(destNodeData, &requireDataBuf[0], 0, 4));
+   CuAssertUIntEquals(tc, provideDataBuf[0], requireDataBuf[0]);
+   CuAssertUIntEquals(tc, provideDataBuf[1], requireDataBuf[1]);
+   CuAssertUIntEquals(tc, provideDataBuf[2], requireDataBuf[2]);
+   CuAssertUIntEquals(tc, provideDataBuf[3], requireDataBuf[3]);
+   apx_routingTable_destroy(&routingTable);
+   apx_nodeData_delete(destNodeData);
+   apx_nodeData_delete(srcNodeData);
+   apx_parser_delete(parser);
 }

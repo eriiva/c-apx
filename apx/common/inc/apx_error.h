@@ -37,6 +37,7 @@
 #define APX_THREAD_CREATE_ERROR       25 //RMF code: 525
 #define APX_MSG_TOO_LONG_ERROR        26 //RMF code: 526
 #define APX_CONNECTION_ERROR          27 //No RMF code (since it doesn't make sense unless you have a valid connection setup)
+#define APX_NULL_PTR_ERROR            28 //RMF code: 528
 
 #define RMF_APX_NO_ERROR                  500
 #define RMF_APX_INVALID_ARGUMENT_ERROR    RMF_APX_NO_ERROR+APX_INVALID_ARGUMENT_ERROR

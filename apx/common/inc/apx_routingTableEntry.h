@@ -60,5 +60,7 @@ void apx_routingTableEntry_vdelete(void *arg);
 void apx_routingTableEntry_attachPortDataRef(apx_routingTableEntry_t *self, apx_portDataRef_t *portDataRef);
 void apx_routingTableEntry_detachPortDataRef(apx_routingTableEntry_t *self, apx_portDataRef_t *portDataRef);
 bool apx_routingTableEntry_isEmpty(apx_routingTableEntry_t *self);
+apx_portDataRef_t *apx_routingTableEntry_getFirstProvider(apx_routingTableEntry_t *self);
+apx_portDataRef_t *apx_routingTableEntry_getLastProvider(apx_routingTableEntry_t *self);
 
 #endif //APX_ROUTING_TABLE_ENTRY_H

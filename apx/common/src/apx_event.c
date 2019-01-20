@@ -1,7 +1,7 @@
 /*****************************************************************************
-* \file      apx_portDataAttributes.c
+* \file      apx_event.c
 * \author    Conny Gustafsson
-* \date      2018-10-08
+* \date      2018-12-16
 * \brief     Description
 *
 * Copyright (c) 2018 Conny Gustafsson
@@ -26,12 +26,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include <malloc.h>
-#include "apx_error.h"
-#include "apx_portDataAttributes.h"
-#ifdef MEM_LEAK_CHECK
-#include "CMemLeak.h"
-#endif
+#include <string.h>
+#include "apx_event.h"
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -48,56 +45,32 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_portDataAttributes_create(apx_portDataAttributes_t *self, apx_portType_t portType, apx_portId_t portId, apx_offset_t offset, apx_size_t dataSize)
+void apx_event_create_serverConnected(apx_event_t *event, struct apx_serverConnectionBase_tag *connection)
 {
-   if (self != 0)
-   {
-      self->portType = portType;
-      self->portId = portId;
-      self->offset = offset;
-      self->dataSize = dataSize;
-      self->totalSize = dataSize;
-      self->dynLenType = APX_DYN_LEN_NONE;
-      self->queLenType = APX_QUE_LEN_NONE;
-      self->maxDynLen = 0;
-      self->maxQueLen = 0;
-   }
+   memset(event, 0, APX_EVENT_SIZE);
+   event->evType = APX_EVENT_SERVER_CONNECTED;
+   event->evData1 = (void*) connection;
 }
 
-apx_portDataAttributes_t *apx_portDataAttributes_new(apx_portType_t portType, apx_portId_t portId, apx_offset_t offset, apx_size_t dataSize)
+void apx_event_create_serverDisconnected(apx_event_t *event, struct apx_serverConnectionBase_tag *connection)
 {
-   apx_portDataAttributes_t *self = (apx_portDataAttributes_t*) malloc(sizeof(apx_portDataAttributes_t));
-   if(self != 0)
-   {
-      apx_portDataAttributes_create(self, portType, portId, offset, dataSize);
-   }
-   else
-   {
-      apx_setError(APX_MEM_ERROR);
-   }
-   return self;
+   memset(event, 0, APX_EVENT_SIZE);
+   event->evType = APX_EVENT_SERVER_DISCONNECTED;
+   event->evData1 = (void*) connection;
 }
 
-void apx_portDataAttributes_delete(apx_portDataAttributes_t *self)
+void apx_event_create_clientConnected(apx_event_t *event, struct apx_clientConnectionBase_tag *connection)
 {
-   if (self != 0)
-   {
-      free(self);
-   }
+   memset(event, 0, APX_EVENT_SIZE);
+   event->evType = APX_EVENT_CLIENT_CONNECTED;
+   event->evData1 = (void*) connection;
 }
 
-void apx_portDataAttributes_vdelete(void *arg)
+void apx_event_create_clientDisconnected(apx_event_t *event, struct apx_clientConnectionBase_tag *connection)
 {
-   apx_portDataAttributes_delete((apx_portDataAttributes_t*) arg);
-}
-
-bool apx_portDataAttributes_isPlainOldData(apx_portDataAttributes_t *self)
-{
-   if ( (self != 0) && (self->dynLenType == APX_DYN_LEN_NONE) && (self->queLenType == APX_QUE_LEN_NONE) )
-   {
-      return true;
-   }
-   return false;
+   memset(event, 0, APX_EVENT_SIZE);
+   event->evType = APX_EVENT_CLIENT_DISCONNECTED;
+   event->evData1 = (void*) connection;
 }
 
 //////////////////////////////////////////////////////////////////////////////

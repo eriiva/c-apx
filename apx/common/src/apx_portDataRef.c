@@ -30,6 +30,7 @@
 #include <string.h>
 #include "apx_error.h"
 #include "apx_portDataRef.h"
+#include "apx_portDataMap.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -49,21 +50,22 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-void apx_portDataRef_create(apx_portDataRef_t *self, struct apx_nodeData_tag *nodeData, apx_uniquePortId_t portId)
+void apx_portDataRef_create(apx_portDataRef_t *self, struct apx_nodeData_tag *nodeData, apx_uniquePortId_t portId, apx_portDataAttributes_t *attributes)
 {
    if (self != 0)
    {
       self->nodeData = nodeData;
       self->portId = portId;
+      self->attributes = attributes;
    }
 }
 
-apx_portDataRef_t *apx_portDataRef_new(struct apx_nodeData_tag *nodedata, apx_uniquePortId_t portId)
+apx_portDataRef_t *apx_portDataRef_new(struct apx_nodeData_tag *nodedata, apx_uniquePortId_t portId, apx_portDataAttributes_t *attributes)
 {
    apx_portDataRef_t *self = (apx_portDataRef_t*) malloc(sizeof(apx_portDataRef_t));
    if(self != 0)
    {
-      apx_portDataRef_create(self, nodedata, portId);
+      apx_portDataRef_create(self, nodedata, portId, attributes);
    }
    else
    {

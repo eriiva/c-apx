@@ -59,5 +59,6 @@ apx_portDataAttributes_t *apx_portDataAttributes_new(apx_portType_t portType, ap
 void apx_portDataAttributes_delete(apx_portDataAttributes_t *self);
 void apx_portDataAttributes_vdelete(void *arg);
 
+bool apx_portDataAttributes_isPlainOldData(apx_portDataAttributes_t *self);
 
 #endif //APX_PORT_DATA_ATTRIBUTES_H

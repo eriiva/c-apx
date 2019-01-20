@@ -294,8 +294,8 @@ static void apx_portDataMap_createRequirePortData(apx_portDataMap_t *self, apx_n
          apx_portDataRef_t *data = &self->requirePortData[portId];
          apx_uniquePortId_t uniquePortId = (uint32_t) portId;
          apx_port_t *port = apx_node_getRequirePort(nodeData->node, portId);
-         apx_portDataRef_create(data, nodeData, uniquePortId);
          offset += apx_portDataMap_createPortDataAttribute(attr, port, portId, offset);
+         apx_portDataRef_create(data, nodeData, uniquePortId, attr);
       }
    }
 }
@@ -312,8 +312,8 @@ static void apx_portDataMap_createProvidePortData(apx_portDataMap_t *self, apx_n
          apx_portDataRef_t *data = &self->providePortData[portId];
          apx_uniquePortId_t uniquePortId = ((uint32_t) portId) | APX_PORT_ID_PROVIDE_PORT;
          apx_port_t *port = apx_node_getProvidePort(nodeData->node, portId);
-         apx_portDataRef_create(data, nodeData, uniquePortId);
          offset += apx_portDataMap_createPortDataAttribute(attr, port, portId, offset);
+         apx_portDataRef_create(data, nodeData, uniquePortId, attr);
       }
    }
 }

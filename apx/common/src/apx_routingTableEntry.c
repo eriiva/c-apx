@@ -32,6 +32,8 @@
 #include "apx_nodeData.h"
 #include "apx_port.h"
 #include "apx_connectionBase.h"
+#include "apx_portDataRef.h"
+#include "apx_portDataMap.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -117,7 +119,12 @@ void apx_routingTableEntry_attachPortDataRef(apx_routingTableEntry_t *self, apx_
       }
       else
       {
+         apx_portDataRef_t *provider = apx_routingTableEntry_getLastProvider(self);
          apx_routingTableEntry_insertRequirePortData(self, portDataRef);
+         if (provider != (apx_portDataRef_t*) 0)
+         {
+            apx_nodeData_updatePortDataDirect(portDataRef->nodeData, portDataRef->attributes, provider->nodeData, provider->attributes);
+         }
          apx_routingTableEntry_notifyAllProvidePorts(self, portDataRef);
       }
    }
@@ -147,7 +154,26 @@ bool apx_routingTableEntry_isEmpty(apx_routingTableEntry_t *self)
    return false;
 }
 
+/**
+ * Returns the PortDataRef for the first connected provider or NULL in case no providers are connected
+ */
+apx_portDataRef_t *apx_routingTableEntry_getFirstProvider(apx_routingTableEntry_t *self)
+{
+   if (self != 0)
+   {
+      return (apx_portDataRef_t*) adt_list_first(&self->providePortRef);
+   }
+   return (apx_portDataRef_t*) 0;
+}
 
+apx_portDataRef_t *apx_routingTableEntry_getLastProvider(apx_routingTableEntry_t *self)
+{
+   if (self != 0)
+   {
+      return (apx_portDataRef_t*) adt_list_last(&self->providePortRef);
+   }
+   return (apx_portDataRef_t*) 0;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
@@ -157,6 +183,7 @@ static void apx_routingTableEntry_insertRequirePortData(apx_routingTableEntry_t 
    if ((self != 0) && (portData != 0))
    {
       adt_list_insert(&self->requirePortRef, portData);
+
    }
 }
 
@@ -196,8 +223,14 @@ static void apx_routingTableEntry_notifyAllRequirePorts(apx_routingTableEntry_t 
          apx_connectionBase_t *requirePortConnection;
          apx_portDataRef_t *requirePortDataRef = (apx_portDataRef_t*) iter->pItem;
          requirePortConnection = apx_nodeData_getConnection(requirePortDataRef->nodeData);
-         apx_connectionBase_emitNodePortConnectedEvent(providePortConnection, providePortDataRef, requirePortDataRef);
-         apx_connectionBase_emitNodePortConnectedEvent(requirePortConnection, requirePortDataRef, providePortDataRef);
+         if (providePortConnection != 0)
+         {
+            apx_connectionBase_emitNodePortConnectedEvent(providePortConnection, providePortDataRef, requirePortDataRef);
+         }
+         if (requirePortConnection != 0)
+         {
+            apx_connectionBase_emitNodePortConnectedEvent(requirePortConnection, requirePortDataRef, providePortDataRef);
+         }
       }
    }
 }
@@ -214,8 +247,14 @@ static void apx_routingTableEntry_notifyAllProvidePorts(apx_routingTableEntry_t 
          apx_connectionBase_t *providePortConnection;
          apx_portDataRef_t *providePortDataRef = (apx_portDataRef_t*) iter->pItem;
          providePortConnection = apx_nodeData_getConnection(providePortDataRef->nodeData);
-         apx_connectionBase_emitNodePortConnectedEvent(providePortConnection, providePortDataRef, requirePortDataRef);
-         apx_connectionBase_emitNodePortConnectedEvent(requirePortConnection, requirePortDataRef, providePortDataRef);
+         if (providePortConnection != 0)
+         {
+            apx_connectionBase_emitNodePortConnectedEvent(providePortConnection, providePortDataRef, requirePortDataRef);
+         }
+         if (requirePortConnection != 0)
+         {
+            apx_connectionBase_emitNodePortConnectedEvent(requirePortConnection, requirePortDataRef, providePortDataRef);
+         }
       }
    }
 }

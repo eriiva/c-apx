@@ -86,6 +86,10 @@ static void test_create_apx_portTriggerListFromNode1(CuTest* tc)
    CuAssertPtrNotNull(tc, nodeData4);
    nodeData5 = apx_nodeData_makeFromString(&parser, g_apx_test_node5);
    CuAssertPtrNotNull(tc, nodeData5);
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_createPortDataMap(nodeData1, APX_SERVER_MODE ));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_createPortDataMap(nodeData3, APX_SERVER_MODE ));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_createPortDataMap(nodeData4, APX_SERVER_MODE ));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_nodeData_createPortDataMap(nodeData5, APX_SERVER_MODE ));
    apx_parser_destroy(&parser);
    apx_portTriggerList_create(&triggerList);
    portData3 = apx_portDataMap_getRequirePortData(apx_nodeData_getPortDataMap(nodeData3), 0);
