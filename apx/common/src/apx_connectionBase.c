@@ -282,11 +282,6 @@ void apx_connectionBase_defaultEventHandler(apx_connectionBase_t *self, apx_even
       apx_portDataRef_t *remotePortDataRef;
       switch(event->evType)
       {
-      case APX_EVENT_NODE_PORT_CONNECTED:
-         localPortDataRef = (apx_portDataRef_t*) event->evData1;
-         remotePortDataRef = (apx_portDataRef_t*) event->evData2;
-         apx_connectionBase_portConnectedHandler(self, localPortDataRef, remotePortDataRef);
-         break;
       case APX_EVENT_NODE_COMPLETE:
          printf("Node complete!\n");
          break;

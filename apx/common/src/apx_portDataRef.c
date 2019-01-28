@@ -97,7 +97,7 @@ void apx_portDataRef_createPortConnectedEvent(apx_event_t *event, apx_portDataRe
    if (event != 0)
    {
       memset(event, 0, APX_EVENT_SIZE);
-      event->evType = APX_EVENT_NODE_PORT_CONNECTED;
+      event->evType = APX_EVENT_PORT_CONNECTED;
       event->evData1 = (void*) localPortDataRef;
       event->evData2 = (void*) remotePortDataRef;
    }

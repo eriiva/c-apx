@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_routingTable.h
+* \file      apx_portConnectionEntry.h
 * \author    Conny Gustafsson
-* \date      2018-10-08
-* \brief     Global map of all port data elements
+* \date      2019-01-23
+* \brief     APX port connection information (for one port)
 *
-* Copyright (c) 2018 Conny Gustafsson
+* Copyright (c) 2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -23,54 +23,35 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_ROUTING_TABLE_H
-#define APX_ROUTING_TABLE_H
+#ifndef APX_PORT_CONNECTION_ENTRY_H
+#define APX_PORT_CONNECTION_ENTRY_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "adt_hash.h"
-#include "adt_list.h"
 #include "apx_types.h"
+#include "apx_portDataRef.h"
 #include "apx_error.h"
-#include "apx_routingTableEntry.h"
-#ifdef _WIN32
-# ifndef WIN32_LEAN_AND_MEAN
-# define WIN32_LEAN_AND_MEAN
-# endif
-# include <Windows.h>
-#else
-# include <pthread.h>
-#endif
-#include "osmacro.h"
-
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-//Forward declarations
-struct apx_nodeData_tag;
-typedef struct apx_routingTable_tag
+typedef struct apx_portConnectionEntry_tag
 {
-   adt_hash_t internalMap; //strong references to apx_routingTableEntry_t
-   adt_list_t connectEvents; //
-   MUTEX_T mutex; //modification lock
-}apx_routingTable_t;
+   int32_t count; //initial value is 0
+   void *pAny; //if count == 0: typeof(pAny) is NULL; else if (count == 1) || (count == -1) : typeof(pAny) is apx_portDataRef_t*; else typeof(pAny) is adt_ary_t* containing apx_portDataRef_t*
+   //All references to apx_portDataRef_t are weak references
+} apx_portConnectionEntry_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_routingTable_create(apx_routingTable_t *self);
-void apx_routingTable_destroy(apx_routingTable_t *self);
-apx_routingTableEntry_t *apx_routingTable_insert(apx_routingTable_t *self, const char *portSignature);
-apx_routingTableEntry_t *apx_routingTable_findNoLock(apx_routingTable_t *self, const char *portSignature);
-apx_routingTableEntry_t *apx_routingTable_find(apx_routingTable_t *self, const char *portSignature);
-apx_error_t apx_routingTable_remove(apx_routingTable_t *self, const char *portSignature);
-void apx_routingTable_lock(apx_routingTable_t *self);
-void apx_routingTable_unlock(apx_routingTable_t *self);
-int32_t apx_routingTable_length(apx_routingTable_t *self);
-void apx_routingTable_attachNodeData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData);
-void apx_routingTable_detachNodeData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData);
-void apx_routingTable_copyInitData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData);
+void apx_portConnectionEntry_create(apx_portConnectionEntry_t *self);
+void apx_portConnectionEntry_destroy(apx_portConnectionEntry_t *self);
+apx_portConnectionEntry_t *apx_portConnectionEntry_new(void);
+void apx_portConnectionEntry_delete(apx_portConnectionEntry_t *self);
+apx_error_t apx_portConnectionEntry_addConnection(apx_portConnectionEntry_t *self, apx_portDataRef_t *portDataRef);
+apx_error_t apx_portConnectionEntry_removeConnection(apx_portConnectionEntry_t *self, apx_portDataRef_t *portDataRef);
+apx_portDataRef_t *apx_portConnectionEntry_get(apx_portConnectionEntry_t *self, int32_t index);
 
-#endif //APX_ROUTING_TABLE_H
+#endif //APX_PORT_CONNECTION_ENTRY_H
