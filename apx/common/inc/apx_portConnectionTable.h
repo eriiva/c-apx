@@ -1,8 +1,8 @@
 /*****************************************************************************
-* \file      apx_portConnectionEntry.h
+* \file      apx_portConnectionTable.h
 * \author    Conny Gustafsson
-* \date      2019-01-23
-* \brief     APX port connection information (for one port)
+* \date      2018-01-31
+* \brief     Description
 *
 * Copyright (c) 2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -23,36 +23,43 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_PORT_CONNECTION_ENTRY_H
-#define APX_PORT_CONNECTION_ENTRY_H
+#ifndef APX_PORT_CONNECTION_TABLE_H
+#define APX_PORT_CONNECTION_TABLE_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_types.h"
-#include "apx_portDataRef.h"
 #include "apx_error.h"
+#include "apx_portConnectionTable.h"
+#include "apx_portConnectionEntry.h"
+#include "adt_ary.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-typedef struct apx_portConnectionEntry_tag
+typedef struct apx_portConnectionTable_tag
 {
-   int32_t count; //initial value is 0. When in negative range it holds port disconnect info. When in positive range it holds port connect info.
-   void *pAny; //if count == 0: typeof(pAny) is NULL; else if (count == 1) || (count == -1) : typeof(pAny) is apx_portDataRef_t*; else typeof(pAny) is adt_ary_t* containing apx_portDataRef_t*
-   //All references to apx_portDataRef_t are weak references
-} apx_portConnectionEntry_t;
+   apx_portConnectionEntry_t *connections; //strong references to apx_portConnectionEntry_t
+   int32_t numPorts;
+} apx_portConnectionTable_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-void apx_portConnectionEntry_create(apx_portConnectionEntry_t *self);
-void apx_portConnectionEntry_destroy(apx_portConnectionEntry_t *self);
-apx_portConnectionEntry_t *apx_portConnectionEntry_new(void);
-void apx_portConnectionEntry_delete(apx_portConnectionEntry_t *self);
-apx_error_t apx_portConnectionEntry_addConnection(apx_portConnectionEntry_t *self, apx_portDataRef_t *portDataRef);
-apx_error_t apx_portConnectionEntry_removeConnection(apx_portConnectionEntry_t *self, apx_portDataRef_t *portDataRef);
-apx_portDataRef_t *apx_portConnectionEntry_get(apx_portConnectionEntry_t *self, int32_t index);
-int32_t apx_portConnectionEntry_count(apx_portConnectionEntry_t *self);
+apx_error_t apx_portConnectionTable_create(apx_portConnectionTable_t *self, int32_t numPorts);
+void apx_portConnectionTable_destroy(apx_portConnectionTable_t *self);
+apx_portConnectionTable_t *apx_portConnectionTable_new(int32_t numPorts);
+void apx_portConnectionTable_delete(apx_portConnectionTable_t *self);
 
-#endif //APX_PORT_CONNECTION_ENTRY_H
+apx_error_t apx_portConnectionTable_connect(apx_portConnectionTable_t *self, apx_portDataRef_t *localRef, apx_portDataRef_t *remoteRef);
+apx_error_t apx_portConnectionTable_disconnect(apx_portConnectionTable_t *self, apx_portDataRef_t *localRef, apx_portDataRef_t *remoteRef);
+/*
+apx_error_t apx_portConnectionTable_addConnection(apx_portConnectionTable_t *self, apx_portId_t portId, apx_portDataRef_t *portDataRef);
+apx_error_t apx_portConnectionTable_removeConnection(apx_portConnectionTable_t *self, apx_portId_t portId, apx_portDataRef_t *portDataRef);
+*/
+apx_portConnectionEntry_t *apx_portConnectionTable_getEntry(apx_portConnectionTable_t *self, apx_portId_t portId);
+apx_portDataRef_t *apx_portConnectionTable_getRef(apx_portConnectionTable_t *self, apx_portId_t portId, int32_t index);
+int32_t apx_portConnectionTable_count(apx_portConnectionTable_t *self, apx_portId_t portId);
+
+
+#endif //APX_PORT_CONNECTION_TABLE_H

@@ -93,6 +93,9 @@ void apx_portConnectionEntry_delete(apx_portConnectionEntry_t *self)
    }
 }
 
+/**
+ * Adds port connect information to an entry
+ */
 apx_error_t apx_portConnectionEntry_addConnection(apx_portConnectionEntry_t *self, apx_portDataRef_t *portDataRef)
 {
    if (self != 0)
@@ -100,7 +103,7 @@ apx_error_t apx_portConnectionEntry_addConnection(apx_portConnectionEntry_t *sel
       apx_error_t retval = APX_NO_ERROR;
       if (self->count < 0)
       {
-         retval = APX_UNSUPPORTED_ERROR; //cannot add connections to an entry containing disconnect information
+         retval = APX_UNSUPPORTED_ERROR; //cannot add port connect event to an entry already containing port disconnect events
       }
       else if (self->count == 0)
       {
@@ -138,7 +141,53 @@ apx_error_t apx_portConnectionEntry_addConnection(apx_portConnectionEntry_t *sel
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
-apx_error_t apx_portConnectionEntry_removeConnection(apx_portConnectionEntry_t *self, apx_portDataRef_t *portDataRef);
+/**
+ * Adds port connect information to an entry
+ */
+apx_error_t apx_portConnectionEntry_removeConnection(apx_portConnectionEntry_t *self, apx_portDataRef_t *portDataRef)
+{
+   if (self != 0)
+   {
+      apx_error_t retval = APX_NO_ERROR;
+      if (self->count > 0)
+      {
+         retval = APX_UNSUPPORTED_ERROR; //cannot add port disconnect event to an entry already containing port connect events
+      }
+      else if (self->count == 0)
+      {
+         self->pAny = (void*) portDataRef;
+      }
+      else if (self->count == -1)
+      {
+         //convert single entry into an array of entries
+         void *tmp = self->pAny;
+         self->pAny = adt_ary_new((void(*)(void*)) 0);
+         if (self->pAny == 0)
+         {
+            retval = APX_MEM_ERROR;
+         }
+         else
+         {
+            retval = (apx_error_t) adt_ary_push( (adt_ary_t*) self->pAny, tmp);
+            if (retval == APX_NO_ERROR)
+            {
+               retval = (apx_error_t) adt_ary_push( (adt_ary_t*) self->pAny, portDataRef);
+            }
+         }
+      }
+      else
+      {
+         retval = (apx_error_t) adt_ary_push( (adt_ary_t*) self->pAny, portDataRef);
+      }
+
+      if (retval == APX_NO_ERROR)
+      {
+         self->count--;
+      }
+      return retval;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
 
 apx_portDataRef_t *apx_portConnectionEntry_get(apx_portConnectionEntry_t *self, int32_t index)
 {
@@ -162,6 +211,15 @@ apx_portDataRef_t *apx_portConnectionEntry_get(apx_portConnectionEntry_t *self, 
       }
    }
    return retval;
+}
+
+int32_t apx_portConnectionEntry_count(apx_portConnectionEntry_t *self)
+{
+   if (self != 0)
+   {
+      return self->count;
+   }
+   return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////////

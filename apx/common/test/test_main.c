@@ -37,6 +37,7 @@ CuSuite* testSuite_apx_compiler(void);
 CuSuite* testSuite_apx_nodeInfo(void);
 CuSuite* testSuite_apx_routingTable(void);
 CuSuite* testSuite_apx_portConnectionEntry(void);
+CuSuite* testSuite_apx_portConnectionTable(void);
 
 //util
 CuSuite* testsuite_pack(void);
@@ -91,6 +92,7 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testSuite_apx_nodeInfo());
    CuSuiteAddSuite(suite, testSuite_apx_routingTable());
    CuSuiteAddSuite(suite, testSuite_apx_portConnectionEntry());
+   CuSuiteAddSuite(suite, testSuite_apx_portConnectionTable());
 
 
    CuSuiteRun(suite);

@@ -34,6 +34,7 @@ struct apx_es_fileManager_tag;
 #else
 struct apx_fileManager_tag;
 struct apx_portDataMap_tag;
+
 #endif
 struct apx_node_tag;
 struct apx_parser_tag;
@@ -87,6 +88,7 @@ typedef struct apx_nodeData_tag
    struct apx_node_tag *node;
    struct apx_portDataMap_tag *portDataMap; //contains internal information about the ports in this node such as offsets and data lengths
    struct apx_connectionBase_tag *connection;
+
 #endif
    struct apx_file2_tag *definitionFile;
    struct apx_file2_tag *outPortDataFile;
