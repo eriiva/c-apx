@@ -19,6 +19,7 @@ typedef uint8_t apx_dynLenType_t; //APX_DYN_LEN_NONE, APX_DYN_LEN_U8, APX_DYN_LE
 typedef uint8_t apx_queLenType_t; //APX_QUE_LEN_NONE, APX_QUE_LEN_U8, APX_QUE_LEN_U16, APX_QUE_LEN_U32
 typedef APX_CONNECTION_COUNT_TYPE apx_connectionCount_t;
 typedef uint8_t apx_mode_t; //APX_NO_MODE, APX_CLIENT_MODE, APX_SERVER_MODE
+typedef uint16_t apx_eventId_t;
 
 
 typedef struct apx_dataWriteCmd_tag

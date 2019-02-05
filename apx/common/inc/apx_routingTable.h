@@ -53,7 +53,7 @@ struct apx_nodeData_tag;
 typedef struct apx_routingTable_tag
 {
    adt_hash_t internalMap; //strong references to apx_routingTableEntry_t
-   adt_list_t connectEvents; //
+   adt_list_t attachedNodes; //weak references to nodeData_t
    MUTEX_T mutex; //modification lock
 }apx_routingTable_t;
 
@@ -62,12 +62,8 @@ typedef struct apx_routingTable_tag
 //////////////////////////////////////////////////////////////////////////////
 void apx_routingTable_create(apx_routingTable_t *self);
 void apx_routingTable_destroy(apx_routingTable_t *self);
-apx_routingTableEntry_t *apx_routingTable_insert(apx_routingTable_t *self, const char *portSignature);
-apx_routingTableEntry_t *apx_routingTable_findNoLock(apx_routingTable_t *self, const char *portSignature);
+
 apx_routingTableEntry_t *apx_routingTable_find(apx_routingTable_t *self, const char *portSignature);
-apx_error_t apx_routingTable_remove(apx_routingTable_t *self, const char *portSignature);
-void apx_routingTable_lock(apx_routingTable_t *self);
-void apx_routingTable_unlock(apx_routingTable_t *self);
 int32_t apx_routingTable_length(apx_routingTable_t *self);
 void apx_routingTable_attachNodeData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData);
 void apx_routingTable_detachNodeData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData);

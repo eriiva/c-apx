@@ -92,17 +92,6 @@ bool apx_portDataRef_isProvidePortRef(apx_portDataRef_t *self)
    return ( (self != 0) && ( (self->portId & APX_PORT_ID_PROVIDE_PORT) != 0u ) );
 }
 
-void apx_portDataRef_createPortConnectedEvent(apx_event_t *event, apx_portDataRef_t *localPortDataRef, apx_portDataRef_t *remotePortDataRef)
-{
-   if (event != 0)
-   {
-      memset(event, 0, APX_EVENT_SIZE);
-      event->evType = APX_EVENT_PORT_CONNECTED;
-      event->evData1 = (void*) localPortDataRef;
-      event->evData2 = (void*) remotePortDataRef;
-   }
-}
-
 apx_portId_t apx_portDataRef_getPortId(apx_portDataRef_t *self)
 {
    if (self != 0)

@@ -17,6 +17,7 @@
 #include "apx_portDataMap.h"
 #include "apx_parser.h"
 #include "apx_connectionBase.h"
+#include "apx_portConnectionTable.h"
 #endif
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
@@ -78,8 +79,8 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       self->outPortConnectionCount = (apx_connectionCount_t*) 0;
       self->inPortConnectionCountTotal = 0u;
       self->outPortConnectionCountTotal = 0u;
-      self->numInPorts = 0;
-      self->numOutPorts = 0;
+      self->numRequirePorts = 0;
+      self->numProvidePorts = 0;
       self->outPortDataFile = (apx_file2_t*) 0;
       self->inPortDataFile = (apx_file2_t*) 0;
       self->definitionFile = (apx_file2_t*) 0;
@@ -101,6 +102,8 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       self->fileManager = (apx_fileManager_t*) 0;
       self->node = (apx_node_t*) 0;
       self->connection = (apx_connectionBase_t*) 0;
+      self->requirePortConnections = (apx_portConnectionTable_t*) 0;
+      self->providePortConnections = (apx_portConnectionTable_t*) 0;
 #endif
    }
 }
@@ -135,6 +138,16 @@ void apx_nodeData_destroy(apx_nodeData_t *self)
       if ( self->node != 0)
       {
          apx_node_delete(self->node);
+      }
+      if (self->requirePortConnections != 0)
+      {
+         apx_portConnectionTable_delete(self->requirePortConnections);
+         self->requirePortConnections = (apx_portConnectionTable_t*) 0;
+      }
+      if (self->providePortConnections != 0)
+      {
+         apx_portConnectionTable_delete(self->providePortConnections);
+         self->providePortConnections = (apx_portConnectionTable_t*) 0;
       }
 #endif
    }
@@ -543,7 +556,7 @@ struct apx_file2_tag *apx_nodeData_getOutPortDataFile(apx_nodeData_t *self)
 apx_connectionCount_t apx_nodeData_getRequirePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
    apx_connectionCount_t retval = 0;
-   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numInPorts) )
+   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numRequirePorts) )
    {
       retval = self->inPortConnectionCount[portId];
    }
@@ -553,7 +566,7 @@ apx_connectionCount_t apx_nodeData_getRequirePortConnectionCount(apx_nodeData_t 
 apx_connectionCount_t apx_nodeData_getProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
    apx_connectionCount_t retval = 0;
-   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numOutPorts) )
+   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numProvidePorts) )
    {
       retval = self->outPortConnectionCount[portId];
    }
@@ -562,7 +575,7 @@ apx_connectionCount_t apx_nodeData_getProvidePortConnectionCount(apx_nodeData_t 
 
 void apx_nodeData_incRequirePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
-   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numInPorts) )
+   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numRequirePorts) )
    {
       if (self->inPortConnectionCount[portId] < APX_CONNECTION_COUNT_MAX)
       {
@@ -573,7 +586,7 @@ void apx_nodeData_incRequirePortConnectionCount(apx_nodeData_t *self, apx_portId
 
 void apx_nodeData_incProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
-   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numOutPorts) )
+   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numProvidePorts) )
    {
       if (self->outPortConnectionCount[portId] < APX_CONNECTION_COUNT_MAX)
       {
@@ -584,7 +597,7 @@ void apx_nodeData_incProvidePortConnectionCount(apx_nodeData_t *self, apx_portId
 
 void apx_nodeData_decRequirePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
-   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numInPorts) )
+   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numRequirePorts) )
    {
       if (self->inPortConnectionCount[portId] > 0u)
       {
@@ -595,7 +608,7 @@ void apx_nodeData_decRequirePortConnectionCount(apx_nodeData_t *self, apx_portId
 
 void apx_nodeData_decProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
-   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numOutPorts) )
+   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numProvidePorts) )
    {
       if (self->outPortConnectionCount[portId] > 0u)
       {
@@ -683,7 +696,7 @@ apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
          int32_t numProvidePorts = apx_node_getNumProvidePorts(self->node);
          assert(numProvidePorts > 0);
          size_t connectionCountSize = sizeof(apx_connectionCount_t)*numProvidePorts;
-         self->numOutPorts = numProvidePorts;
+         self->numProvidePorts = numProvidePorts;
          self->outPortDataBuf = (uint8_t*) malloc(self->outPortDataLen);
          self->outPortDirtyFlags = (uint8_t*) malloc(self->outPortDataLen);
          self->outPortConnectionCount = (apx_connectionCount_t*) malloc(connectionCountSize);
@@ -706,7 +719,7 @@ apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
          int32_t numRequirePorts = apx_node_getNumRequirePorts(self->node);
          assert(numRequirePorts > 0);
          size_t connectionCountSize = sizeof(apx_connectionCount_t)*numRequirePorts;
-         self->numInPorts = numRequirePorts;
+         self->numRequirePorts = numRequirePorts;
          self->inPortDataBuf = (uint8_t*) malloc(self->inPortDataLen);
          self->inPortDirtyFlags = (uint8_t*) malloc(self->inPortDataLen);
          self->inPortConnectionCount = (apx_connectionCount_t*) malloc(connectionCountSize);
@@ -861,6 +874,33 @@ struct apx_connectionBase_tag* apx_nodeData_getConnection(apx_nodeData_t *self)
    return (struct apx_connectionBase_tag*) 0;
 }
 
+struct apx_portConnectionTable_tag* apx_nodeData_getRequirePortConnections(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      if (self->requirePortConnections == 0)
+      {
+         self->requirePortConnections = apx_portConnectionTable_new(self->numRequirePorts);
+      }
+      return self->requirePortConnections;
+   }
+   return (apx_portConnectionTable_t*) 0;
+}
+
+struct apx_portConnectionTable_tag* apx_nodeData_getProvidePortConnections(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      if (self->providePortConnections == 0)
+      {
+         self->providePortConnections = apx_portConnectionTable_new(self->numProvidePorts);
+      }
+      return self->providePortConnections;
+   }
+   return (apx_portConnectionTable_t*) 0;
+}
+
+
 /**
  * Returns true when these criteria are met:
  * 1. The <node>.apx file has been received (or found in cache) and successfully parsed
@@ -934,7 +974,7 @@ apx_error_t apx_nodeData_updatePortDataDirect(apx_nodeData_t *destNodeData, stru
  */
 apx_error_t apx_nodeData_updatePortDataDirectById(apx_nodeData_t *destNodeData, apx_portId_t destPortId, apx_nodeData_t *srcNodeData, apx_portId_t srcPortId)
 {
-   if ( (destNodeData != 0) && (destPortId >= 0) && (destPortId<destNodeData->numInPorts) && (srcNodeData != 0) && (srcPortId >= 0) && (srcPortId<srcNodeData->numOutPorts) )
+   if ( (destNodeData != 0) && (destPortId >= 0) && (destPortId<destNodeData->numRequirePorts) && (srcNodeData != 0) && (srcPortId >= 0) && (srcPortId<srcNodeData->numProvidePorts) )
    {
       if ( (destNodeData->portDataMap == 0) || (srcNodeData->portDataMap == 0))
       {

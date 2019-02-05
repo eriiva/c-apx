@@ -30,7 +30,11 @@
 #include "apx_routingTable.h"
 #include "apx_nodeData.h"
 #include "apx_node.h"
+#include "apx_connectionBase.h"
+#include "apx_portConnectionTable.h"
+#include "apx_event.h"
 #include <assert.h>
+#include <string.h>
 #include <stdio.h> //DEBUG ONLY
 
 //////////////////////////////////////////////////////////////////////////////
@@ -45,6 +49,11 @@ static void apx_routingTable_attachPort(apx_routingTable_t *self, apx_nodeData_t
 static void apx_routingTable_detachPort(apx_routingTable_t *self, apx_nodeData_t *nodeData, apx_port_t *port);
 static apx_routingTableEntry_t *apx_routingTable_createNewEntry(apx_routingTable_t *self, const char *portSignature);
 static apx_portDataRef_t *apx_routingTable_getPortDataRef(apx_nodeData_t *nodeData, apx_port_t *port);
+static apx_routingTableEntry_t *apx_routingTable_findNoLock(apx_routingTable_t *self, const char *portSignature);
+static apx_error_t apx_routingTable_remove(apx_routingTable_t *self, const char *portSignature);
+static void apx_routingTable_lock(apx_routingTable_t *self);
+static void apx_routingTable_unlock(apx_routingTable_t *self);
+static void apx_routingTable_emitPortEvents(apx_routingTable_t *self, apx_eventId_t initialEventId);
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL VARIABLES
@@ -60,6 +69,7 @@ void apx_routingTable_create(apx_routingTable_t *self)
    if (self != 0)
    {
       adt_hash_create(&self->internalMap, apx_routingTableEntry_vdelete);
+      adt_list_create(&self->attachedNodes, (void(*)(void*)) 0 );
       MUTEX_INIT(self->mutex);
    }
 }
@@ -70,40 +80,12 @@ void apx_routingTable_destroy(apx_routingTable_t *self)
    {
       MUTEX_LOCK(self->mutex);
       adt_hash_destroy(&self->internalMap);
+      adt_list_destroy(&self->attachedNodes);
       MUTEX_UNLOCK(self->mutex);
       MUTEX_DESTROY(self->mutex);
    }
 }
 
-apx_routingTableEntry_t *apx_routingTable_insert(apx_routingTable_t *self, const char *portSignature)
-{
-   if ( (self != 0) && (portSignature != 0) )
-   {
-      apx_routingTableEntry_t *entry = apx_routingTableEntry_new(portSignature);
-      if (entry != 0)
-      {
-         adt_hash_set(&self->internalMap, portSignature, entry);
-      }
-      return entry;
-   }
-   return (apx_routingTableEntry_t*) 0;
-}
-
-/**
- * Finds an entry in the routing table. Caller must have locked the resource before making this call by using apx_routingTable_lock
- */
-apx_routingTableEntry_t *apx_routingTable_findNoLock(apx_routingTable_t *self, const char *portSignature)
-{
-   if ( (self != 0) && (portSignature != 0) )
-   {
-      void **ppResult = adt_hash_get(&self->internalMap, portSignature);
-      if (ppResult != 0)
-      {
-         return (apx_routingTableEntry_t*) *ppResult;
-      }
-   }
-   return (apx_routingTableEntry_t*) 0;
-}
 
 /**
  * Identical to apx_routingTable_find but manages locking/unlocking automatically
@@ -121,36 +103,6 @@ apx_routingTableEntry_t *apx_routingTable_find(apx_routingTable_t *self, const c
    return (apx_routingTableEntry_t*) 0;
 }
 
-apx_error_t apx_routingTable_remove(apx_routingTable_t *self, const char *portSignature)
-{
-   if ( (self != 0) && (portSignature != 0) )
-   {
-      apx_routingTableEntry_t *entry = (apx_routingTableEntry_t*) adt_hash_remove(&self->internalMap, portSignature);
-      if (entry != 0)
-      {
-         apx_routingTableEntry_delete(entry);
-         return APX_NO_ERROR;
-      }
-      return APX_NOT_FOUND_ERROR;
-   }
-   return APX_INVALID_ARGUMENT_ERROR;
-}
-
-void apx_routingTable_lock(apx_routingTable_t *self)
-{
-   if (self != 0)
-   {
-      MUTEX_LOCK(self->mutex);
-   }
-}
-
-void apx_routingTable_unlock(apx_routingTable_t *self)
-{
-   if (self != 0)
-   {
-      MUTEX_UNLOCK(self->mutex);
-   }
-}
 
 int32_t apx_routingTable_length(apx_routingTable_t *self)
 {
@@ -174,6 +126,7 @@ void apx_routingTable_attachNodeData(apx_routingTable_t *self, struct apx_nodeDa
          numRequirePorts = apx_node_getNumRequirePorts(node);
          numProvidePorts = apx_node_getNumProvidePorts(node);
          apx_routingTable_lock(self);
+         adt_list_insert_unique(&self->attachedNodes, nodeData);
          for (portId = 0; portId<numRequirePorts; portId++)
          {
             apx_port_t *port = apx_node_getRequirePort(node, portId);
@@ -184,6 +137,7 @@ void apx_routingTable_attachNodeData(apx_routingTable_t *self, struct apx_nodeDa
             apx_port_t *port = apx_node_getProvidePort(node, portId);
             apx_routingTable_attachPort(self, nodeData, port);
          }
+         apx_routingTable_emitPortEvents(self, APX_EVENT_REQUIRE_PORT_CONNECT);
          apx_routingTable_unlock(self);
       }
    }
@@ -202,6 +156,7 @@ void apx_routingTable_detachNodeData(apx_routingTable_t *self, struct apx_nodeDa
          numRequirePorts = apx_node_getNumRequirePorts(node);
          numProvidePorts = apx_node_getNumProvidePorts(node);
          apx_routingTable_lock(self);
+         adt_list_remove(&self->attachedNodes, nodeData); //remove first, we don't want to trigger any events on this any more since it's about to close down
          for (portId = 0; portId<numRequirePorts; portId++)
          {
             apx_port_t *port = apx_node_getRequirePort(node, portId);
@@ -290,3 +245,86 @@ static apx_portDataRef_t *apx_routingTable_getPortDataRef(apx_nodeData_t *nodeDa
    return retval;
 }
 
+/**
+ * Finds an entry in the routing table. Caller must have locked the resource before making this call by using apx_routingTable_lock
+ */
+static apx_routingTableEntry_t *apx_routingTable_findNoLock(apx_routingTable_t *self, const char *portSignature)
+{
+   if ( (self != 0) && (portSignature != 0) )
+   {
+      void **ppResult = adt_hash_get(&self->internalMap, portSignature);
+      if (ppResult != 0)
+      {
+         return (apx_routingTableEntry_t*) *ppResult;
+      }
+   }
+   return (apx_routingTableEntry_t*) 0;
+}
+
+static apx_error_t apx_routingTable_remove(apx_routingTable_t *self, const char *portSignature)
+{
+   if ( (self != 0) && (portSignature != 0) )
+   {
+      apx_routingTableEntry_t *entry = (apx_routingTableEntry_t*) adt_hash_remove(&self->internalMap, portSignature);
+      if (entry != 0)
+      {
+         apx_routingTableEntry_delete(entry);
+         return APX_NO_ERROR;
+      }
+      return APX_NOT_FOUND_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+static void apx_routingTable_lock(apx_routingTable_t *self)
+{
+   if (self != 0)
+   {
+      MUTEX_LOCK(self->mutex);
+   }
+}
+
+static void apx_routingTable_unlock(apx_routingTable_t *self)
+{
+   if (self != 0)
+   {
+      MUTEX_UNLOCK(self->mutex);
+   }
+}
+
+static void apx_routingTable_emitPortEvents(apx_routingTable_t *self, apx_eventId_t initialEventId)
+{
+   if ( (initialEventId == APX_EVENT_REQUIRE_PORT_CONNECT) || (initialEventId == APX_EVENT_REQUIRE_PORT_DISCONNECT))
+   {
+      adt_list_elem_t *iter;
+      apx_event_t event;
+      memset(&event, 0, sizeof(event));
+      for(iter = adt_list_iter_first(&self->attachedNodes); iter != 0; iter = adt_list_iter_next(iter))
+      {
+         apx_connectionBase_t *connection;
+         apx_nodeData_t *nodeData = (apx_nodeData_t*) iter->pItem;
+         connection = apx_nodeData_getConnection(nodeData);
+         if (connection != 0)
+         {
+            apx_portConnectionTable_t *connectionTable;
+            event.evType = initialEventId;
+            event.evData1 = (void*) nodeData;
+            connectionTable = nodeData->requirePortConnections;
+            if (connectionTable != 0)
+            {
+               event.evData2 = (void*) connectionTable;
+               apx_connectionBase_emitGenericEvent(connection, &event);
+               nodeData->requirePortConnections = (apx_portConnectionTable_t*) 0; //The event loop now owns the object and needs to delete it
+            }
+            event.evType++;
+            connectionTable = nodeData->providePortConnections;
+            if (connectionTable != 0)
+            {
+               event.evData2 = (void*) connectionTable;
+               apx_connectionBase_emitGenericEvent(connection, &event);
+               nodeData->providePortConnections = (apx_portConnectionTable_t*) 0; //The event loop now owns the object and needs to delete it
+            }
+         }
+      }
+   }
+}

@@ -61,6 +61,5 @@ void apx_portDataRef_delete(apx_portDataRef_t *self);
 void apx_portDataRef_vdelete(void *arg);
 bool apx_portDataRef_isProvidePortRef(apx_portDataRef_t *self);
 apx_portId_t apx_portDataRef_getPortId(apx_portDataRef_t *self);
-void apx_portDataRef_createPortConnectedEvent(apx_event_t *event, apx_portDataRef_t *localPortDataRef, apx_portDataRef_t *remotePortDataRef);
 
 #endif //APX_PORT_DATA_H

@@ -95,8 +95,8 @@ void apx_connectionBase_emitFileManagerHeaderCompleteEvent(apx_connectionBase_t 
 void apx_connectionBase_emitFileCreatedEvent(apx_connectionBase_t *self, struct apx_file2_tag *file, const void *caller);
 void apx_connectionBase_emitFileRevokedEvent(apx_connectionBase_t *self, struct apx_file2_tag *file, const void *caller);
 void apx_connectionBase_emitFileOpenedEvent(apx_connectionBase_t *self, struct apx_file2_tag *file, const void *caller);
-void apx_connectionBase_emitNodePortConnectedEvent(apx_connectionBase_t *self, struct apx_portDataRef_tag *localPortRef, struct apx_portDataRef_tag *remotePortRef);
 void apx_connectionBase_emitNodeComplete(apx_connectionBase_t *self, struct apx_nodeData_tag *nodeData);
+void apx_connectionBase_emitGenericEvent(apx_connectionBase_t *self, apx_event_t *event);
 void apx_connectionBase_defaultEventHandler(apx_connectionBase_t *self, apx_event_t *event);
 void apx_connectionBase_setConnectionId(apx_connectionBase_t *self, uint32_t connectionId);
 uint32_t apx_connectionBase_getConnectionId(apx_connectionBase_t *self);

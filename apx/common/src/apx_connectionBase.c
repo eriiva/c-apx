@@ -30,6 +30,7 @@
 #include "apx_portDataRef.h"
 #include "apx_nodeData.h"
 #include "apx_logging.h"
+#include "apx_portConnectionTable.h"
 #include <string.h>
 #include <stdio.h> //DEBUG only
 #ifdef MEM_LEAK_CHECK
@@ -48,7 +49,7 @@ static apx_error_t apx_connectionBase_startWorkerThread(apx_connectionBase_t *se
 static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self);
 static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self);
 static void apx_connectionBase_createNodeCompleteEvent(apx_event_t *event, apx_nodeData_t *nodeData);
-static void apx_connectionBase_portConnectedHandler(apx_connectionBase_t *self, apx_portDataRef_t *localPortDataRef, apx_portDataRef_t *remotePortDataRef);
+
 #ifndef UNIT_TEST
 static THREAD_PROTO(eventHandlerWorkThread,arg);
 #endif
@@ -248,13 +249,11 @@ void apx_connectionBase_emitFileOpenedEvent(apx_connectionBase_t *self, struct a
    }
 }
 
-void apx_connectionBase_emitNodePortConnectedEvent(apx_connectionBase_t *self, struct apx_portDataRef_tag *localPortRef, struct apx_portDataRef_tag *remotePortRef)
+void apx_connectionBase_emitGenericEvent(apx_connectionBase_t *self, apx_event_t *event)
 {
    if (self != 0)
    {
-      apx_event_t event;
-      apx_portDataRef_createPortConnectedEvent(&event, localPortRef, remotePortRef);
-      apx_eventLoop_append(&self->eventLoop, &event);
+      apx_eventLoop_append(&self->eventLoop, event);
    }
 }
 
@@ -278,10 +277,24 @@ void apx_connectionBase_defaultEventHandler(apx_connectionBase_t *self, apx_even
    }
    else
    {
-      apx_portDataRef_t *localPortDataRef;
-      apx_portDataRef_t *remotePortDataRef;
       switch(event->evType)
       {
+      case APX_EVENT_REQUIRE_PORT_CONNECT:
+         printf("R-Port connect\n");
+         apx_portConnectionTable_delete((apx_portConnectionTable_t*) event->evData2);
+         break;
+      case APX_EVENT_PROVIDE_PORT_CONNECT:
+         printf("P-Port connect\n");
+         apx_portConnectionTable_delete((apx_portConnectionTable_t*) event->evData2);
+         break;
+      case APX_EVENT_REQUIRE_PORT_DISCONNECT:
+         printf("R-Port disconnect\n");
+         apx_portConnectionTable_delete((apx_portConnectionTable_t*) event->evData2);
+         break;
+      case APX_EVENT_PROVIDE_PORT_DISCONNECT:
+         printf("P-Port connect\n");
+         apx_portConnectionTable_delete((apx_portConnectionTable_t*) event->evData2);
+         break;
       case APX_EVENT_NODE_COMPLETE:
          printf("Node complete!\n");
          break;
@@ -411,18 +424,4 @@ static THREAD_PROTO(eventHandlerWorkThread,arg)
 }
 #endif
 
-static void apx_connectionBase_portConnectedHandler(apx_connectionBase_t *self, apx_portDataRef_t *localPortDataRef, apx_portDataRef_t *remotePortDataRef)
-{
-   if (apx_fileManager_isClientMode(&self->fileManager))
-   {
-      apx_portId_t portId = apx_portDataRef_getPortId(localPortDataRef);
-      if (apx_portDataRef_isProvidePortRef(localPortDataRef))
-      {
-         apx_nodeData_incProvidePortConnectionCount(localPortDataRef->nodeData, portId);
-      }
-      else
-      {
-         apx_nodeData_incRequirePortConnectionCount(localPortDataRef->nodeData, portId);
-      }
-   }
-}
+

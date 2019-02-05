@@ -41,6 +41,7 @@ struct apx_parser_tag;
 struct apx_connectionBase_tag;
 struct apx_portDataRef_tag;
 struct apx_portDataAttributes_tag;
+struct apx_portConnectionTable_tag;
 
 
 /**
@@ -64,8 +65,8 @@ typedef struct apx_nodeData_tag
    uint8_t *outPortDirtyFlags;
    apx_connectionCount_t *inPortConnectionCount; //Number of active connections to each require-port
    apx_connectionCount_t *outPortConnectionCount; //Number of active connections to each provide-port
-   apx_portId_t numInPorts; //Number of require-ports in the underlying node
-   apx_portId_t numOutPorts; //Number of provide-ports in the underlying node
+   apx_portId_t numRequirePorts; //Number of require-ports in the underlying node
+   apx_portId_t numProvidePorts; //Number of provide-ports in the underlying node
    uint32_t definitionStartOffset; //used when more_bit=true during large writes
    uint32_t outPortDataStartOffset; //used when more_bit=true during large writes
    uint32_t inPortDataStartOffset; //used when more_bit=true during large writes
@@ -88,6 +89,8 @@ typedef struct apx_nodeData_tag
    struct apx_node_tag *node;
    struct apx_portDataMap_tag *portDataMap; //contains internal information about the ports in this node such as offsets and data lengths
    struct apx_connectionBase_tag *connection;
+   struct apx_portConnectionTable_tag *requirePortConnections; //temporary data structure used by apx_routingTableEntry_t (to build connect/disconnect events)
+   struct apx_portConnectionTable_tag *providePortConnections; //temporary data structure used by apx_routingTableEntry_t (to build connect/disconnect events)
 
 #endif
    struct apx_file2_tag *definitionFile;
@@ -170,6 +173,10 @@ struct apx_portDataRef_tag *apx_nodeData_getProvidePortDataRef(apx_nodeData_t *s
 //APX Connection API
 void apx_nodeData_setConnection(apx_nodeData_t *self, struct apx_connectionBase_tag *connection);
 struct apx_connectionBase_tag* apx_nodeData_getConnection(apx_nodeData_t *self);
+
+//Port Connection API
+struct apx_portConnectionTable_tag* apx_nodeData_getRequirePortConnections(apx_nodeData_t *self);
+struct apx_portConnectionTable_tag* apx_nodeData_getProvidePortConnections(apx_nodeData_t *self);
 
 //Utility functions
 const char *apx_nodeData_getName(apx_nodeData_t *self);

@@ -59,6 +59,7 @@ static const char *m_node_text2 =
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_routingTable_unconnectedRequirePortShallGetDefaultValues(CuTest* tc);
 static void test_apx_routingTable_connectedRequirePortShallGetSenderValues(CuTest* tc);
+static void test_apx_routingTable_attachNodeConnectedEvent(CuTest *tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -127,4 +128,9 @@ static void test_apx_routingTable_connectedRequirePortShallGetSenderValues(CuTes
    apx_nodeData_delete(destNodeData);
    apx_nodeData_delete(srcNodeData);
    apx_parser_delete(parser);
+}
+
+static void test_apx_routingTable_attachNodeConnectedEvent(CuTest *tc)
+{
+
 }

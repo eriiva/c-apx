@@ -36,7 +36,7 @@
 //////////////////////////////////////////////////////////////////////////////
 typedef struct apx_event_tag
 {
-   uint16_t evType;
+   apx_eventId_t evType;
    uint16_t evFlags;
    void *evData1;    //generic void* pointer value
    void *evData2;    //generic void* pointer value
@@ -74,9 +74,11 @@ typedef struct apx_event_tag
 #define APX_EVENT_RMF_FILE_WRITE           11 //evData1: apx_file2_t *file, evData2: *u8Data, evData5: offset, evData6: len
 
 //APX node events
-#define APX_EVENT_PORT_CONNECTED           12 //evData1: apx_portDataRef_t *localPortDataRef, evData2: apx_portDataRef_t *remotePortDataRef
-#define APX_EVENT_PORT_DISCONNECTED        13 //evData1: apx_portDataRef_t *localPortDataRef, evData2: apx_portDataRef_t *remotePortDataRef
-#define APX_EVENT_NODE_COMPLETE            14 //evData1:*arg, evData2:*nodeData
+#define APX_EVENT_REQUIRE_PORT_CONNECT     12 //evData1: apx_nodeData_t *nodeData (weak), evData2: apx_portConnectionTable_t *connections (strong)
+#define APX_EVENT_PROVIDE_PORT_CONNECT     13 //evData1: apx_nodeData_t *nodeData (weak), evData2: apx_portConnectionTable_t *connections (strong)
+#define APX_EVENT_REQUIRE_PORT_DISCONNECT  14 //evData1: apx_nodeData_t *nodeData (weak), evData2: apx_portConnectionTable_t *connections (strong)
+#define APX_EVENT_PROVIDE_PORT_DISCONNECT  15 //evData1: apx_nodeData_t *nodeData (weak), evData2: apx_portConnectionTable_t *connections (strong)
+#define APX_EVENT_NODE_COMPLETE            16 //evData1:*arg, evData2:*nodeData
 
 /*
 #define APX_EVENT_NODE_DEFINITION_WRITE    8  //evData1:*arg, evData2:*nodeData, evData4: offset, evData5: len
