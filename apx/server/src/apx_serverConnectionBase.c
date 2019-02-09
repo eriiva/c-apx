@@ -78,6 +78,7 @@ apx_error_t apx_serverConnectionBase_create(apx_serverConnectionBase_t *self, st
       apx_error_t result = apx_connectionBase_create(&self->base, APX_SERVER_MODE, vtable);
       self->server = server;
       self->isGreetingParsed = false;
+      self->isActive = true;
       apx_connectionBase_setEventHandler(&self->base, apx_serverConnectionBase_defaultEventHandler, (void*) self);
       return result;
    }
@@ -194,7 +195,6 @@ void apx_serverConnectionBase_detachNodes(apx_serverConnectionBase_t *self)
    if (self != 0)
    {
       apx_routingTable_t *routingTable;
-
       routingTable = apx_server_getRoutingTable(self->server);
       if (routingTable != 0)
       {
@@ -203,8 +203,7 @@ void apx_serverConnectionBase_detachNodes(apx_serverConnectionBase_t *self)
          {
             int32_t numNodes;
             int32_t i;
-            adt_hash_values(&self->base.nodeDataManager.nodeDataMap, nodeDataList);
-            numNodes = adt_ary_length(nodeDataList);
+            numNodes = apx_nodeDataManager_values(&self->base.nodeDataManager, nodeDataList);
             for(i=0;i<numNodes;i++)
             {
                apx_nodeData_t *nodeData = (apx_nodeData_t*) adt_ary_value(nodeDataList, i);
@@ -214,6 +213,26 @@ void apx_serverConnectionBase_detachNodes(apx_serverConnectionBase_t *self)
          }
       }
    }
+}
+
+uint32_t apx_serverConnectionBase_getTotalPortReferences(apx_serverConnectionBase_t *self)
+{
+   if (self != 0)
+   {
+      int32_t numNodes;
+      int32_t i;
+      uint32_t tortReferences = 0;
+      adt_ary_t *nodeDataList = adt_ary_new(NULL);
+      numNodes = apx_nodeDataManager_values(&self->base.nodeDataManager, nodeDataList);
+      for(i=0; i<numNodes; i++)
+      {
+         apx_nodeData_t *nodeData = (apx_nodeData_t*) adt_ary_value(nodeDataList, i);
+         tortReferences+= apx_nodeData_getPortConnectionsTotal(nodeData);
+      }
+      adt_ary_delete(nodeDataList);
+      return tortReferences;
+   }
+   return 0;
 }
 
 

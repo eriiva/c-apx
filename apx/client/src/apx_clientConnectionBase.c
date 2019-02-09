@@ -387,7 +387,7 @@ static void apx_clientConnectionBase_registerLocalFiles(apx_clientConnectionBase
    int32_t numNodes;
    int32_t i;
    adt_ary_create(&nodeNames, vfree);
-   numNodes = apx_nodeDataManager_getNodeNames(&self->base.nodeDataManager, &nodeNames);
+   numNodes = apx_nodeDataManager_keys(&self->base.nodeDataManager, &nodeNames);
    for(i=0;i<numNodes;i++)
    {
       apx_nodeData_t *nodeData;

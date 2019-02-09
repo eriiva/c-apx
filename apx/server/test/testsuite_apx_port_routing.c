@@ -47,11 +47,12 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_port_routing1(CuTest* tc);
+static void test_apx_port_routing_connect_nodes(CuTest* tc);
+static void test_apx_port_routing_close_connection(CuTest* tc);
 
 static void attachTestNode1(apx_server_t *pServer, apx_serverTestConnection_t *pConnection);
 static void attachTestNode5(apx_server_t *pServer, apx_serverTestConnection_t *pConnection);
-static void detachTestNode(apx_server_t *pServer, apx_serverTestConnection_t *pConnection);
+static void closeConnection(apx_server_t *pServer, apx_serverTestConnection_t *pConnection);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -65,7 +66,8 @@ CuSuite* testSuite_apx_port_routing(void)
 {
    CuSuite* suite = CuSuiteNew();
 
-   SUITE_ADD_TEST(suite, test_apx_port_routing1);
+   SUITE_ADD_TEST(suite, test_apx_port_routing_connect_nodes);
+   SUITE_ADD_TEST(suite, test_apx_port_routing_close_connection);
 
    return suite;
 }
@@ -73,7 +75,7 @@ CuSuite* testSuite_apx_port_routing(void)
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-static void test_apx_port_routing1(CuTest* tc)
+static void test_apx_port_routing_connect_nodes(CuTest* tc)
 {
    apx_server_t server, *pServer;
    apx_serverTestConnection_t *connection1;
@@ -97,8 +99,47 @@ static void test_apx_port_routing1(CuTest* tc)
    attachTestNode5(pServer, connection2);
    CuAssertUIntEquals(tc, 4, apx_routingTable_length(routingTable));
 
-   detachTestNode(pServer, connection1);
+   apx_server_destroy(pServer);
+}
+
+static void test_apx_port_routing_close_connection(CuTest* tc)
+{
+   apx_server_t server, *pServer;
+   apx_serverTestConnection_t *connection1;
+   apx_serverTestConnection_t *connection2;
+   apx_nodeData_t *nodeData1;
+   apx_nodeData_t *nodeData5;
+
+   apx_routingTable_t *routingTable;
+
+   pServer = &server;
+
+   apx_server_create(pServer);
+   routingTable = apx_server_getRoutingTable(pServer);
+   connection1 = apx_serverTestConnection_new(pServer);
+   connection2 = apx_serverTestConnection_new(pServer);
+   apx_server_acceptConnection(pServer, (apx_serverConnectionBase_t*) connection1);
+   apx_server_acceptConnection(pServer, (apx_serverConnectionBase_t*) connection2);
+
+   CuAssertUIntEquals(tc, 0, apx_routingTable_length(routingTable));
+   attachTestNode1(pServer, connection1);
+   CuAssertUIntEquals(tc, 4, apx_routingTable_length(routingTable));
+   nodeData1 = apx_nodeDataManager_find(&connection1->base.base.nodeDataManager, "TestNode1");
+   CuAssertPtrNotNull(tc, nodeData1);
+   CuAssertUIntEquals(tc, 0, apx_nodeData_getPortConnectionsTotal(nodeData1));
+
+   attachTestNode5(pServer, connection2);
+   CuAssertUIntEquals(tc, 4, apx_routingTable_length(routingTable));
+   nodeData5 = apx_nodeDataManager_find(&connection2->base.base.nodeDataManager, "TestNode5");
+   CuAssertPtrNotNull(tc, nodeData5);
+
+   CuAssertUIntEquals(tc, 3, apx_nodeData_getPortConnectionsTotal(nodeData1));
+   CuAssertUIntEquals(tc, 3, apx_nodeData_getPortConnectionsTotal(nodeData5));
+
+   closeConnection(pServer, connection1); //removes TestNode1 from routing table
    CuAssertUIntEquals(tc, 3, apx_routingTable_length(routingTable));
+   CuAssertUIntEquals(tc, 0, apx_nodeData_getPortConnectionsTotal(nodeData5));
+   closeConnection(pServer, connection2);
 
    apx_server_destroy(pServer);
 }
@@ -143,7 +184,7 @@ static void attachTestNode5(apx_server_t *pServer, apx_serverTestConnection_t *p
    apx_server_run(pServer);
 }
 
-static void detachTestNode(apx_server_t *pServer, apx_serverTestConnection_t *pConnection)
+static void closeConnection(apx_server_t *pServer, apx_serverTestConnection_t *pConnection)
 {
    apx_server_closeConnection(pServer, (apx_serverConnectionBase_t*) pConnection);
    apx_server_run(pServer);

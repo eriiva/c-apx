@@ -73,6 +73,7 @@ apx_error_t apx_nodeDataManager_attachFromString(apx_nodeDataManager_t *self, co
 apx_nodeData_t *apx_nodeDataManager_find(apx_nodeDataManager_t *self, const char *name);
 apx_nodeData_t *apx_nodeDataManager_getLastAttached(apx_nodeDataManager_t *self);
 int32_t apx_nodeDataManager_length(apx_nodeDataManager_t *self);
-int32_t apx_nodeDataManager_getNodeNames(apx_nodeDataManager_t *self, adt_ary_t* array);
+int32_t apx_nodeDataManager_keys(apx_nodeDataManager_t *self, adt_ary_t* array);
+int32_t apx_nodeDataManager_values(apx_nodeDataManager_t *self, adt_ary_t* array);
 
 #endif //APX_NODE_DATA_MANAGER_H

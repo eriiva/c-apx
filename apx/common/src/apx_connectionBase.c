@@ -49,6 +49,8 @@ static apx_error_t apx_connectionBase_startWorkerThread(apx_connectionBase_t *se
 static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self);
 static void apx_connectionBase_stopWorkerThread(apx_connectionBase_t *self);
 static void apx_connectionBase_createNodeCompleteEvent(apx_event_t *event, apx_nodeData_t *nodeData);
+static void apx_connectionBase_handlePortConnectEvent(apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable, apx_portType_t portType);
+static void apx_connectionBase_handlePortDisconnectEvent(apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable, apx_portType_t portType);
 
 #ifndef UNIT_TEST
 static THREAD_PROTO(eventHandlerWorkThread,arg);
@@ -277,22 +279,34 @@ void apx_connectionBase_defaultEventHandler(apx_connectionBase_t *self, apx_even
    }
    else
    {
+      apx_portConnectionTable_t *connectionTable;
+      apx_nodeData_t *nodeData;
+
+
       switch(event->evType)
       {
       case APX_EVENT_REQUIRE_PORT_CONNECT:
-         printf("R-Port connect\n");
-         apx_portConnectionTable_delete((apx_portConnectionTable_t*) event->evData2);
+         nodeData = (apx_nodeData_t*) event->evData1;
+         connectionTable = (apx_portConnectionTable_t*) event->evData2;
+         apx_connectionBase_handlePortConnectEvent(nodeData, connectionTable, APX_REQUIRE_PORT);
+         apx_portConnectionTable_delete(connectionTable);
          break;
       case APX_EVENT_PROVIDE_PORT_CONNECT:
-         printf("P-Port connect\n");
-         apx_portConnectionTable_delete((apx_portConnectionTable_t*) event->evData2);
+         nodeData = (apx_nodeData_t*) event->evData1;
+         connectionTable = (apx_portConnectionTable_t*) event->evData2;
+         apx_connectionBase_handlePortConnectEvent(nodeData, connectionTable, APX_PROVIDE_PORT);
+         apx_portConnectionTable_delete(connectionTable);
          break;
       case APX_EVENT_REQUIRE_PORT_DISCONNECT:
-         printf("R-Port disconnect\n");
+         nodeData = (apx_nodeData_t*) event->evData1;
+         connectionTable = (apx_portConnectionTable_t*) event->evData2;
+         apx_connectionBase_handlePortDisconnectEvent(nodeData, connectionTable, APX_REQUIRE_PORT);
          apx_portConnectionTable_delete((apx_portConnectionTable_t*) event->evData2);
          break;
       case APX_EVENT_PROVIDE_PORT_DISCONNECT:
-         printf("P-Port connect\n");
+         nodeData = (apx_nodeData_t*) event->evData1;
+         connectionTable = (apx_portConnectionTable_t*) event->evData2;
+         apx_connectionBase_handlePortDisconnectEvent(nodeData, connectionTable, APX_PROVIDE_PORT);
          apx_portConnectionTable_delete((apx_portConnectionTable_t*) event->evData2);
          break;
       case APX_EVENT_NODE_COMPLETE:
@@ -325,6 +339,15 @@ void apx_connectionBase_getTransmitHandler(apx_connectionBase_t *self, apx_trans
    {
       apx_fileManager_getTransmitHandler(&self->fileManager, transmitHandler);
    }
+}
+
+uint16_t apx_connectionBase_getNumPendingEvents(apx_connectionBase_t *self)
+{
+   if (self != 0)
+   {
+      return apx_eventLoop_numPendingEvents(&self->eventLoop);
+   }
+   return 0;
 }
 
 
@@ -424,4 +447,64 @@ static THREAD_PROTO(eventHandlerWorkThread,arg)
 }
 #endif
 
+static void apx_connectionBase_handlePortConnectEvent(apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable, apx_portType_t portType)
+{
+   int32_t portId;
+   void (*portConnectFunc)(apx_nodeData_t*, apx_portId_t) = portType==APX_REQUIRE_PORT? apx_nodeData_incProvidePortConnectionCount : apx_nodeData_incRequirePortConnectionCount;
+   for (portId=0; portId<connectionTable->numPorts; portId++)
+   {
+      apx_portConnectionEntry_t *entry = apx_portConnectionTable_getEntry(connectionTable, portId);
+      if (entry->count > 1)
+      {
+         int32_t numConnections;
+         int32_t i;
+         adt_ary_t *array = (adt_ary_t*) entry->pAny;
+         numConnections = adt_ary_length(array);
+         for(i=0;i<numConnections;i++)
+         {
+            apx_portDataRef_t *remotePortRef = adt_ary_value(array, i);
+            portConnectFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
+         }
+      }
+      else if (entry->count == 1)
+      {
+         apx_portDataRef_t *remotePortRef = (apx_portDataRef_t*) entry->pAny;
+         portConnectFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
+      }
+      else
+      {
+         //DO NOTHING
+      }
+   }
+}
 
+static void apx_connectionBase_handlePortDisconnectEvent(apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable, apx_portType_t portType)
+{
+   int32_t portId;
+   void (*portConnectFunc)(apx_nodeData_t*, apx_portId_t) = portType==APX_REQUIRE_PORT? apx_nodeData_decProvidePortConnectionCount : apx_nodeData_decRequirePortConnectionCount;
+   for (portId=0; portId<connectionTable->numPorts; portId++)
+   {
+      apx_portConnectionEntry_t *entry = apx_portConnectionTable_getEntry(connectionTable, portId);
+      if (entry->count < -1)
+      {
+         int32_t numConnections;
+         int32_t i;
+         adt_ary_t *array = (adt_ary_t*) entry->pAny;
+         numConnections = adt_ary_length(array);
+         for(i=0;i<numConnections;i++)
+         {
+            apx_portDataRef_t *remotePortRef = adt_ary_value(array, i);
+            portConnectFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
+         }
+      }
+      else if (entry->count == -1)
+      {
+         apx_portDataRef_t *remotePortRef = (apx_portDataRef_t*) entry->pAny;
+         portConnectFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
+      }
+      else
+      {
+         //DO NOTHING
+      }
+   }
+}

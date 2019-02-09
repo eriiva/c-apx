@@ -72,6 +72,7 @@ void apx_eventLoop_setEventHandler(apx_eventLoop_t *self, apx_eventHandlerFunc_t
 void apx_eventLoop_append(apx_eventLoop_t *self, apx_event_t *event);
 void apx_eventLoop_run(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandler, void *eventHandlerArg);
 void apx_eventLoop_exit(apx_eventLoop_t *self);
+uint16_t apx_eventLoop_numPendingEvents(apx_eventLoop_t *self);
 #ifdef UNIT_TEST
 void apx_eventLoop_runAll(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandler, void *eventHandlerArg);
 #endif

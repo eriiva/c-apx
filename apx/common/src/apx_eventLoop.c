@@ -152,6 +152,15 @@ void apx_eventLoop_run(apx_eventLoop_t *self, apx_eventHandlerFunc_t *eventHandl
    }
 }
 
+uint16_t apx_eventLoop_numPendingEvents(apx_eventLoop_t *self)
+{
+   if (self != 0)
+   {
+      return adt_rbfh_length(&self->pendingEvents);
+   }
+   return 0;
+}
+
 
 
 #ifdef UNIT_TEST

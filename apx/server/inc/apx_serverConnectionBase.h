@@ -40,6 +40,7 @@ typedef struct apx_serverConnectionBase_tag
    apx_connectionBase_t base;
    struct apx_server_tag *server;
    bool isGreetingParsed;
+   bool isActive;
 }apx_serverConnectionBase_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -57,6 +58,7 @@ void apx_serverConnectionBase_setConnectionId(apx_serverConnectionBase_t *self, 
 uint32_t apx_serverConnectionBase_getConnectionId(apx_serverConnectionBase_t *self);
 void apx_serverConnectionBase_close(apx_serverConnectionBase_t *self);
 void apx_serverConnectionBase_detachNodes(apx_serverConnectionBase_t *self);
+uint32_t apx_serverConnectionBase_getTotalPortReferences(apx_serverConnectionBase_t *self);
 
 #ifdef UNIT_TEST
 void apx_serverConnectionBase_run(apx_serverConnectionBase_t *self);

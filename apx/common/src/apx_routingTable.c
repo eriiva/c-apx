@@ -156,7 +156,6 @@ void apx_routingTable_detachNodeData(apx_routingTable_t *self, struct apx_nodeDa
          numRequirePorts = apx_node_getNumRequirePorts(node);
          numProvidePorts = apx_node_getNumProvidePorts(node);
          apx_routingTable_lock(self);
-         adt_list_remove(&self->attachedNodes, nodeData); //remove first, we don't want to trigger any events on this any more since it's about to close down
          for (portId = 0; portId<numRequirePorts; portId++)
          {
             apx_port_t *port = apx_node_getRequirePort(node, portId);
@@ -167,6 +166,8 @@ void apx_routingTable_detachNodeData(apx_routingTable_t *self, struct apx_nodeDa
             apx_port_t *port = apx_node_getProvidePort(node, portId);
             apx_routingTable_detachPort(self, nodeData, port);
          }
+         apx_routingTable_emitPortEvents(self, APX_EVENT_REQUIRE_PORT_DISCONNECT);
+         adt_list_remove(&self->attachedNodes, nodeData);
          apx_routingTable_unlock(self);
       }
    }

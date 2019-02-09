@@ -44,6 +44,7 @@
 // PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
 
+typedef apx_error_t (portConnectionFunc_t)(apx_portConnectionTable_t*, apx_portDataRef_t*, apx_portDataRef_t*);
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
@@ -51,8 +52,8 @@ static void apx_routingTableEntry_insertRequirePortData(apx_routingTableEntry_t 
 static void apx_routingTableEntry_insertProvidePortData(apx_routingTableEntry_t *self, apx_portDataRef_t *portData);
 static void apx_routingTableEntry_removeRequirePortData(apx_routingTableEntry_t *self, apx_portDataRef_t *portData);
 static void apx_routingTableEntry_removeProvidePortData(apx_routingTableEntry_t *self, apx_portDataRef_t *portData);
-static void apx_routingTableEntry_createRequirePortConnections(apx_routingTableEntry_t *self, apx_portDataRef_t *providePortDataRef);
-static void apx_routingTableEntry_createProvidePortConnections(apx_routingTableEntry_t *self, apx_portDataRef_t *requirePortDataRef);
+static void apx_routingTableEntry_updateRequirePortConnections(apx_routingTableEntry_t *self, apx_portDataRef_t *providePortDataRef, portConnectionFunc_t actionFunction);
+static void apx_routingTableEntry_updateProvidePortConnections(apx_routingTableEntry_t *self, apx_portDataRef_t *requirePortDataRef, portConnectionFunc_t actionFunction);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -116,7 +117,7 @@ void apx_routingTableEntry_attachPortDataRef(apx_routingTableEntry_t *self, apx_
       if (apx_portDataRef_isProvidePortRef(portDataRef) == true)
       {
          apx_routingTableEntry_insertProvidePortData(self, portDataRef);
-         apx_routingTableEntry_createRequirePortConnections(self, portDataRef);
+         apx_routingTableEntry_updateRequirePortConnections(self, portDataRef, apx_portConnectionTable_connect);
       }
       else
       {
@@ -126,7 +127,7 @@ void apx_routingTableEntry_attachPortDataRef(apx_routingTableEntry_t *self, apx_
          {
             apx_nodeData_updatePortDataDirect(portDataRef->nodeData, portDataRef->attributes, provider->nodeData, provider->attributes);
          }
-         apx_routingTableEntry_createProvidePortConnections(self, portDataRef);
+         apx_routingTableEntry_updateProvidePortConnections(self, portDataRef, apx_portConnectionTable_connect);
       }
    }
 }
@@ -138,10 +139,12 @@ void apx_routingTableEntry_detachPortDataRef(apx_routingTableEntry_t *self, apx_
       if (apx_portDataRef_isProvidePortRef(portDataRef) == true)
       {
          apx_routingTableEntry_removeProvidePortData(self, portDataRef);
+         apx_routingTableEntry_updateRequirePortConnections(self, portDataRef, apx_portConnectionTable_disconnect);
       }
       else
       {
          apx_routingTableEntry_removeRequirePortData(self, portDataRef);
+         apx_routingTableEntry_updateProvidePortConnections(self, portDataRef, apx_portConnectionTable_disconnect);
       }
    }
 }
@@ -215,7 +218,7 @@ static void apx_routingTableEntry_removeProvidePortData(apx_routingTableEntry_t 
 /**
  * Find all require ports and create new connections to this provide port reference
  */
-static void apx_routingTableEntry_createRequirePortConnections(apx_routingTableEntry_t *self, apx_portDataRef_t *providePortRef)
+static void apx_routingTableEntry_updateRequirePortConnections(apx_routingTableEntry_t *self, apx_portDataRef_t *providePortRef, portConnectionFunc_t actionFunction)
 {
    if (adt_list_length(&self->requirePortRef) > 0)
    {
@@ -226,11 +229,11 @@ static void apx_routingTableEntry_createRequirePortConnections(apx_routingTableE
       {
          apx_portConnectionTable_t *requirePortConnections;
          apx_portDataRef_t *requirePortRef = (apx_portDataRef_t*) iter->pItem;
-         requirePortConnections = apx_nodeData_getRequirePortConnections(providePortRef->nodeData);
+         requirePortConnections = apx_nodeData_getRequirePortConnections(requirePortRef->nodeData);
          if ( (providePortConnections != 0) && (requirePortConnections != 0) )
          {
-            apx_portConnectionTable_connect(providePortConnections, providePortRef, requirePortRef);
-            apx_portConnectionTable_connect(requirePortConnections, requirePortRef, providePortRef);
+            actionFunction(providePortConnections, providePortRef, requirePortRef);
+            actionFunction(requirePortConnections, requirePortRef, providePortRef);
          }
       }
    }
@@ -239,7 +242,7 @@ static void apx_routingTableEntry_createRequirePortConnections(apx_routingTableE
 /*
  * Find all provide ports and create new connections to this require port reference
  */
-static void apx_routingTableEntry_createProvidePortConnections(apx_routingTableEntry_t *self, apx_portDataRef_t *requirePortRef)
+static void apx_routingTableEntry_updateProvidePortConnections(apx_routingTableEntry_t *self, apx_portDataRef_t *requirePortRef, portConnectionFunc_t actionFunction)
 {
    if (adt_list_length(&self->providePortRef) > 0)
    {
@@ -253,8 +256,8 @@ static void apx_routingTableEntry_createProvidePortConnections(apx_routingTableE
          providePortConnections = apx_nodeData_getProvidePortConnections(providePortRef->nodeData);
          if ( (providePortConnections != 0) && (requirePortConnections != 0) )
          {
-            apx_portConnectionTable_connect(providePortConnections, providePortRef, requirePortRef);
-            apx_portConnectionTable_connect(requirePortConnections, requirePortRef, providePortRef);
+            actionFunction(providePortConnections, providePortRef, requirePortRef);
+            actionFunction(requirePortConnections, requirePortRef, providePortRef);
          }
       }
    }

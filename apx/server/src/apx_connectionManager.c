@@ -175,8 +175,17 @@ void apx_connectionManager_run(apx_connectionManager_t *self)
       int32_t i;
       for(i=0;i<APX_SERVER_RUN_CYCLES;i++)
       {
+         int32_t numInactiveConnections;
          adt_list_elem_t *it = adt_list_iter_first(&self->activeConnections);
-         //run the event loop of each connection
+         //run the event loop of each active connection
+         while(it != 0)
+         {
+            apx_serverConnectionBase_t *baseConnection = (apx_serverConnectionBase_t*) it->pItem;
+            apx_serverConnectionBase_run(baseConnection);
+            it = adt_list_iter_next(it);
+         }
+         it = adt_list_iter_first(&self->inactiveConnections);
+         //run the event loop of each inactive connection
          while(it != 0)
          {
             apx_serverConnectionBase_t *baseConnection = (apx_serverConnectionBase_t*) it->pItem;
@@ -184,7 +193,8 @@ void apx_connectionManager_run(apx_connectionManager_t *self)
             it = adt_list_iter_next(it);
          }
          //run the cleanup task
-         apx_connectionManager_cleanupTask_run(self, adt_list_length(&self->inactiveConnections));
+         numInactiveConnections = adt_list_length(&self->inactiveConnections);
+         apx_connectionManager_cleanupTask_run(self, numInactiveConnections);
       }
    }
 }
@@ -257,12 +267,23 @@ static void apx_connectionManager_cleanupTask_run(apx_connectionManager_t *self,
       SPINLOCK_ENTER(self->lock);
       adt_list_elem_t *iter = adt_list_iter_first(&self->inactiveConnections);
       apx_serverConnectionBase_t *baseConnection = (apx_serverConnectionBase_t*) iter->pItem;
-      adt_list_erase(&self->inactiveConnections, iter);
-      printf("[CONNECTION_MANAGER] Cleaning up %d\n", (int) baseConnection->base.connectionId);
-      apx_serverConnectionBase_close(baseConnection);
-      apx_serverConnectionBase_detachNodes(baseConnection);
-      apx_connectionBase_delete(&baseConnection->base);
-      printf("[CONNECTION_MANAGER] Cleanup complete\n");
+      if (baseConnection->isActive)
+      {
+         printf("[CONNECTION_MANAGER] Closing %d\n", (int) baseConnection->base.connectionId);
+         apx_serverConnectionBase_close(baseConnection);
+         apx_serverConnectionBase_detachNodes(baseConnection);
+         baseConnection->isActive = false;
+      }
+      else
+      {
+         if ( (apx_serverConnectionBase_getTotalPortReferences(baseConnection) == 0u) && (apx_connectionBase_getNumPendingEvents(&baseConnection->base) == 0u))
+         {
+            printf("[CONNECTION_MANAGER] Cleaning up %d\n", (int) baseConnection->base.connectionId);
+            adt_list_erase(&self->inactiveConnections, iter);
+            apx_connectionBase_delete(&baseConnection->base);
+            printf("[CONNECTION_MANAGER] Cleanup complete\n");
+         }
+      }
       SPINLOCK_LEAVE(self->lock);
    }
 }

@@ -34,8 +34,8 @@ static const char *m_node_text1 =
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_nodeData_newEmpty(CuTest* tc);
-static void test_apx_nodeData_outPortConnectionCount(CuTest* tc);
-static void test_apx_nodeData_inPortConnectionCount(CuTest* tc);
+static void test_apx_nodeData_providePortConnectionCount(CuTest* tc);
+static void test_apx_nodeData_requirePortConnectionCount(CuTest* tc);
 static void test_apx_nodeData_createProvidePortInitData(CuTest* tc);
 static void test_apx_nodeData_updatePortData(CuTest* tc);
 
@@ -58,8 +58,8 @@ CuSuite* testSuite_apx_nodeData(void)
    CuSuite* suite = CuSuiteNew();
 
    SUITE_ADD_TEST(suite, test_apx_nodeData_newEmpty);
-   SUITE_ADD_TEST(suite, test_apx_nodeData_outPortConnectionCount);
-   SUITE_ADD_TEST(suite, test_apx_nodeData_inPortConnectionCount);
+   SUITE_ADD_TEST(suite, test_apx_nodeData_providePortConnectionCount);
+   SUITE_ADD_TEST(suite, test_apx_nodeData_requirePortConnectionCount);
    SUITE_ADD_TEST(suite, test_apx_nodeData_createProvidePortInitData);
    SUITE_ADD_TEST(suite, test_apx_nodeData_updatePortData);
 
@@ -81,7 +81,7 @@ static void test_apx_nodeData_newEmpty(CuTest* tc)
 
 }
 
-static void test_apx_nodeData_outPortConnectionCount(CuTest* tc)
+static void test_apx_nodeData_providePortConnectionCount(CuTest* tc)
 {
    apx_parser_t parser;
    apx_parser_create(&parser);
@@ -104,12 +104,14 @@ static void test_apx_nodeData_outPortConnectionCount(CuTest* tc)
    CuAssertUIntEquals(tc, 2, apx_nodeData_getProvidePortConnectionCount(nodeData, 1));
    CuAssertUIntEquals(tc, 1, apx_nodeData_getProvidePortConnectionCount(nodeData, 2));
    CuAssertUIntEquals(tc, 0, apx_nodeData_getProvidePortConnectionCount(nodeData, 3));
+   CuAssertUIntEquals(tc, 6, apx_nodeData_getPortConnectionsTotal(nodeData));
    apx_nodeData_decProvidePortConnectionCount(nodeData, 0);
    apx_nodeData_decProvidePortConnectionCount(nodeData, 1);
    apx_nodeData_decProvidePortConnectionCount(nodeData, 2);
    CuAssertUIntEquals(tc, 2, apx_nodeData_getProvidePortConnectionCount(nodeData, 0));
    CuAssertUIntEquals(tc, 1, apx_nodeData_getProvidePortConnectionCount(nodeData, 1));
    CuAssertUIntEquals(tc, 0, apx_nodeData_getProvidePortConnectionCount(nodeData, 2));
+   CuAssertUIntEquals(tc, 3, apx_nodeData_getPortConnectionsTotal(nodeData));
    //decreasing a count that is already at zero shall stay at zero
    CuAssertUIntEquals(tc, 0, apx_nodeData_getProvidePortConnectionCount(nodeData, 2));
    apx_nodeData_decProvidePortConnectionCount(nodeData, 2);
@@ -118,7 +120,7 @@ static void test_apx_nodeData_outPortConnectionCount(CuTest* tc)
 }
 
 
-static void test_apx_nodeData_inPortConnectionCount(CuTest* tc)
+static void test_apx_nodeData_requirePortConnectionCount(CuTest* tc)
 {
    apx_parser_t parser;
    apx_parser_create(&parser);
@@ -141,12 +143,14 @@ static void test_apx_nodeData_inPortConnectionCount(CuTest* tc)
    CuAssertUIntEquals(tc, 2, apx_nodeData_getRequirePortConnectionCount(nodeData, 1));
    CuAssertUIntEquals(tc, 1, apx_nodeData_getRequirePortConnectionCount(nodeData, 2));
    CuAssertUIntEquals(tc, 0, apx_nodeData_getRequirePortConnectionCount(nodeData, 3));
+   CuAssertUIntEquals(tc, 6, apx_nodeData_getPortConnectionsTotal(nodeData));
    apx_nodeData_decRequirePortConnectionCount(nodeData, 0);
    apx_nodeData_decRequirePortConnectionCount(nodeData, 1);
    apx_nodeData_decRequirePortConnectionCount(nodeData, 2);
    CuAssertUIntEquals(tc, 2, apx_nodeData_getRequirePortConnectionCount(nodeData, 0));
    CuAssertUIntEquals(tc, 1, apx_nodeData_getRequirePortConnectionCount(nodeData, 1));
    CuAssertUIntEquals(tc, 0, apx_nodeData_getRequirePortConnectionCount(nodeData, 2));
+   CuAssertUIntEquals(tc, 3, apx_nodeData_getPortConnectionsTotal(nodeData));
    //decreasing a count that is already at zero shall stay at zero
    CuAssertUIntEquals(tc, 0, apx_nodeData_getRequirePortConnectionCount(nodeData, 2));
    apx_nodeData_decRequirePortConnectionCount(nodeData, 2);

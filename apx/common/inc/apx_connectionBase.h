@@ -101,6 +101,7 @@ void apx_connectionBase_defaultEventHandler(apx_connectionBase_t *self, apx_even
 void apx_connectionBase_setConnectionId(apx_connectionBase_t *self, uint32_t connectionId);
 uint32_t apx_connectionBase_getConnectionId(apx_connectionBase_t *self);
 void apx_connectionBase_getTransmitHandler(apx_connectionBase_t *self, apx_transmitHandler_t *transmitHandler);
+uint16_t apx_connectionBase_getNumPendingEvents(apx_connectionBase_t *self);
 
 #ifdef UNIT_TEST
 void apx_connectionBase_runAll(apx_connectionBase_t *self);

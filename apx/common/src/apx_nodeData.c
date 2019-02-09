@@ -75,8 +75,9 @@ void apx_nodeData_create(apx_nodeData_t *self, const char *name, uint8_t *defini
       self->outPortDataBuf = outPortDataBuf;
       self->outPortDataLen = outPortDataLen;
       self->outPortDirtyFlags = outPortDirtyFlags;
-      self->inPortConnectionCount = (apx_connectionCount_t*) 0;
-      self->outPortConnectionCount = (apx_connectionCount_t*) 0;
+      self->requirePortConnectionCount = (apx_connectionCount_t*) 0;
+      self->providePortConnectionCount = (apx_connectionCount_t*) 0;
+      self->portConnectionsTotal=0u;
       self->inPortConnectionCountTotal = 0u;
       self->outPortConnectionCountTotal = 0u;
       self->numRequirePorts = 0;
@@ -556,9 +557,9 @@ struct apx_file2_tag *apx_nodeData_getOutPortDataFile(apx_nodeData_t *self)
 apx_connectionCount_t apx_nodeData_getRequirePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
    apx_connectionCount_t retval = 0;
-   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numRequirePorts) )
+   if ( (self != 0) && (self->requirePortConnectionCount != 0) && (portId < self->numRequirePorts) )
    {
-      retval = self->inPortConnectionCount[portId];
+      retval = self->requirePortConnectionCount[portId];
    }
    return retval;
 }
@@ -566,55 +567,100 @@ apx_connectionCount_t apx_nodeData_getRequirePortConnectionCount(apx_nodeData_t 
 apx_connectionCount_t apx_nodeData_getProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
    apx_connectionCount_t retval = 0;
-   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numProvidePorts) )
+   if ( (self != 0) && (self->providePortConnectionCount != 0) && (portId < self->numProvidePorts) )
    {
-      retval = self->outPortConnectionCount[portId];
+      retval = self->providePortConnectionCount[portId];
    }
    return retval;
 }
 
 void apx_nodeData_incRequirePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
-   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numRequirePorts) )
+   if ( (self != 0) && (self->requirePortConnectionCount != 0) && (portId < self->numRequirePorts) )
    {
-      if (self->inPortConnectionCount[portId] < APX_CONNECTION_COUNT_MAX)
+      if (self->requirePortConnectionCount[portId] < APX_CONNECTION_COUNT_MAX)
       {
-         self->inPortConnectionCount[portId]++;
+#ifndef APX_EMBEDDED
+      SPINLOCK_ENTER(self->internalLock);
+#endif
+         self->requirePortConnectionCount[portId]++;
+         self->portConnectionsTotal++;
+#ifndef APX_EMBEDDED
+      SPINLOCK_LEAVE(self->internalLock);
+#endif
       }
    }
 }
 
 void apx_nodeData_incProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
-   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numProvidePorts) )
+   if ( (self != 0) && (self->providePortConnectionCount != 0) && (portId < self->numProvidePorts) )
    {
-      if (self->outPortConnectionCount[portId] < APX_CONNECTION_COUNT_MAX)
+      if (self->providePortConnectionCount[portId] < APX_CONNECTION_COUNT_MAX)
       {
-         self->outPortConnectionCount[portId]++;
+#ifndef APX_EMBEDDED
+      SPINLOCK_ENTER(self->internalLock);
+#endif
+         self->providePortConnectionCount[portId]++;
+         self->portConnectionsTotal++;
+#ifndef APX_EMBEDDED
+      SPINLOCK_LEAVE(self->internalLock);
+#endif
       }
    }
 }
 
 void apx_nodeData_decRequirePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
-   if ( (self != 0) && (self->inPortConnectionCount != 0) && (portId < self->numRequirePorts) )
+   if ( (self != 0) && (self->requirePortConnectionCount != 0) && (portId < self->numRequirePorts) )
    {
-      if (self->inPortConnectionCount[portId] > 0u)
+      if (self->requirePortConnectionCount[portId] > 0u)
       {
-         self->inPortConnectionCount[portId]--;
+#ifndef APX_EMBEDDED
+      SPINLOCK_ENTER(self->internalLock);
+#endif
+         self->requirePortConnectionCount[portId]--;
+         self->portConnectionsTotal--;
+#ifndef APX_EMBEDDED
+      SPINLOCK_LEAVE(self->internalLock);
+#endif
       }
    }
 }
 
 void apx_nodeData_decProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId)
 {
-   if ( (self != 0) && (self->outPortConnectionCount != 0) && (portId < self->numProvidePorts) )
+   if ( (self != 0) && (self->providePortConnectionCount != 0) && (portId < self->numProvidePorts) )
    {
-      if (self->outPortConnectionCount[portId] > 0u)
+      if (self->providePortConnectionCount[portId] > 0u)
       {
-         self->outPortConnectionCount[portId]--;
+#ifndef APX_EMBEDDED
+      SPINLOCK_ENTER(self->internalLock);
+#endif
+         self->providePortConnectionCount[portId]--;
+         self->portConnectionsTotal--;
+#ifndef APX_EMBEDDED
+      SPINLOCK_LEAVE(self->internalLock);
+#endif
       }
    }
+}
+
+uint32_t apx_nodeData_getPortConnectionsTotal(apx_nodeData_t *self)
+{
+   if (self != 0)
+   {
+      uint32_t retval;
+#ifndef APX_EMBEDDED
+      SPINLOCK_ENTER(self->internalLock);
+#endif
+      retval = self->portConnectionsTotal;
+#ifndef APX_EMBEDDED
+      SPINLOCK_LEAVE(self->internalLock);
+#endif
+      return retval;
+   }
+   return 0;
 }
 
 
@@ -699,13 +745,13 @@ apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
          self->numProvidePorts = numProvidePorts;
          self->outPortDataBuf = (uint8_t*) malloc(self->outPortDataLen);
          self->outPortDirtyFlags = (uint8_t*) malloc(self->outPortDataLen);
-         self->outPortConnectionCount = (apx_connectionCount_t*) malloc(connectionCountSize);
-         if ( (self->outPortDataBuf == 0) || (self->outPortDirtyFlags == 0) || (self->outPortConnectionCount == 0) )
+         self->providePortConnectionCount = (apx_connectionCount_t*) malloc(connectionCountSize);
+         if ( (self->outPortDataBuf == 0) || (self->outPortDirtyFlags == 0) || (self->providePortConnectionCount == 0) )
          {
             apx_nodeData_clearPortDataBuffers(self);
             return APX_MEM_ERROR;
          }
-         memset(self->outPortConnectionCount, 0, connectionCountSize);
+         memset(self->providePortConnectionCount, 0, connectionCountSize);
          result = apx_nodeData_createProvidePortInitData(self);
          if (result != APX_NO_ERROR)
          {
@@ -722,13 +768,13 @@ apx_error_t apx_nodeData_createPortDataBuffers(apx_nodeData_t *self)
          self->numRequirePorts = numRequirePorts;
          self->inPortDataBuf = (uint8_t*) malloc(self->inPortDataLen);
          self->inPortDirtyFlags = (uint8_t*) malloc(self->inPortDataLen);
-         self->inPortConnectionCount = (apx_connectionCount_t*) malloc(connectionCountSize);
-         if ( (self->inPortDataBuf == 0) || (self->inPortDirtyFlags == 0) || (self->inPortConnectionCount == 0))
+         self->requirePortConnectionCount = (apx_connectionCount_t*) malloc(connectionCountSize);
+         if ( (self->inPortDataBuf == 0) || (self->inPortDirtyFlags == 0) || (self->requirePortConnectionCount == 0))
          {
             apx_nodeData_clearPortDataBuffers(self);
             return APX_MEM_ERROR;
          }
-         memset(self->inPortConnectionCount, 0, connectionCountSize);
+         memset(self->requirePortConnectionCount, 0, connectionCountSize);
          result = apx_nodeData_createRequirePortInitData(self);
          if (result != APX_NO_ERROR)
          {
@@ -1402,13 +1448,13 @@ static void apx_nodeData_clearPortDataBuffers(apx_nodeData_t *self)
    {
       free(self->outPortDirtyFlags);
    }
-   if ( self->inPortConnectionCount != 0)
+   if ( self->requirePortConnectionCount != 0)
    {
-      free(self->inPortConnectionCount);
+      free(self->requirePortConnectionCount);
    }
-   if ( self->outPortConnectionCount != 0)
+   if ( self->providePortConnectionCount != 0)
    {
-      free(self->outPortConnectionCount);
+      free(self->providePortConnectionCount);
    }
 }
 

@@ -251,11 +251,20 @@ int32_t apx_nodeDataManager_length(apx_nodeDataManager_t *self)
    return -1;
 }
 
-int32_t apx_nodeDataManager_getNodeNames(apx_nodeDataManager_t *self, adt_ary_t* array)
+int32_t apx_nodeDataManager_keys(apx_nodeDataManager_t *self, adt_ary_t* array)
 {
    if (self != 0)
    {
       return adt_hash_keys(&self->nodeDataMap, array);
+   }
+   return -1;
+}
+
+int32_t apx_nodeDataManager_values(apx_nodeDataManager_t *self, adt_ary_t* array)
+{
+   if (self != 0)
+   {
+      return adt_hash_values(&self->nodeDataMap, array);
    }
    return -1;
 }

@@ -63,8 +63,9 @@ typedef struct apx_nodeData_tag
    uint32_t definitionDataLen;
    uint8_t *inPortDirtyFlags;
    uint8_t *outPortDirtyFlags;
-   apx_connectionCount_t *inPortConnectionCount; //Number of active connections to each require-port
-   apx_connectionCount_t *outPortConnectionCount; //Number of active connections to each provide-port
+   apx_connectionCount_t *requirePortConnectionCount; //Number of active connections to each require-port
+   apx_connectionCount_t *providePortConnectionCount; //Number of active connections to each provide-port
+   uint32_t portConnectionsTotal; //Total number of active port connections
    apx_portId_t numRequirePorts; //Number of require-ports in the underlying node
    apx_portId_t numProvidePorts; //Number of provide-ports in the underlying node
    uint32_t definitionStartOffset; //used when more_bit=true during large writes
@@ -149,6 +150,7 @@ void apx_nodeData_incRequirePortConnectionCount(apx_nodeData_t *self, apx_portId
 void apx_nodeData_incProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId);
 void apx_nodeData_decRequirePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId);
 void apx_nodeData_decProvidePortConnectionCount(apx_nodeData_t *self, apx_portId_t portId);
+uint32_t apx_nodeData_getPortConnectionsTotal(apx_nodeData_t *self);
 
 
 #ifdef APX_EMBEDDED
