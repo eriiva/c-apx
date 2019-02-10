@@ -34,7 +34,7 @@ typedef struct apx_fileManagerShared_tag
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-int8_t apx_fileManagerShared_create(apx_fileManagerShared_t *self, uint32_t fmid);
+int8_t apx_fileManagerShared_create(apx_fileManagerShared_t *self);
 void apx_fileManagerShared_destroy(apx_fileManagerShared_t *self);
 uint8_t *apx_fileManagerShared_alloc(apx_fileManagerShared_t *self, size_t size);
 void apx_fileManagerShared_free(apx_fileManagerShared_t *self, uint8_t *ptr, size_t size);

@@ -64,7 +64,7 @@ static void test_apx_fileManagerRemote_create(CuTest* tc)
 {
    apx_fileManagerRemote_t remote;
    apx_fileManagerShared_t shared;
-   CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&shared, 0));
+   CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&shared));
    apx_fileManagerRemote_create(&remote, &shared);
    CuAssertIntEquals(tc, 0, apx_fileMap_length(&remote.remoteFileMap));
    apx_fileManagerRemote_destroy(&remote);
@@ -81,7 +81,7 @@ static void test_apx_fileManagerRemote_processFileInfo(CuTest* tc)
    int32_t msgLen;
    spy = apx_fileManagerSharedSpy_new();
    CuAssertPtrNotNull(tc, spy);
-   CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&shared, 0));
+   CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&shared));
    apx_fileManagerRemote_create(&remote, &shared);
    shared.fileCreated = apx_fileManagerSharedSpy_fileCreated;
    shared.arg = spy;
@@ -111,7 +111,7 @@ static void test_apx_fileManagerRemote_processFileOpenRequest(CuTest* tc)
    int32_t msgLen;
    spy = apx_fileManagerSharedSpy_new();
    CuAssertPtrNotNull(tc, spy);
-   CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&shared, 0));
+   CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&shared));
    apx_fileManagerRemote_create(&remote, &shared);
    shared.openFileRequest = apx_fileManagerSharedSpy_openFileRequest;
    shared.arg = spy;

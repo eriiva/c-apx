@@ -93,12 +93,6 @@ apx_error_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, struct
    {
       int8_t i8Result;
       adt_buf_err_t bufResult;
-      uint32_t connectionId = 0;
-
-      if (parentConnection != 0 )
-      {
-         connectionId = parentConnection->connectionId;
-      }
 
       bufResult = adt_rbfh_create(&self->messages, (uint8_t) RMF_MSG_SIZE);
 
@@ -107,7 +101,7 @@ apx_error_t apx_fileManager_create(apx_fileManager_t *self, uint8_t mode, struct
          return APX_MEM_ERROR;
       }
 
-      i8Result = apx_fileManagerShared_create(&self->shared, connectionId);
+      i8Result = apx_fileManagerShared_create(&self->shared);
       if (i8Result == 0)
       {
          apx_fileManagerRemote_create(&self->remote, &self->shared);
@@ -157,7 +151,9 @@ void apx_fileManager_destroy(apx_fileManager_t *self)
       MUTEX_DESTROY(self->mutex);
       MUTEX_DESTROY(self->eventListenerMutex);
       SPINLOCK_DESTROY(self->lock);
+      SEMAPHORE_DESTROY(self->semaphore);
       adt_rbfh_destroy(&self->messages);
+
    }
 }
 
@@ -300,6 +296,14 @@ uint32_t fileManager_getID(apx_fileManager_t *self)
    return 0;
 }
 
+void fileManager_setID(apx_fileManager_t *self, uint32_t fmid)
+{
+   if (self != 0)
+   {
+      self->shared.fmid = fmid;
+   }
+}
+
 void apx_fileManager_setTransmitHandler(apx_fileManager_t *self, apx_transmitHandler_t *handler)
 {
    if (self != 0)
@@ -393,25 +397,25 @@ void apx_fileManager_eventHandler(apx_fileManager_t *self, struct apx_event_tag 
    {
       switch(event->evType)
       {
-      case APX_EVENT_FILEMANAGER_PRE_START:
+      case APX_EVENT_FM_PRE_START:
          apx_fileManagerEvent_onPreStart(self);
          break;
-      case APX_EVENT_FILEMANAGER_POST_STOP:
+      case APX_EVENT_FM_POST_STOP:
          apx_fileManagerEvent_onPostStop(self);
          break;
-      case APX_EVENT_RMF_HEADER_COMPLETE:
+      case APX_EVENT_FM_HEADER_COMPLETE:
          apx_fileManagerEvent_onHeaderComplete(self);
          break;
-      case APX_EVENT_RMF_FILE_CREATED:
+      case APX_EVENT_FM_FILE_CREATED:
          apx_fileManagerEvent_onFileCreated(self, (apx_file2_t*) event->evData2, (const void*) event->evData3);
          break;
-      case APX_EVENT_RMF_FILE_REVOKED:
+      case APX_EVENT_FM_FILE_REVOKED:
          apx_fileManagerEvent_onFileRevoked(self, (apx_file2_t*) event->evData2, (const void*) event->evData3);
          break;
-      case APX_EVENT_RMF_FILE_OPENED:
+      case APX_EVENT_FM_FILE_OPENED:
          apx_fileManagerEvent_onFileOpened(self, (const apx_file2_t*) event->evData2, (const void*) event->evData3);
          break;
-      case APX_EVENT_RMF_FILE_CLOSED:
+      case APX_EVENT_FM_FILE_CLOSED:
          apx_fileManagerEvent_onFileClosed(self, (const apx_file2_t*) event->evData2, (const void*) event->evData3);
          break;
       }
@@ -452,7 +456,7 @@ void apx_fileManager_createPreStartEvent(apx_event_t *event, apx_fileManager_t *
    if (event != 0)
    {
       memset(event, 0, APX_EVENT_SIZE);
-      event->evType = APX_EVENT_FILEMANAGER_PRE_START;
+      event->evType = APX_EVENT_FM_PRE_START;
       event->evData1 = (void*) fileManager;
    }
 }
@@ -461,7 +465,7 @@ void apx_fileManager_createPostStopEvent(apx_event_t *event, apx_fileManager_t *
    if (event != 0)
    {
       memset(event, 0, APX_EVENT_SIZE);
-      event->evType = APX_EVENT_FILEMANAGER_POST_STOP;
+      event->evType = APX_EVENT_FM_POST_STOP;
       event->evData1 = (void*) fileManager;
    }
 }
@@ -471,7 +475,7 @@ void apx_fileManager_createHeaderCompleteEvent(apx_event_t *event, apx_fileManag
    if (event != 0)
    {
       memset(event, 0, APX_EVENT_SIZE);
-      event->evType = APX_EVENT_RMF_HEADER_COMPLETE;
+      event->evType = APX_EVENT_FM_HEADER_COMPLETE;
       event->evFlags = APX_EVENT_FLAG_FILE_MANAGER_EVENT;
       event->evData1 = (void*) fileManager;
    }
@@ -483,7 +487,7 @@ void apx_fileManager_createFileCreatedEvent(apx_event_t *event, apx_fileManager_
    if (event != 0)
    {
       memset(event, 0, APX_EVENT_SIZE);
-      event->evType = APX_EVENT_RMF_FILE_CREATED;
+      event->evType = APX_EVENT_FM_FILE_CREATED;
       event->evFlags = APX_EVENT_FLAG_FILE_MANAGER_EVENT;
       event->evData1 = (void*) fileManager;
       event->evData2 = (void*) file;
@@ -496,7 +500,7 @@ void apx_fileManager_createFileRevokedEvent(apx_event_t *event, apx_fileManager_
    if (event != 0)
    {
       memset(event, 0, APX_EVENT_SIZE);
-      event->evType = APX_EVENT_RMF_FILE_REVOKED;
+      event->evType = APX_EVENT_FM_FILE_REVOKED;
       event->evFlags = APX_EVENT_FLAG_FILE_MANAGER_EVENT;
       event->evData1 = (void*) fileManager;
       event->evData2 = (void*) file;
@@ -509,7 +513,7 @@ void apx_fileManager_createFileOpenedEvent(apx_event_t *event, apx_fileManager_t
    if (event != 0)
    {
       memset(event, 0, APX_EVENT_SIZE);
-      event->evType = APX_EVENT_RMF_FILE_OPENED;
+      event->evType = APX_EVENT_FM_FILE_OPENED;
       event->evFlags = APX_EVENT_FLAG_FILE_MANAGER_EVENT;
       event->evData1 = (void*) fileManager;
       event->evData2 = (void*) file;
@@ -522,7 +526,7 @@ void apx_fileManager_createFileClosedEvent(apx_event_t *event, apx_fileManager_t
    if (event != 0)
    {
       memset(event, 0, APX_EVENT_SIZE);
-      event->evType = APX_EVENT_RMF_FILE_CLOSED;
+      event->evType = APX_EVENT_FM_FILE_CLOSED;
       event->evFlags = APX_EVENT_FLAG_FILE_MANAGER_EVENT;
       event->evData1 = (void*) fileManager;
       event->evData2 = (void*) file;
@@ -897,18 +901,22 @@ static THREAD_PROTO(workerThread,arg)
       apx_fileManager_t *self;
       uint32_t messages_processed=0;
       bool isRunning=true;
+      uint32_t fmid;
       self = (apx_fileManager_t*) arg;
+      fmid = fileManager_getID(self);
       while(isRunning == true)
       {
-
+         //printf("[%u] Waiting for semaphore\n", fmid);
 #ifdef _MSC_VER
          DWORD result = WaitForSingleObject(self->semaphore, INFINITE);
          if (result == WAIT_OBJECT_0)
 #else
+
          int result = sem_wait(&self->semaphore);
          if (result == 0)
 #endif
          {
+            //printf("[%u] Semaphore wait success\n", fmid);
             SPINLOCK_ENTER(self->lock);
             adt_rbfh_remove(&self->messages,(uint8_t*) &msg);
             SPINLOCK_LEAVE(self->lock);
@@ -918,8 +926,12 @@ static THREAD_PROTO(workerThread,arg)
             }
             messages_processed++;
          }
+         else
+         {
+            printf("Failed to wait for semaphore\n");
+         }
       }
-      APX_LOG_INFO("[APX_FILE_MANAGER]: messages_processed: %u",messages_processed);
+      printf("[%u]: messages_processed: %u\n",fmid, messages_processed);
    }
    THREAD_RETURN(0);
 }
@@ -927,10 +939,15 @@ static THREAD_PROTO(workerThread,arg)
 
 static bool workerThread_processMessage(apx_fileManager_t *self, apx_msg_t *msg)
 {
+   //uint32_t fmid;
+   bool retval = true;
+   //fmid = fileManager_getID(self);
+   //printf("[%u] Processing %d\n", fmid, (int) msg->msgType);
    switch(msg->msgType)
    {
    case APX_MSG_EXIT:
-      return false;
+      retval = false;
+      break;
    case APX_MSG_SEND_FILEINFO:
       if (self->transmitHandler.send != 0)
       {
@@ -977,7 +994,8 @@ static bool workerThread_processMessage(apx_fileManager_t *self, apx_msg_t *msg)
       APX_LOG_ERROR("[APX_FILE_MANAGER]: Unknown message type: %u", msg->msgType);
       assert(0);
    }
-   return true;
+   //printf("[%u] Processing done\n", fmid);
+   return retval;
 }
 
 static void workerThread_sendAcknowledge(apx_fileManager_t *self)

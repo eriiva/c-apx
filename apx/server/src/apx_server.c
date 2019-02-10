@@ -41,8 +41,8 @@ static void apx_server_create_socket_servers(apx_server_t *self, uint16_t tcpPor
 static void apx_server_destroy_socket_servers(apx_server_t *self);
 static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_TYPE *sock);
 static void apx_server_attach_and_start_connection(apx_server_t *self, apx_serverConnectionBase_t *newConnection);
-static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_serverConnectionBase_t *connection);
-
+static void apx_server_triggerConnectedEvent(apx_server_t *self, apx_serverConnectionBase_t *connection);
+static void apx_server_triggerDisconnectedEvent(apx_server_t *self, apx_serverConnectionBase_t *serverConnection);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -69,7 +69,7 @@ void apx_server_create(apx_server_t *self, uint16_t port)
 #else
       apx_server_create_socket_servers(self, 0);
 #endif
-      adt_list_create(&self->connectionEventListeners, (void (*)(void*)) 0);
+      adt_list_create(&self->connectionEventListeners, apx_serverEventListener_vdelete);
       self->debugMode = APX_DEBUG_NONE;
       apx_routingTable_create(&self->routingTable);
       apx_connectionManager_create(&self->connectionManager);
@@ -110,13 +110,34 @@ void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode)
    }
 }
 
-void apx_server_registerConnectionEventListener(apx_server_t *self, apx_serverConnectionEventListener_t *eventListener)
+void* apx_server_registerEventListener(apx_server_t *self, apx_serverEventListener_t *eventListener)
 {
-   if (self != 0)
+   if ( (self != 0) && (eventListener != 0))
    {
-      adt_list_insert_unique(&self->connectionEventListeners, eventListener);
+      void *handle = (void*) apx_serverEventListener_clone(eventListener);
+      if (handle != 0)
+      {
+         //TODO: Add multi-thread lock
+         adt_list_insert(&self->connectionEventListeners, handle);
+      }
+      return handle;
+   }
+   return (void*) 0;
+}
+
+void apx_server_unregisterEventListener(apx_server_t *self, void *handle)
+{
+   if ( (self != 0) && (handle != 0))
+   {
+      //TODO: Add multi-thread lock
+      bool isFound = adt_list_remove(&self->connectionEventListeners, handle);
+      if (isFound == true)
+      {
+         apx_serverEventListener_vdelete(handle);
+      }
    }
 }
+
 
 void apx_server_acceptConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection)
 {
@@ -130,6 +151,7 @@ void apx_server_closeConnection(apx_server_t *self, apx_serverConnectionBase_t *
 {
    if ( (self != 0) && (serverConnection != 0))
    {
+      apx_server_triggerDisconnectedEvent(self, serverConnection);
       apx_connectionManager_closeConnection(&self->connectionManager, serverConnection);
    }
 }
@@ -224,19 +246,33 @@ static void apx_server_accept(void *arg, struct msocket_server_tag *srv, SOCKET_
 static void apx_server_attach_and_start_connection(apx_server_t *self, apx_serverConnectionBase_t *newConnection)
 {
    apx_connectionManager_attach(&self->connectionManager, newConnection);
-   apx_server_trigger_connected_event_on_listeners(self, newConnection);
+   apx_server_triggerConnectedEvent(self, newConnection);
    apx_connectionBase_start(&newConnection->base);
 }
 
-static void apx_server_trigger_connected_event_on_listeners(apx_server_t *self, apx_serverConnectionBase_t *serverConnection)
+static void apx_server_triggerConnectedEvent(apx_server_t *self, apx_serverConnectionBase_t *serverConnection)
 {
    adt_list_elem_t *iter = adt_list_iter_first(&self->connectionEventListeners);
    while(iter != 0)
    {
-      apx_serverConnectionEventListener_t *listener = (apx_serverConnectionEventListener_t*) iter->pItem;
+      apx_serverEventListener_t *listener = (apx_serverEventListener_t*) iter->pItem;
       if ( (listener != 0) && (listener->serverConnected != 0) )
       {
          listener->serverConnected(listener->arg, serverConnection);
+      }
+      iter = adt_list_iter_next(iter);
+   }
+}
+
+static void apx_server_triggerDisconnectedEvent(apx_server_t *self, apx_serverConnectionBase_t *serverConnection)
+{
+   adt_list_elem_t *iter = adt_list_iter_first(&self->connectionEventListeners);
+   while(iter != 0)
+   {
+      apx_serverEventListener_t *listener = (apx_serverEventListener_t*) iter->pItem;
+      if ( (listener != 0) && (listener->serverDisconnected != 0) )
+      {
+         listener->serverDisconnected(listener->arg, serverConnection);
       }
       iter = adt_list_iter_next(iter);
    }

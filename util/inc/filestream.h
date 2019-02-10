@@ -1,6 +1,7 @@
 #ifndef FILESTREAM_H
 #define FILESTREAM_H
 #include <stdint.h>
+#include "adt_bytearray.h"
 
 typedef struct ifstream_handler_t{
    //user-defined argument
@@ -27,6 +28,8 @@ void ifstream_write(ifstream_t *self, const uint8_t *pChunk, uint32_t chunkLen);
 void ifstream_close(ifstream_t *self);
 int ifstream_readBinaryFile(ifstream_t *self,const char *filename);
 int ifstream_readTextFile(ifstream_t *self,const char *filename);
+
+adt_bytearray_t *ifstream_util_readTextFile(const char *filename);
 
 
 #endif //FILESTREAM_H

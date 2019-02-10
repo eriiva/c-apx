@@ -30,6 +30,14 @@
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
 #include "apx_connectionBase.h"
+#include "adt_list.h"
+#include "apx_eventListener.h"
+#ifndef _WIN32
+#include <pthread.h>
+#else
+#include <Windows.h>
+#endif
+#include "osmacro.h"
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
@@ -38,7 +46,9 @@ struct apx_server_tag;
 typedef struct apx_serverConnectionBase_tag
 {
    apx_connectionBase_t base;
+   adt_list_t nodeDataEventListeners; //weak references to apx_nodeDataEventListener_t
    struct apx_server_tag *server;
+   MUTEX_T eventListenerMutex;
    bool isGreetingParsed;
    bool isActive;
 }apx_serverConnectionBase_t;
@@ -59,6 +69,9 @@ uint32_t apx_serverConnectionBase_getConnectionId(apx_serverConnectionBase_t *se
 void apx_serverConnectionBase_close(apx_serverConnectionBase_t *self);
 void apx_serverConnectionBase_detachNodes(apx_serverConnectionBase_t *self);
 uint32_t apx_serverConnectionBase_getTotalPortReferences(apx_serverConnectionBase_t *self);
+void* apx_serverConnectionBase_registerNodeDataEventListener(apx_serverConnectionBase_t *self, apx_nodeDataEventListener_t *listener);
+void apx_serverConnectionBase_unregisterNodeDataEventListener(apx_serverConnectionBase_t *self, void *handle);
+
 
 #ifdef UNIT_TEST
 void apx_serverConnectionBase_run(apx_serverConnectionBase_t *self);

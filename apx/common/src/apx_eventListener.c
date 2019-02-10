@@ -48,6 +48,33 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+apx_serverEventListener_t *apx_serverEventListener_clone(apx_serverEventListener_t *other)
+{
+   if (other != 0)
+   {
+      apx_serverEventListener_t *self = (apx_serverEventListener_t*) malloc(sizeof(apx_serverEventListener_t));
+      if (self != 0)
+      {
+         *self = *other;
+      }
+      return self;
+   }
+   return (apx_serverEventListener_t*) 0;
+}
+
+void apx_serverEventListener_delete(apx_serverEventListener_t *self)
+{
+   if (self != 0)
+   {
+      free(self);
+   }
+}
+
+void apx_serverEventListener_vdelete(void *arg)
+{
+   apx_serverEventListener_delete((apx_serverEventListener_t*) arg);
+}
+
 apx_fileManagerEventListener_t *apx_fileManagerEventListener_clone(apx_fileManagerEventListener_t *other)
 {
    if (other != 0)
@@ -72,8 +99,36 @@ void apx_fileManagerEventListener_delete(apx_fileManagerEventListener_t *self)
 
 void apx_fileManagerEventListener_vdelete(void *arg)
 {
-   apx_fileManagerEventListener_delete((apx_fileManagerEventListener_t *) 0);
+   apx_fileManagerEventListener_delete((apx_fileManagerEventListener_t *) arg);
 }
+
+apx_nodeDataEventListener_t *apx_nodeDataEventListener_clone(apx_nodeDataEventListener_t *other)
+{
+   if (other != 0)
+   {
+      apx_nodeDataEventListener_t *self = (apx_nodeDataEventListener_t*) malloc(sizeof(apx_nodeDataEventListener_t));
+      if (self != 0)
+      {
+         *self = *other;
+      }
+      return self;
+   }
+   return (apx_nodeDataEventListener_t*) 0;
+}
+
+void apx_nodeDataEventListener_delete(apx_nodeDataEventListener_t *self)
+{
+   if (self != 0)
+   {
+      free(self);
+   }
+}
+
+void apx_nodeDataEventListener_vdelete(void *arg)
+{
+   apx_nodeDataEventListener_delete((apx_nodeDataEventListener_t *) arg);
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS

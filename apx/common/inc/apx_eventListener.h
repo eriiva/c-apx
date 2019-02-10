@@ -37,6 +37,7 @@ struct apx_fileManager_tag;
 struct apx_nodeData_tag;
 struct apx_serverConnectionBase_tag;
 struct apx_clientConnectionBase_tag;
+struct apx_portConnectionTable_tag;
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -46,53 +47,48 @@ struct apx_clientConnectionBase_tag;
 typedef struct apx_clientEventListener_tag
 {
    void *arg;
-   void (*clientConnected)(void *arg, struct apx_clientConnectionBase_tag *clientConnection);
-   void (*clientDisconnected)(void *arg, struct apx_clientConnectionBase_tag *clientConnection);
-   void (*nodeCompleted)(void *arg, struct apx_nodeData_tag *nodeData);
+   void (*clientConnected)(void *arg, struct apx_clientConnectionBase_tag *clientConnection);            //phase 1 event
+   void (*clientDisconnected)(void *arg, struct apx_clientConnectionBase_tag *clientConnection);         //phase 1 event
+   void (*nodeCompleted)(void *arg, struct apx_nodeData_tag *nodeData);                                  //phase 2 event
 }apx_clientEventListener_t;
 
-typedef struct apx_serverConnectionEventListener_tag
+typedef struct apx_serverEventListener_tag
 {
    void *arg;
-   void (*serverConnected)(void *arg, struct apx_serverConnectionBase_tag *connection);
-   void (*serverDisconnected)(void *arg, struct apx_serverConnectionBase_tag *connection);
-   void (*nodeCompleted)(void *arg, struct apx_nodeData_tag *nodeData);
-}apx_serverConnectionEventListener_t;
-
-
-/*
-typedef void (apx_eventListener_apxConnectionEventFunc_t)(void *arg, struct apx_connectionBase_tag *connection);
-typedef struct apx_connectionEventListener_tag
-{
-   void *arg;
-   apx_eventListener_apxConnectionEventFunc_t *connected;
-   apx_eventListener_apxConnectionEventFunc_t *disconnected;
-} apx_connectionEventListener_t;
-*/
+   void (*serverConnected)(void *arg, struct apx_serverConnectionBase_tag *connection);                  //phase 1 event
+   void (*serverDisconnected)(void *arg, struct apx_serverConnectionBase_tag *connection);               //phase 1 event
+   void (*nodeCompleted)(void *arg, struct apx_nodeData_tag *nodeData);                                  //phase 2 event
+}apx_serverEventListener_t;
 
 typedef void (apx_eventListener_fileManagerEventFunc_t)(void *arg, struct apx_fileManager_tag *fileManager);
 typedef void (apx_eventListener_fileManagerFileEventFunc_t)(void *arg, struct apx_fileManager_tag *fileManager, struct apx_file2_tag *file);
 typedef struct apx_fileManagerEventListener_tag
 {
    void *arg;
-   apx_eventListener_fileManagerEventFunc_t *managerStart;
-   apx_eventListener_fileManagerEventFunc_t *managerStop;
-   apx_eventListener_fileManagerEventFunc_t *headerComplete;
-   apx_eventListener_fileManagerFileEventFunc_t *fileCreate;
-   apx_eventListener_fileManagerFileEventFunc_t *fileRevoke;
-   apx_eventListener_fileManagerFileEventFunc_t *fileOpen;
-   apx_eventListener_fileManagerFileEventFunc_t *fileClose;
+   apx_eventListener_fileManagerEventFunc_t *managerStart;    //phase 2 event
+   apx_eventListener_fileManagerEventFunc_t *managerStop;     //phase 2 event
+   apx_eventListener_fileManagerEventFunc_t *headerComplete;  //phase 2 event
+   apx_eventListener_fileManagerFileEventFunc_t *fileCreate;  //phase 2 event
+   apx_eventListener_fileManagerFileEventFunc_t *fileRevoke;  //phase 2 event
+   apx_eventListener_fileManagerFileEventFunc_t *fileOpen;    //phase 2 event
+   apx_eventListener_fileManagerFileEventFunc_t *fileClose;   //phase 2 event
 } apx_fileManagerEventListener_t;
 
-typedef void (apx_eventListener_nodeDataWriteEventFunc_t)(void *arg, struct apx_nodeData_tag *nodeData, uint32_t offset, uint32_t len);
-typedef void (apx_eventListener_nodeDataEventFunc_t)(void *arg, struct apx_nodeData_tag *nodeData);
+typedef void (apx_eventListener_nodeDataWriteFunc_t)(void *arg, struct apx_nodeData_tag *nodeData, uint32_t offset, uint32_t len);
+typedef void (apx_eventListener_nodeDataFunc_t)(void *arg, struct apx_nodeData_tag *nodeData);
+typedef void (apx_eventListener_nodeDataPortConnectFunc_t)(void *arg, struct apx_nodeData_tag *nodeData, struct apx_portConnectionTable_tag *conectionTable);
+
 typedef struct apx_nodeDataEventListener_tag
 {
    void *arg; //user argument
-   apx_eventListener_nodeDataWriteEventFunc_t *definitionDataWritten;
-   apx_eventListener_nodeDataWriteEventFunc_t *inPortDataWritten;
-   apx_eventListener_nodeDataWriteEventFunc_t *outPortDataWritten;
-   apx_eventListener_nodeDataEventFunc_t *nodeComplete;
+   apx_eventListener_nodeDataWriteFunc_t *definitionDataWritten;          //phase 1 event
+   apx_eventListener_nodeDataWriteFunc_t *inPortDataWritten;              //phase 1 event
+   apx_eventListener_nodeDataWriteFunc_t *outPortDataWritten;             //phase 1 event
+   apx_eventListener_nodeDataFunc_t *nodeComplete;                        //phase 2 event
+   apx_eventListener_nodeDataPortConnectFunc_t *requirePortsConnected;    //phase 2 event
+   apx_eventListener_nodeDataPortConnectFunc_t *providePortsConnected;    //phase 2 event
+   apx_eventListener_nodeDataPortConnectFunc_t *requirePortsDisconnected; //phase 2 event
+   apx_eventListener_nodeDataPortConnectFunc_t *providePortsDisconnected; //phase 2 event
 } apx_nodeDataEventListener_t;
 
 
@@ -103,8 +99,18 @@ typedef struct apx_nodeDataEventListener_tag
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+
+apx_serverEventListener_t *apx_serverEventListener_clone(apx_serverEventListener_t *other);
+void apx_serverEventListener_delete(apx_serverEventListener_t *self);
+void apx_serverEventListener_vdelete(void *arg);
+
 apx_fileManagerEventListener_t *apx_fileManagerEventListener_clone(apx_fileManagerEventListener_t *other);
 void apx_fileManagerEventListener_delete(apx_fileManagerEventListener_t *self);
 void apx_fileManagerEventListener_vdelete(void *arg);
+
+apx_nodeDataEventListener_t *apx_nodeDataEventListener_clone(apx_nodeDataEventListener_t *other);
+void apx_nodeDataEventListener_delete(apx_nodeDataEventListener_t *self);
+void apx_nodeDataEventListener_vdelete(void *arg);
+
 
 #endif //APX_EVENT_LISTENER_H

@@ -37,7 +37,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define CLEANUP_WAIT_TIME 200
+#define CLEANUP_WAIT_TIME 500
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
@@ -250,7 +250,9 @@ THREAD_PROTO(cleanupTask,arg)
          {
             break;
          }
+         //printf("Running cleanupTask\n");
          apx_connectionManager_cleanupTask_run(self, numInactiveConnections);
+         //printf("Done running cleanupTask\n");
       }
       printf("Stopping cleanupTask\n");
    }

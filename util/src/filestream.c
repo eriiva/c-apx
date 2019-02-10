@@ -13,7 +13,7 @@
 #define IFSTREAM_BLOCK_SIZE 8192
 
 /**************** Private Function Declarations *******************/
-
+static void util_appendChunk(void *arg, const uint8_t *pChunk, uint32_t chunkLen);
 
 /**************** Private Variable Declarations *******************/
 
@@ -161,5 +161,34 @@ int ifstream_readTextFile(ifstream_t *self,const char *filename){
    return -1;
 }
 
+adt_bytearray_t *ifstream_util_readTextFile(const char *filename)
+{
+   adt_bytearray_t *buf = adt_bytearray_new(0);
+   if (buf != 0)
+   {
+      ifstream_handler_t handler;
+      ifstream_t ifstream;
+      memset(&handler, 0, sizeof(handler));
+      handler.arg = buf;
+      handler.write = util_appendChunk;
+      ifstream_create(&ifstream, &handler);
+      if (ifstream_readTextFile(&ifstream, filename) != 0)
+      {
+         adt_bytearray_delete(buf);
+         buf = (adt_bytearray_t*) 0;
+      }
+      return buf;
+   }
+   return (adt_bytearray_t*) 0;
+}
+
 
 /***************** Private Function Definitions *******************/
+static void util_appendChunk(void *arg, const uint8_t *pChunk, uint32_t chunkLen)
+{
+   adt_bytearray_t *buf = (adt_bytearray_t*) arg;
+   if (buf != 0 && pChunk != 0 && chunkLen > 0)
+   {
+      adt_bytearray_append(buf, pChunk, chunkLen);
+   }
+}

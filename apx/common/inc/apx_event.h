@@ -41,14 +41,14 @@ typedef struct apx_event_tag
    void *evData1;    //generic void* pointer value
    void *evData2;    //generic void* pointer value
    void *evData3;    //generic void* pointer value
-//   void *evData4;    //generic void* pointer value
+   uint32_t evData4; //generic uint32 value
    uint32_t evData5; //generic uint32 value
-   uint32_t evData6; //generic uint32 value
 } apx_event_t;
 
 #define APX_EVENT_SIZE sizeof(apx_event_t)
 
 #define APX_EVENT_FLAG_FILE_MANAGER_EVENT    0x01
+#define APX_EVENT_FLAG_REMOTE_ADDRESS        0x02
 
 //#define APX_EVENT_FLAG_DEFINITION_FILE     0x02
 //#define APX_EVENT_FLAG_IN_DATA_FILE        0x04
@@ -56,22 +56,19 @@ typedef struct apx_event_tag
 //#define APX_EVENT_FLAG_FILE_COMPLETE       0x10
 
 //APX connection events
-#define APX_EVENT_SERVER_CONNECTED             0 //evData1: apx_serverConnectionBase_t *connection
-#define APX_EVENT_SERVER_DISCONNECTED          1 //evData1: apx_serverConnectionBase_t *connection
-#define APX_EVENT_CLIENT_CONNECTED             2 //evData1: apx_clientConnectionBase_T *connection
-#define APX_EVENT_CLIENT_DISCONNECTED          3 //evData1: apx_clientConnectionBase_T *connection
+#define APX_EVENT_SERVER_CONNECTED         0 //evData1: apx_serverConnectionBase_t *connection
+#define APX_EVENT_SERVER_DISCONNECTED      1 //evData1: apx_serverConnectionBase_t *connection
+#define APX_EVENT_CLIENT_CONNECTED         2 //evData1: apx_clientConnectionBase_T *connection
+#define APX_EVENT_CLIENT_DISCONNECTED      3 //evData1: apx_clientConnectionBase_T *connection
 
 //APX file manager events
-#define APX_EVENT_FILEMANAGER_PRE_START     4 //evData1: apx_fileManager_t *fileManager
-#define APX_EVENT_FILEMANAGER_POST_STOP     5 //evData1: apx_fileManager_t *fileManager
-#define APX_EVENT_RMF_HEADER_COMPLETE       6 //evData1: apx_fileManager_t *fileManager
-#define APX_EVENT_RMF_FILE_CREATED          7 //evData1: apx_fileManager_t *fileManager, evData2: apx_file2_t *file, evData3: const void *caller
-#define APX_EVENT_RMF_FILE_REVOKED          8 //evData1: apx_fileManager_t *fileManager, evData2: apx_file2_t *file, evData3: const void *caller
-#define APX_EVENT_RMF_FILE_OPENED           9 //evData1: apx_fileManager_t *fileManager, evData2: apx_file2_t *file, evData3: const void *caller
-#define APX_EVENT_RMF_FILE_CLOSED           10 //evData1: apx_fileManager_t *fileManager, evData2: apx_file2_t *file, evData3: const void *caller
-
-//Remote file data events
-#define APX_EVENT_RMF_FILE_WRITE           11 //evData1: apx_file2_t *file, evData2: *u8Data, evData5: offset, evData6: len
+#define APX_EVENT_FM_PRE_START             4 //evData1: apx_fileManager_t *fileManager
+#define APX_EVENT_FM_POST_STOP             5 //evData1: apx_fileManager_t *fileManager
+#define APX_EVENT_FM_HEADER_COMPLETE       6 //evData1: apx_fileManager_t *fileManager
+#define APX_EVENT_FM_FILE_CREATED          7 //evData1: apx_fileManager_t *fileManager, evData2: apx_file2_t *file, evData3: const void *caller
+#define APX_EVENT_FM_FILE_REVOKED          8 //evData1: apx_fileManager_t *fileManager, evData2: apx_file2_t *file, evData3: const void *caller
+#define APX_EVENT_FM_FILE_OPENED           9 //evData1: apx_fileManager_t *fileManager, evData2: apx_file2_t *file, evData3: const void *caller
+#define APX_EVENT_FM_FILE_CLOSED           10 //evData1: apx_fileManager_t *fileManager, evData2: apx_file2_t *file, evData3: const void *caller
 
 //APX node events
 #define APX_EVENT_REQUIRE_PORT_CONNECT     12 //evData1: apx_nodeData_t *nodeData (weak), evData2: apx_portConnectionTable_t *connections (strong)
@@ -79,12 +76,10 @@ typedef struct apx_event_tag
 #define APX_EVENT_REQUIRE_PORT_DISCONNECT  14 //evData1: apx_nodeData_t *nodeData (weak), evData2: apx_portConnectionTable_t *connections (strong)
 #define APX_EVENT_PROVIDE_PORT_DISCONNECT  15 //evData1: apx_nodeData_t *nodeData (weak), evData2: apx_portConnectionTable_t *connections (strong)
 #define APX_EVENT_NODE_COMPLETE            16 //evData1:*arg, evData2:*nodeData
+#define APX_EVENT_NODE_DEFINITION_WRITE    17 //evFlag: APX_EVENT_FLAG_REMOTE_ADDRESS?, evData1:*arg, evData2:*nodeData, evData4: offset, evData5: len
+#define APX_EVENT_NODE_INDATA_WRITE        18 //evFlag: APX_EVENT_FLAG_REMOTE_ADDRESS?, evData1:*arg, evData2:*nodeData, evData4: offset, evData5: len
+#define APX_EVENT_NODE_OUTATA_WRITE        19 //evFlag: APX_EVENT_FLAG_REMOTE_ADDRESS?, evData1:*arg, evData2:*nodeData, evData4: offset, evData5: len
 
-/*
-#define APX_EVENT_NODE_DEFINITION_WRITE    8  //evData1:*arg, evData2:*nodeData, evData4: offset, evData5: len
-#define APX_EVENT_NODE_INDATA_WRITE        9  //evData1:*arg, evData2:*nodeData, evData4: offset, evData5: len
-#define APX_EVENT_NODE_OUTATA_WRITE        10 //evData1:*arg, evData2:*nodeData, evData4: offset, evData5: len
-*/
 
 
 typedef void (apx_eventHandlerFunc_t)(void *arg, apx_event_t *event);

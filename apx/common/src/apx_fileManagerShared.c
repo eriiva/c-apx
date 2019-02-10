@@ -50,14 +50,14 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
-int8_t apx_fileManagerShared_create(apx_fileManagerShared_t *self, uint32_t fmid)
+int8_t apx_fileManagerShared_create(apx_fileManagerShared_t *self)
 {
    if (self != 0)
    {
       int8_t result = apx_allocator_create(&self->allocator, APX_MAX_NUM_MESSAGES);
       if (result == 0)
       {
-         self->fmid = fmid;
+         self->fmid = 0;
          self->isConnected = false;
          self->arg = (void*) 0;
          self->fileCreated = (void (*)(void *, const struct apx_file2_tag*, void *caller)) 0;

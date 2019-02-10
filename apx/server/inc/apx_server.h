@@ -31,7 +31,7 @@ typedef struct apx_server_tag
    msocket_server_t tcpServer; //tcp server
    msocket_server_t localServer; //unix domain socket server
 #endif
-   adt_list_t connectionEventListeners; //weak references to apx_serverConnectionEventListener_t
+   adt_list_t connectionEventListeners; //weak references to apx_serverEventListener_t
    apx_routingTable_t routingTable; //routing table for APX port connections
    apx_connectionManager_t connectionManager; //server connections
    int8_t debugMode; //TODO: remove this
@@ -53,7 +53,8 @@ void apx_server_create(apx_server_t *self, uint16_t port);
 void apx_server_destroy(apx_server_t *self);
 void apx_server_start(apx_server_t *self);
 void apx_server_setDebugMode(apx_server_t *self, int8_t debugMode);
-void apx_server_registerConnectionEventListener(apx_server_t *self, apx_serverConnectionEventListener_t *eventListener);
+void* apx_server_registerEventListener(apx_server_t *self, apx_serverEventListener_t *eventListener);
+void apx_server_unregisterEventListener(apx_server_t *self, void *handle);
 void apx_server_acceptConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection);
 void apx_server_closeConnection(apx_server_t *self, apx_serverConnectionBase_t *serverConnection);
 apx_routingTable_t* apx_server_getRoutingTable(apx_server_t *self);

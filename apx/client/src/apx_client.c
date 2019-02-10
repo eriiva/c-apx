@@ -229,7 +229,7 @@ apx_error_t apx_client_attachLocalNode(apx_client_t *self, struct apx_nodeData_t
 {
    if ( (self != 0) && (nodeData != 0) )
    {
-      if (self->nodeDataList != 0)
+      if (self->nodeDataList == 0)
       {
          self->nodeDataList = adt_ary_new((void (*)(void*)) 0);
       }
@@ -311,16 +311,31 @@ apx_error_t apx_clientInternal_attachLocalNodes(apx_client_t *self, struct apx_n
 {
    if ( (self != 0) && (nodeDataManager != 0) )
    {
+      int32_t i;
+      int32_t len;
       if (self->nodeInfoList != 0)
       {
-         int32_t i;
-         int32_t len = adt_ary_length(self->nodeInfoList);
+         len = adt_ary_length(self->nodeInfoList);
          for (i=0;i<len;i++)
          {
             apx_error_t errorCode;
             apx_nodeInfo_t *nodeInfo = (apx_nodeInfo_t*) adt_ary_value(self->nodeInfoList, i);
             assert(nodeInfo != 0);
             errorCode = apx_nodeDataManager_attachFromString(nodeDataManager, nodeInfo->text);
+            if (errorCode != APX_NO_ERROR)
+            {
+               return errorCode;
+            }
+         }
+      }
+      if (self->nodeDataList != 0)
+      {
+         len = adt_ary_length(self->nodeDataList);
+         for (i=0;i<len;i++)
+         {
+            apx_error_t errorCode;
+            apx_nodeData_t *nodeData = adt_ary_value(self->nodeDataList, i);
+            errorCode = apx_nodeDataManager_attach(nodeDataManager, nodeData);
             if (errorCode != APX_NO_ERROR)
             {
                return errorCode;

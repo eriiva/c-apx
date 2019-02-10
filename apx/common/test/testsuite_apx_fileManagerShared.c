@@ -19,7 +19,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define CONNECTION_ID_DEFAULT 0
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
@@ -62,7 +61,7 @@ CuSuite* testSuite_apx_fileManagerShared(void)
 static void test_apx_fileManagerShared_create(CuTest* tc)
 {
    apx_fileManagerShared_t data;
-   CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&data, CONNECTION_ID_DEFAULT));
+   CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&data));
    CuAssertUIntEquals(tc, 0, data.fmid);
 
    CuAssertPtrEquals(tc, 0, data.fileCreated);
@@ -79,7 +78,7 @@ static void test_apx_fileManagerShared_alloc(CuTest* tc)
    uint8_t *ptr;
    size_t size;
    int i;
-   apx_fileManagerShared_create(&data, CONNECTION_ID_DEFAULT);
+   apx_fileManagerShared_create(&data);
    //allocate small objects
    for(i=1;i<SMALL_OBJECT_MAX_SIZE;i++)
    {

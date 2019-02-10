@@ -321,6 +321,7 @@ void apx_connectionBase_setConnectionId(apx_connectionBase_t *self, uint32_t con
    if (self != 0)
    {
       self->connectionId = connectionId;
+      fileManager_setID(&self->fileManager, connectionId);
    }
 }
 

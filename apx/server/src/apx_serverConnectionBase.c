@@ -41,6 +41,7 @@
 #include "apx_portDataMap.h"
 #include "apx_server.h"
 #include "apx_routingTable.h"
+#include "apx_portConnectionTable.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -62,6 +63,8 @@ static void apx_serverConnectionBase_processNewApxFile(apx_serverConnectionBase_
 static void apx_serverConnectionBase_processNewOutDataFile(apx_serverConnectionBase_t *self, struct apx_file2_tag *file);
 static void apx_serverConnectionBase_onDefinitionDataWritten(void *arg, apx_nodeData_t *nodeData, uint32_t offset, uint32_t len);
 static apx_error_t apx_serverConnectionBase_createInPortDataFile(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_file2_t *definitionFile);
+static void apx_serverConnectionBase_triggerRequirePortsConnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable);
+static void apx_serverConnectionBase_triggerProvidePortsConnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable);
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -79,6 +82,8 @@ apx_error_t apx_serverConnectionBase_create(apx_serverConnectionBase_t *self, st
       self->server = server;
       self->isGreetingParsed = false;
       self->isActive = true;
+      MUTEX_INIT(self->eventListenerMutex);
+      adt_list_create(&self->nodeDataEventListeners, apx_nodeDataEventListener_vdelete);
       apx_connectionBase_setEventHandler(&self->base, apx_serverConnectionBase_defaultEventHandler, (void*) self);
       return result;
    }
@@ -90,6 +95,8 @@ void apx_serverConnectionBase_destroy(apx_serverConnectionBase_t *self)
    if (self != 0)
    {
       apx_connectionBase_destroy(&self->base);
+      MUTEX_DESTROY(self->eventListenerMutex);
+      adt_list_destroy(&self->nodeDataEventListeners);
    }
 }
 
@@ -161,6 +168,25 @@ void apx_serverConnectionBase_defaultEventHandler(void *arg, apx_event_t *event)
    apx_serverConnectionBase_t *self = (apx_serverConnectionBase_t*) arg;
    if (self != 0)
    {
+      apx_nodeData_t *nodeData;
+      apx_portConnectionTable_t *portConnectionTable;
+      switch(event->evType)
+      {
+      case APX_EVENT_REQUIRE_PORT_CONNECT:
+         nodeData = (apx_nodeData_t*) event->evData1;
+         portConnectionTable = (apx_portConnectionTable_t*) event->evData2;
+         apx_serverConnectionBase_triggerRequirePortsConnected(self, nodeData, portConnectionTable);
+         break;
+      case APX_EVENT_PROVIDE_PORT_CONNECT:
+         nodeData = (apx_nodeData_t*) event->evData1;
+         portConnectionTable = (apx_portConnectionTable_t*) event->evData2;
+         apx_serverConnectionBase_triggerProvidePortsConnected(self, nodeData, portConnectionTable);
+         break;
+      case APX_EVENT_REQUIRE_PORT_DISCONNECT:
+         break;
+      case APX_EVENT_PROVIDE_PORT_DISCONNECT:
+         break;
+      }
       apx_connectionBase_defaultEventHandler(&self->base, event);
    }
 }
@@ -236,6 +262,38 @@ uint32_t apx_serverConnectionBase_getTotalPortReferences(apx_serverConnectionBas
 }
 
 
+void* apx_serverConnectionBase_registerNodeDataEventListener(apx_serverConnectionBase_t *self, apx_nodeDataEventListener_t *listener)
+{
+   if ( (self != 0) && (listener != 0))
+   {
+      void *handle = (void*) apx_nodeDataEventListener_clone(listener);
+      if (handle != 0)
+      {
+         MUTEX_LOCK(self->eventListenerMutex);
+         adt_list_insert(&self->nodeDataEventListeners, handle);
+         MUTEX_UNLOCK(self->eventListenerMutex);
+      }
+      return handle;
+   }
+   return (void*) 0;
+}
+
+void apx_serverConnectionBase_unregisterNodeDataEventListener(apx_serverConnectionBase_t *self, void *handle)
+{
+   if ( (self != 0) && (handle != 0))
+   {
+      MUTEX_LOCK(self->eventListenerMutex);
+      bool isFound = adt_list_remove(&self->nodeDataEventListeners, handle);
+      if (isFound == true)
+      {
+         apx_nodeDataEventListener_vdelete(handle);
+      }
+      MUTEX_UNLOCK(self->eventListenerMutex);
+   }
+}
+
+
+
 #ifdef UNIT_TEST
 void apx_serverConnectionBase_run(apx_serverConnectionBase_t *self)
 {
@@ -246,8 +304,6 @@ void apx_serverConnectionBase_run(apx_serverConnectionBase_t *self)
    }
 }
 #endif
-
-
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
@@ -536,4 +592,26 @@ static apx_error_t apx_serverConnectionBase_createInPortDataFile(apx_serverConne
       retval = APX_MEM_ERROR;
    }
    return retval;
+}
+
+static void apx_serverConnectionBase_triggerRequirePortsConnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable)
+{
+
+}
+
+static void apx_serverConnectionBase_triggerProvidePortsConnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable)
+{
+   adt_list_elem_t *iter;
+   MUTEX_LOCK(self->eventListenerMutex);
+   iter = adt_list_iter_first(&self->nodeDataEventListeners);
+   while (iter != 0)
+   {
+      apx_nodeDataEventListener_t *eventListener = (apx_nodeDataEventListener_t*) iter->pItem;
+      if (eventListener->providePortsConnected != 0)
+      {
+         eventListener->providePortsConnected(eventListener->arg, nodeData, portConnectionTable);
+      }
+      iter = adt_list_iter_next(iter);
+   }
+   MUTEX_UNLOCK(self->eventListenerMutex);
 }

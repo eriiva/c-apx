@@ -20,7 +20,6 @@
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define CONNECTION_ID_DEFAULT 0
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
@@ -61,7 +60,7 @@ static void test_apx_fileManagerLocal_create(CuTest* tc)
 {
    apx_fileManagerShared_t shared;
    apx_fileManagerLocal_t local;
-   CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&shared, CONNECTION_ID_DEFAULT));
+   CuAssertIntEquals(tc, 0, apx_fileManagerShared_create(&shared));
    apx_fileManagerLocal_create(&local, &shared);
    CuAssertIntEquals(tc, 0, apx_fileManagerLocal_getNumFiles(&local));
    apx_fileManagerLocal_destroy(&local);
@@ -77,7 +76,7 @@ static void test_apx_fileManagerLocal_attachFile(CuTest* tc)
    apx_file2_t *outDataFile;
    ApxNode_Init_TestNode1();
    nodeData = ApxNode_GetNodeData_TestNode1();
-   apx_fileManagerShared_create(&shared, CONNECTION_ID_DEFAULT);
+   apx_fileManagerShared_create(&shared);
    apx_fileManagerLocal_create(&local, &shared);
    CuAssertIntEquals(tc, 0, apx_fileManagerLocal_getNumFiles(&local));
    definitionFile = apx_nodeData_newLocalDefinitionFile(nodeData);
