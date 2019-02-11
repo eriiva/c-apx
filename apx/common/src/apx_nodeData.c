@@ -1005,8 +1005,8 @@ apx_error_t apx_nodeData_updatePortDataDirect(apx_nodeData_t *destNodeData, stru
          memcpy(&destNodeData->inPortDataBuf[destDataAttributes->offset], &srcNodeData->outPortDataBuf[srcDataAttributes->offset], srcDataAttributes->dataSize);
 
 #ifndef APX_EMBEDDED
-         SPINLOCK_ENTER(srcNodeData->outPortDataLock);
-         SPINLOCK_ENTER(destNodeData->inPortDataLock);
+         SPINLOCK_LEAVE(srcNodeData->outPortDataLock);
+         SPINLOCK_LEAVE(destNodeData->inPortDataLock);
 #endif
          return APX_NO_ERROR;
       }
