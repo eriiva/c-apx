@@ -451,7 +451,7 @@ static THREAD_PROTO(eventHandlerWorkThread,arg)
 static void apx_connectionBase_handlePortConnectEvent(apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable, apx_portType_t portType)
 {
    int32_t portId;
-   void (*portConnectFunc)(apx_nodeData_t*, apx_portId_t) = portType==APX_REQUIRE_PORT? apx_nodeData_incProvidePortConnectionCount : apx_nodeData_incRequirePortConnectionCount;
+   void (*portIncCountFunc)(apx_nodeData_t*, apx_portId_t) = portType==APX_REQUIRE_PORT? apx_nodeData_incProvidePortConnectionCount : apx_nodeData_incRequirePortConnectionCount;
    for (portId=0; portId<connectionTable->numPorts; portId++)
    {
       apx_portConnectionEntry_t *entry = apx_portConnectionTable_getEntry(connectionTable, portId);
@@ -464,13 +464,13 @@ static void apx_connectionBase_handlePortConnectEvent(apx_nodeData_t *nodeData, 
          for(i=0;i<numConnections;i++)
          {
             apx_portDataRef_t *remotePortRef = adt_ary_value(array, i);
-            portConnectFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
+            portIncCountFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
          }
       }
       else if (entry->count == 1)
       {
          apx_portDataRef_t *remotePortRef = (apx_portDataRef_t*) entry->pAny;
-         portConnectFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
+         portIncCountFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
       }
       else
       {
@@ -482,7 +482,7 @@ static void apx_connectionBase_handlePortConnectEvent(apx_nodeData_t *nodeData, 
 static void apx_connectionBase_handlePortDisconnectEvent(apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable, apx_portType_t portType)
 {
    int32_t portId;
-   void (*portConnectFunc)(apx_nodeData_t*, apx_portId_t) = portType==APX_REQUIRE_PORT? apx_nodeData_decProvidePortConnectionCount : apx_nodeData_decRequirePortConnectionCount;
+   void (*portDecCountFunc)(apx_nodeData_t*, apx_portId_t) = portType==APX_REQUIRE_PORT? apx_nodeData_decProvidePortConnectionCount : apx_nodeData_decRequirePortConnectionCount;
    for (portId=0; portId<connectionTable->numPorts; portId++)
    {
       apx_portConnectionEntry_t *entry = apx_portConnectionTable_getEntry(connectionTable, portId);
@@ -495,13 +495,13 @@ static void apx_connectionBase_handlePortDisconnectEvent(apx_nodeData_t *nodeDat
          for(i=0;i<numConnections;i++)
          {
             apx_portDataRef_t *remotePortRef = adt_ary_value(array, i);
-            portConnectFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
+            portDecCountFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
          }
       }
       else if (entry->count == -1)
       {
          apx_portDataRef_t *remotePortRef = (apx_portDataRef_t*) entry->pAny;
-         portConnectFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
+         portDecCountFunc(remotePortRef->nodeData, apx_portDataRef_getPortId(remotePortRef));
       }
       else
       {

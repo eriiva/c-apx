@@ -33,6 +33,8 @@
 #include "apx_error.h"
 #include "apx_serverConnectionBase.h"
 #include "rmf.h"
+#include "adt_bytearray.h"
+#include "adt_ary.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
@@ -40,6 +42,8 @@
 typedef struct apx_serverTestConnection_tag
 {
    apx_serverConnectionBase_t base;
+   adt_ary_t *transmitLog; //strong references to adt_bytearray_t
+   adt_bytearray_t *pendingMsg; //strong reference to adt_byterray_t
 }apx_serverTestConnection_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -59,5 +63,7 @@ void apx_serverTestConnection_createRemoteFile(apx_serverTestConnection_t *self,
 void apx_serverTestConnection_writeRemoteData(apx_serverTestConnection_t *self, uint32_t address, const uint8_t* dataBuf, uint32_t dataLen, bool more);
 void apx_serverTestConnection_openRemoteFile(apx_serverTestConnection_t *self, uint32_t address);
 void apx_serverTestConnection_runEventLoop(apx_serverTestConnection_t *self);
+int32_t apx_serverTestConnection_getTransmitLogLen(apx_serverTestConnection_t *self);
+adt_bytearray_t *apx_serverTestConnection_getTransmitLogMsg(apx_serverTestConnection_t *self, int32_t index);
 
 #endif //APX_SERVER_TEST_CONNECTION_H

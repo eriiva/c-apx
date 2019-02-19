@@ -41,7 +41,9 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-
+static void apx_serverTestConnection_registerTransmitHandler(apx_serverTestConnection_t *self);
+static uint8_t *apx_serverTestConnection_getSendBuffer(void *arg, int32_t msgLen);
+static int32_t apx_serverTestConnection_send(void *arg, int32_t offset, int32_t msgLen);
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -54,8 +56,21 @@ apx_error_t apx_serverTestConnection_create(apx_serverTestConnection_t *self, st
    if (self != 0)
    {
       apx_connectionBaseVTable_t vtable;
+      self->pendingMsg = (adt_bytearray_t*) 0;
       apx_connectionBaseVTable_create(&vtable, apx_serverTestConnection_vdestroy, apx_serverTestConnection_vstart, apx_serverTestConnection_vclose);
       apx_error_t result = apx_serverConnectionBase_create(&self->base, server, &vtable);
+      if (result == APX_NO_ERROR)
+      {
+         self->transmitLog = adt_ary_new(adt_bytearray_vdelete);
+         if (self->transmitLog == 0)
+         {
+            result = APX_MEM_ERROR;
+         }
+         else
+         {
+            apx_serverTestConnection_registerTransmitHandler(self);
+         }
+      }
       return result;
    }
    return APX_INVALID_ARGUMENT_ERROR;
@@ -66,6 +81,14 @@ void apx_serverTestConnection_destroy(apx_serverTestConnection_t *self)
    if (self != 0)
    {
       apx_serverConnectionBase_destroy(&self->base);
+      if (self->pendingMsg != 0)
+      {
+         adt_bytearray_delete(self->pendingMsg);
+      }
+      if (self->transmitLog != 0)
+      {
+         adt_ary_delete(self->transmitLog);
+      }
    }
 }
 
@@ -165,9 +188,74 @@ void apx_serverTestConnection_runEventLoop(apx_serverTestConnection_t *self)
    }
 }
 
+int32_t apx_serverTestConnection_getTransmitLogLen(apx_serverTestConnection_t *self)
+{
+   if (self != 0)
+   {
+      return adt_ary_length(self->transmitLog);
+   }
+   return -1;
+}
+
+adt_bytearray_t *apx_serverTestConnection_getTransmitLogMsg(apx_serverTestConnection_t *self, int32_t index)
+{
+   if (self != 0)
+   {
+      return (adt_bytearray_t*) adt_ary_value(self->transmitLog, index);
+   }
+   return (adt_bytearray_t*) 0;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+static void apx_serverTestConnection_registerTransmitHandler(apx_serverTestConnection_t *self)
+{
+   apx_transmitHandler_t serverTransmitHandler;
+   serverTransmitHandler.arg = self;
+   serverTransmitHandler.send = apx_serverTestConnection_send;
+   serverTransmitHandler.getSendAvail = 0;
+   serverTransmitHandler.getSendBuffer = apx_serverTestConnection_getSendBuffer;
+   apx_fileManager_setTransmitHandler(&self->base.base.fileManager, &serverTransmitHandler);
+}
 
+static uint8_t *apx_serverTestConnection_getSendBuffer(void *arg, int32_t msgLen)
+{
+   apx_serverTestConnection_t *self = (apx_serverTestConnection_t*) arg;
+   if ( (self != 0) && (msgLen > 0) )
+   {
+      if (self->pendingMsg == 0)
+      {
+         self->pendingMsg = adt_bytearray_new(ADT_BYTE_ARRAY_DEFAULT_GROW_SIZE);
+      }
+      if (self->pendingMsg != 0)
+      {
+         adt_error_t result = adt_bytearray_resize(self->pendingMsg, (uint32_t ) msgLen);
+         if (result == ADT_NO_ERROR)
+         {
+            return adt_bytearray_data(self->pendingMsg);
+         }
+      }
+      return 0;
+   }
+   return 0;
+}
 
+static int32_t apx_serverTestConnection_send(void *arg, int32_t offset, int32_t msgLen)
+{
+   apx_serverTestConnection_t *self = (apx_serverTestConnection_t*) arg;
+   if ( (self != 0) && (msgLen > 0) )
+   {
+      if (self->pendingMsg != 0)
+      {
+         int32_t bufLen = (int32_t) adt_bytearray_length(self->pendingMsg);
+         if ( (offset == 0u) && (bufLen == msgLen) )
+         {
+            adt_ary_push(self->transmitLog, self->pendingMsg);
+            self->pendingMsg = 0;
+         }
+      }
+   }
+   return -1;
+}

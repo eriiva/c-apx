@@ -76,7 +76,7 @@ typedef struct apx_fileManagerEventListener_tag
 
 typedef void (apx_eventListener_nodeDataWriteFunc_t)(void *arg, struct apx_nodeData_tag *nodeData, uint32_t offset, uint32_t len);
 typedef void (apx_eventListener_nodeDataFunc_t)(void *arg, struct apx_nodeData_tag *nodeData);
-typedef void (apx_eventListener_nodeDataPortConnectFunc_t)(void *arg, struct apx_nodeData_tag *nodeData, struct apx_portConnectionTable_tag *conectionTable);
+typedef void (apx_eventListener_nodeDataPortConnectFunc_t)(void *arg, struct apx_nodeData_tag *nodeData, struct apx_portConnectionTable_tag *connectionTable);
 
 typedef struct apx_nodeDataEventListener_tag
 {

@@ -49,7 +49,7 @@ static const char *m_node_text1 =
 
 static const char *m_node_text2 =
       "APX/1.2\n"
-      "N\"LocalTestNode1\"\n"
+      "N\"LocalTestNode2\"\n"
       "P\"VehicleSpeed\"S:=65535\n"
       "P\"VehicleMode\"C(0,7):=7\n"
       "P\"SelectedGear\"C(0,15):=15\n";
@@ -59,7 +59,6 @@ static const char *m_node_text2 =
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_routingTable_unconnectedRequirePortShallGetDefaultValues(CuTest* tc);
 static void test_apx_routingTable_connectedRequirePortShallGetSenderValues(CuTest* tc);
-static void test_apx_routingTable_attachNodeConnectedEvent(CuTest *tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -130,7 +129,3 @@ static void test_apx_routingTable_connectedRequirePortShallGetSenderValues(CuTes
    apx_parser_delete(parser);
 }
 
-static void test_apx_routingTable_attachNodeConnectedEvent(CuTest *tc)
-{
-
-}

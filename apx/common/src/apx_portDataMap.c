@@ -31,6 +31,9 @@
 #include <string.h>
 #include "apx_portDataMap.h"
 #include "apx_portTriggerList.h"
+#include "apx_portConnectionTable.h"
+
+#include <stdio.h> //DEBUG ONLY
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -217,6 +220,20 @@ apx_error_t apx_portDataMap_initProvidePortByteMap(apx_portDataMap_t *self, apx_
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
+void apx_portDataMap_updatePortTriggerList(apx_portDataMap_t *self, struct apx_portConnectionTable_tag *portConnectionTable)
+{
+   if ( (self != 0) && (portConnectionTable != 0) )
+   {
+      if ( (self->portTriggerList != 0) && (self->numProvidePorts) == portConnectionTable->numPorts)
+      {
+         int32_t portId;
+         for(portId = 0; portId < portConnectionTable->numPorts; portId++)
+         {
+            printf("%d: %d\n", portId, portConnectionTable->connections[portId].count);
+         }
+      }
+   }
+}
 
 
 

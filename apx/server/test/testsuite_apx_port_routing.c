@@ -109,8 +109,9 @@ static void test_apx_port_routing_close_connection(CuTest* tc)
    apx_serverTestConnection_t *connection2;
    apx_nodeData_t *nodeData1;
    apx_nodeData_t *nodeData5;
-
+   adt_bytearray_t *lastMSg;
    apx_routingTable_t *routingTable;
+   const uint8_t *data;
 
    pServer = &server;
 
@@ -128,6 +129,15 @@ static void test_apx_port_routing_close_connection(CuTest* tc)
    CuAssertPtrNotNull(tc, nodeData1);
    CuAssertUIntEquals(tc, 0, apx_nodeData_getPortConnectionsTotal(nodeData1));
 
+   //verify init data on TestNode1
+   lastMSg = apx_serverTestConnection_getTransmitLogMsg(connection1, -1);
+   CuAssertPtrNotNull(tc, lastMSg);
+   CuAssertIntEquals(tc, 3, adt_bytearray_length(lastMSg));
+   data = adt_bytearray_data(lastMSg);
+   CuAssertUIntEquals(tc, 0u, data[0]);
+   CuAssertUIntEquals(tc, 0u, data[1]);
+   CuAssertUIntEquals(tc, 7u, data[2]);
+
    attachTestNode5(pServer, connection2);
    CuAssertUIntEquals(tc, 4, apx_routingTable_length(routingTable));
    nodeData5 = apx_nodeDataManager_find(&connection2->base.base.nodeDataManager, "TestNode5");
@@ -135,6 +145,17 @@ static void test_apx_port_routing_close_connection(CuTest* tc)
 
    CuAssertUIntEquals(tc, 3, apx_nodeData_getPortConnectionsTotal(nodeData1));
    CuAssertUIntEquals(tc, 3, apx_nodeData_getPortConnectionsTotal(nodeData5));
+
+   //verify init data on TestNode5
+   lastMSg = apx_serverTestConnection_getTransmitLogMsg(connection2, -1);
+   CuAssertPtrNotNull(tc, lastMSg);
+   CuAssertIntEquals(tc, 5, adt_bytearray_length(lastMSg));
+   data = adt_bytearray_data(lastMSg);
+   CuAssertUIntEquals(tc, 0u, data[0]);
+   CuAssertUIntEquals(tc, 0u, data[1]);
+   CuAssertUIntEquals(tc, 255u, data[2]);
+   CuAssertUIntEquals(tc, 255u, data[3]);
+   CuAssertUIntEquals(tc, 7u, data[4]);
 
    closeConnection(pServer, connection1); //removes TestNode1 from routing table
    CuAssertUIntEquals(tc, 3, apx_routingTable_length(routingTable));
@@ -146,11 +167,11 @@ static void test_apx_port_routing_close_connection(CuTest* tc)
 
 static void attachTestNode1(apx_server_t *pServer, apx_serverTestConnection_t *pConnection)
 {
+   const uint8_t initData[APX_TESTNODE1_OUT_DATA_LEN] = {255,255,7,15};
    rmf_fileInfo_t fileInfo, *pFileinfo;
    uint32_t testNode1Len;
-
    pFileinfo = &fileInfo;
-   memset(m_outPortDataNode1, 0xFF, APX_TESTNODE1_OUT_DATA_LEN);
+   memcpy(&m_outPortDataNode1[0], initData, APX_TESTNODE1_OUT_DATA_LEN);
    testNode1Len = (uint32_t) strlen(g_apx_test_node1);
    rmf_fileInfo_create(pFileinfo, "TestNode1.apx", APX_DEF_START_ADDRESS, testNode1Len, RMF_FILE_TYPE_FIXED);
    apx_serverTestConnection_createRemoteFile(pConnection, pFileinfo);
@@ -159,19 +180,22 @@ static void attachTestNode1(apx_server_t *pServer, apx_serverTestConnection_t *p
    apx_server_run(pServer);
    apx_serverTestConnection_writeRemoteData(pConnection, APX_DEF_START_ADDRESS, (const uint8_t*) g_apx_test_node1, testNode1Len, false);
    apx_server_run(pServer);
-   apx_serverTestConnection_writeRemoteData(pConnection, APX_PORT_DATA_START_ADDRESS, m_outPortDataNode1, APX_TESTNODE1_OUT_DATA_LEN, false);
+   apx_serverTestConnection_writeRemoteData(pConnection, APX_PORT_DATA_START_ADDRESS, &m_outPortDataNode1[0], APX_TESTNODE1_OUT_DATA_LEN, false);
    apx_serverTestConnection_openRemoteFile(pConnection, APX_PORT_DATA_START_ADDRESS);
    apx_server_run(pServer);
+
+
 }
 
 static void attachTestNode5(apx_server_t *pServer, apx_serverTestConnection_t *pConnection)
 {
+   const uint8_t initData[APX_TESTNODE5_OUT_DATA_LEN] = {7};
    rmf_fileInfo_t fileInfo, *pFileinfo;
    uint32_t testNode5Len;
 
    pFileinfo = &fileInfo;
    testNode5Len = (uint32_t) strlen(g_apx_test_node5);
-   memset(m_outPortDataNode5, 0xFF, APX_TESTNODE5_OUT_DATA_LEN);
+   memcpy(&m_outPortDataNode5[0], initData, APX_TESTNODE5_OUT_DATA_LEN);
    rmf_fileInfo_create(pFileinfo, "TestNode5.apx", APX_DEF_START_ADDRESS, testNode5Len, RMF_FILE_TYPE_FIXED);
    apx_serverTestConnection_createRemoteFile(pConnection, pFileinfo);
    rmf_fileInfo_create(pFileinfo, "TestNode5.out", APX_PORT_DATA_START_ADDRESS, APX_TESTNODE5_OUT_DATA_LEN, RMF_FILE_TYPE_FIXED);
@@ -179,7 +203,7 @@ static void attachTestNode5(apx_server_t *pServer, apx_serverTestConnection_t *p
    apx_server_run(pServer);
    apx_serverTestConnection_writeRemoteData(pConnection, APX_DEF_START_ADDRESS, (const uint8_t*) g_apx_test_node5, testNode5Len, false);
    apx_server_run(pServer);
-   apx_serverTestConnection_writeRemoteData(pConnection, APX_PORT_DATA_START_ADDRESS, m_outPortDataNode5, APX_TESTNODE5_OUT_DATA_LEN, false);
+   apx_serverTestConnection_writeRemoteData(pConnection, APX_PORT_DATA_START_ADDRESS, &m_outPortDataNode5[0], APX_TESTNODE5_OUT_DATA_LEN, false);
    apx_serverTestConnection_openRemoteFile(pConnection, APX_PORT_DATA_START_ADDRESS);
    apx_server_run(pServer);
 }

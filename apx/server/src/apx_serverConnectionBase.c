@@ -170,6 +170,7 @@ void apx_serverConnectionBase_defaultEventHandler(void *arg, apx_event_t *event)
    {
       apx_nodeData_t *nodeData;
       apx_portConnectionTable_t *portConnectionTable;
+      apx_portDataMap_t *portDataMap;
       switch(event->evType)
       {
       case APX_EVENT_REQUIRE_PORT_CONNECT:
@@ -180,6 +181,8 @@ void apx_serverConnectionBase_defaultEventHandler(void *arg, apx_event_t *event)
       case APX_EVENT_PROVIDE_PORT_CONNECT:
          nodeData = (apx_nodeData_t*) event->evData1;
          portConnectionTable = (apx_portConnectionTable_t*) event->evData2;
+         portDataMap = apx_nodeData_getPortDataMap(nodeData);
+         apx_portDataMap_updatePortTriggerList(portDataMap, portConnectionTable);
          apx_serverConnectionBase_triggerProvidePortsConnected(self, nodeData, portConnectionTable);
          break;
       case APX_EVENT_REQUIRE_PORT_DISCONNECT:

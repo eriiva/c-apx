@@ -42,36 +42,36 @@
 const char *g_apx_test_node1 =
 "APX/1.2\n"
 "N\"TestNode1\"\n"
-"P\"WheelBasedVehicleSpeed\"S\n"
-"P\"CabTiltLockWarning\"C(0,7)\n"
-"P\"VehicleMode\"C(0,15)\n"
-"R\"GearSelectionMode\"C(0,7)\n";
+"P\"WheelBasedVehicleSpeed\"S:=65535\n"
+"P\"CabTiltLockWarning\"C(0,7):=7\n"
+"P\"VehicleMode\"C(0,15):=15\n"
+"R\"GearSelectionMode\"C(0,7):=7\n";
 
 const char *g_apx_test_node2 =
 "APX/1.2\n"
 "N\"TestNode2\"\n"
-"P\"WheelBasedVehicleSpeed\"S\n"
-"P\"ParkBrakeAlert\"C(0,3)\n"
-"R\"VehicleMode\"C(0,15)\n";
+"P\"WheelBasedVehicleSpeed\"S:=65535\n"
+"P\"ParkBrakeAlert\"C(0,3):=3\n"
+"R\"VehicleMode\"C(0,15):=15\n";
 
 const char *g_apx_test_node3 =
 "APX/1.2\n"
 "N\"TestNode3\"\n"
-"R\"WheelBasedVehicleSpeed\"S\n";
+"R\"WheelBasedVehicleSpeed\"S:=65535\n";
 
 const char *g_apx_test_node4 =
 "APX/1.2\n"
 "N\"TestNode4\"\n"
-"R\"WheelBasedVehicleSpeed\"S\n"
-"R\"ParkBrakeAlert\"C(0,3)\n"
-"R\"VehicleMode\"C(0,15)\n";
+"R\"WheelBasedVehicleSpeed\"S:=65535\n"
+"R\"ParkBrakeAlert\"C(0,3):=3\n"
+"R\"VehicleMode\"C(0,15):=15\n";
 
 const char *g_apx_test_node5 =
 "APX/1.2\n"
 "N\"TestNode5\"\n"
-"R\"WheelBasedVehicleSpeed\"S\n"
-"R\"CabTiltLockWarning\"C(0,7)\n"
-"P\"GearSelectionMode\"C(0,7)\n";
+"R\"WheelBasedVehicleSpeed\"S:=65535\n"
+"R\"CabTiltLockWarning\"C(0,7):=7\n"
+"P\"GearSelectionMode\"C(0,7):=7\n";
 
 
 
