@@ -61,5 +61,6 @@ void apx_portTriggerList_delete(apx_portTriggerList_t *self);
 apx_error_t apx_portTriggerList_insert(apx_portTriggerList_t *self, apx_portDataRef_t *portData);
 void apx_portTriggerList_remove(apx_portTriggerList_t *self, apx_portDataRef_t *portData);
 int32_t apx_portTriggerList_length(apx_portTriggerList_t *self);
+apx_portDataRef_t *apx_portTriggerList_get(apx_portTriggerList_t *self, int32_t index);
 
 #endif //APX_PORT_TRIGGER_LIST_H

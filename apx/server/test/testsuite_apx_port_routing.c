@@ -32,6 +32,7 @@
 #include "apx_server.h"
 #include "apx_test_nodes.h"
 #include "apx_serverTestConnection.h"
+#include "apx_portDataMap.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -48,7 +49,7 @@
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void test_apx_port_routing_connect_nodes(CuTest* tc);
-static void test_apx_port_routing_close_connection(CuTest* tc);
+static void test_apx_port_routing_open_close_connection(CuTest* tc);
 
 static void attachTestNode1(apx_server_t *pServer, apx_serverTestConnection_t *pConnection);
 static void attachTestNode5(apx_server_t *pServer, apx_serverTestConnection_t *pConnection);
@@ -67,7 +68,7 @@ CuSuite* testSuite_apx_port_routing(void)
    CuSuite* suite = CuSuiteNew();
 
    SUITE_ADD_TEST(suite, test_apx_port_routing_connect_nodes);
-   SUITE_ADD_TEST(suite, test_apx_port_routing_close_connection);
+   SUITE_ADD_TEST(suite, test_apx_port_routing_open_close_connection);
 
    return suite;
 }
@@ -102,16 +103,20 @@ static void test_apx_port_routing_connect_nodes(CuTest* tc)
    apx_server_destroy(pServer);
 }
 
-static void test_apx_port_routing_close_connection(CuTest* tc)
+static void test_apx_port_routing_open_close_connection(CuTest* tc)
 {
    apx_server_t server, *pServer;
    apx_serverTestConnection_t *connection1;
    apx_serverTestConnection_t *connection2;
+   const uint8_t *data;
    apx_nodeData_t *nodeData1;
    apx_nodeData_t *nodeData5;
    adt_bytearray_t *lastMSg;
    apx_routingTable_t *routingTable;
-   const uint8_t *data;
+   apx_portDataMap_t *portDataMap1;
+   apx_portDataMap_t *portDataMap5;
+   apx_portTriggerList_t *portTriggerList1;
+   apx_portTriggerList_t *portTriggerList5;
 
    pServer = &server;
 
@@ -157,9 +162,27 @@ static void test_apx_port_routing_close_connection(CuTest* tc)
    CuAssertUIntEquals(tc, 255u, data[3]);
    CuAssertUIntEquals(tc, 7u, data[4]);
 
+   //verify update of port trigger table
+   portDataMap1 = apx_nodeData_getPortDataMap(nodeData1);
+   portDataMap5 = apx_nodeData_getPortDataMap(nodeData5);
+   CuAssertPtrNotNull(tc, portDataMap1);
+   CuAssertPtrNotNull(tc, portDataMap5);
+   portTriggerList1 = apx_portDataMap_getPortTriggerList(portDataMap1);
+   portTriggerList5 = apx_portDataMap_getPortTriggerList(portDataMap5);
+   CuAssertPtrNotNull(tc, portTriggerList1);
+   CuAssertPtrNotNull(tc, portTriggerList5);
+   CuAssertIntEquals(tc, 2, apx_portTriggerList_length(portTriggerList1));
+   CuAssertPtrEquals(tc, apx_portDataMap_getRequirePortDataRef(portDataMap5, 0), apx_portTriggerList_get(portTriggerList1, 0));
+   CuAssertPtrEquals(tc, apx_portDataMap_getRequirePortDataRef(portDataMap5, 1), apx_portTriggerList_get(portTriggerList1, 1));
+   CuAssertIntEquals(tc, 1, apx_portTriggerList_length(portTriggerList5));
+   CuAssertPtrEquals(tc, apx_portDataMap_getRequirePortDataRef(portDataMap1, 0), apx_portTriggerList_get(portTriggerList5, 0));
+
+
    closeConnection(pServer, connection1); //removes TestNode1 from routing table
    CuAssertUIntEquals(tc, 3, apx_routingTable_length(routingTable));
    CuAssertUIntEquals(tc, 0, apx_nodeData_getPortConnectionsTotal(nodeData5));
+   CuAssertIntEquals(tc, 0, apx_portTriggerList_length(portTriggerList5));
+
    closeConnection(pServer, connection2);
 
    apx_server_destroy(pServer);

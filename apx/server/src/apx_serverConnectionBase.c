@@ -65,6 +65,8 @@ static void apx_serverConnectionBase_onDefinitionDataWritten(void *arg, apx_node
 static apx_error_t apx_serverConnectionBase_createInPortDataFile(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_file2_t *definitionFile);
 static void apx_serverConnectionBase_triggerRequirePortsConnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable);
 static void apx_serverConnectionBase_triggerProvidePortsConnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable);
+static void apx_serverConnectionBase_triggerRequirePortsDisconnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable);
+static void apx_serverConnectionBase_triggerProvidePortsDisconnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable);
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
@@ -186,8 +188,16 @@ void apx_serverConnectionBase_defaultEventHandler(void *arg, apx_event_t *event)
          apx_serverConnectionBase_triggerProvidePortsConnected(self, nodeData, portConnectionTable);
          break;
       case APX_EVENT_REQUIRE_PORT_DISCONNECT:
+         nodeData = (apx_nodeData_t*) event->evData1;
+         portConnectionTable = (apx_portConnectionTable_t*) event->evData2;
+         apx_serverConnectionBase_triggerRequirePortsDisconnected(self, nodeData, portConnectionTable);
          break;
       case APX_EVENT_PROVIDE_PORT_DISCONNECT:
+         nodeData = (apx_nodeData_t*) event->evData1;
+         portConnectionTable = (apx_portConnectionTable_t*) event->evData2;
+         portDataMap = apx_nodeData_getPortDataMap(nodeData);
+         apx_portDataMap_updatePortTriggerList(portDataMap, portConnectionTable);
+         apx_serverConnectionBase_triggerProvidePortsDisconnected(self, nodeData, portConnectionTable);
          break;
       }
       apx_connectionBase_defaultEventHandler(&self->base, event);
@@ -574,6 +584,7 @@ static void apx_serverConnectionBase_onDefinitionDataWritten(void *arg, apx_node
    }
 }
 
+//Phase 2 event trigger
 static apx_error_t apx_serverConnectionBase_createInPortDataFile(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_file2_t *definitionFile)
 {
    apx_error_t retval = APX_NO_ERROR;
@@ -597,11 +608,25 @@ static apx_error_t apx_serverConnectionBase_createInPortDataFile(apx_serverConne
    return retval;
 }
 
+//Phase 2 event trigger
 static void apx_serverConnectionBase_triggerRequirePortsConnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable)
 {
-
+   adt_list_elem_t *iter;
+   MUTEX_LOCK(self->eventListenerMutex);
+   iter = adt_list_iter_first(&self->nodeDataEventListeners);
+   while (iter != 0)
+   {
+      apx_nodeDataEventListener_t *eventListener = (apx_nodeDataEventListener_t*) iter->pItem;
+      if (eventListener->requirePortsConnected != 0)
+      {
+         eventListener->requirePortsConnected(eventListener->arg, nodeData, portConnectionTable);
+      }
+      iter = adt_list_iter_next(iter);
+   }
+   MUTEX_UNLOCK(self->eventListenerMutex);
 }
 
+//Phase 2 event trigger
 static void apx_serverConnectionBase_triggerProvidePortsConnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable)
 {
    adt_list_elem_t *iter;
@@ -613,6 +638,42 @@ static void apx_serverConnectionBase_triggerProvidePortsConnected(apx_serverConn
       if (eventListener->providePortsConnected != 0)
       {
          eventListener->providePortsConnected(eventListener->arg, nodeData, portConnectionTable);
+      }
+      iter = adt_list_iter_next(iter);
+   }
+   MUTEX_UNLOCK(self->eventListenerMutex);
+}
+
+//Phase 2 event trigger
+static void apx_serverConnectionBase_triggerRequirePortsDisconnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable)
+{
+   adt_list_elem_t *iter;
+   MUTEX_LOCK(self->eventListenerMutex);
+   iter = adt_list_iter_first(&self->nodeDataEventListeners);
+   while (iter != 0)
+   {
+      apx_nodeDataEventListener_t *eventListener = (apx_nodeDataEventListener_t*) iter->pItem;
+      if (eventListener->requirePortsDisconnected != 0)
+      {
+         eventListener->requirePortsDisconnected(eventListener->arg, nodeData, portConnectionTable);
+      }
+      iter = adt_list_iter_next(iter);
+   }
+   MUTEX_UNLOCK(self->eventListenerMutex);
+}
+
+//Phase 2 event trigger
+static void apx_serverConnectionBase_triggerProvidePortsDisconnected(apx_serverConnectionBase_t *self, apx_nodeData_t *nodeData, apx_portConnectionTable_t *portConnectionTable)
+{
+   adt_list_elem_t *iter;
+   MUTEX_LOCK(self->eventListenerMutex);
+   iter = adt_list_iter_first(&self->nodeDataEventListeners);
+   while (iter != 0)
+   {
+      apx_nodeDataEventListener_t *eventListener = (apx_nodeDataEventListener_t*) iter->pItem;
+      if (eventListener->providePortsDisconnected != 0)
+      {
+         eventListener->providePortsDisconnected(eventListener->arg, nodeData, portConnectionTable);
       }
       iter = adt_list_iter_next(iter);
    }

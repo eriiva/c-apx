@@ -52,6 +52,8 @@ static void apx_portDataMap_createProvidePortData(apx_portDataMap_t *self, apx_n
 static apx_size_t apx_portDataMap_createPortDataAttribute(apx_portDataAttributes_t *attr, apx_port_t *port, apx_portId_t portId, apx_size_t offset);
 static void apx_portDataMap_createPortTriggerList(apx_portDataMap_t *self);
 static void apx_portDataMap_destroyPortTriggerList(apx_portDataMap_t *self);
+static void apx_portDataMap_attachPortsToTriggerList(apx_portDataMap_t *self, apx_portConnectionEntry_t *entry, int32_t numPortRefs);
+static void apx_portDataMap_detachPortsFromTriggerList(apx_portDataMap_t *self, apx_portConnectionEntry_t *entry, int32_t numPortRefs);
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC VARIABLES
 //////////////////////////////////////////////////////////////////////////////
@@ -149,7 +151,7 @@ apx_portDataAttributes_t *apx_portDataMap_getProvidePortAttributes(apx_portDataM
    return (apx_portDataAttributes_t*) 0;
 }
 
-apx_portDataRef_t *apx_portDataMap_getRequirePortData(apx_portDataMap_t *self, apx_portId_t portId)
+apx_portDataRef_t *apx_portDataMap_getRequirePortDataRef(apx_portDataMap_t *self, apx_portId_t portId)
 {
    if ( (self != 0) && (portId>=0) && (portId < self->numRequirePorts))
    {
@@ -158,7 +160,7 @@ apx_portDataRef_t *apx_portDataMap_getRequirePortData(apx_portDataMap_t *self, a
    return (apx_portDataRef_t*) 0;
 }
 
-apx_portDataRef_t *apx_portDataMap_getProvidePortData(apx_portDataMap_t *self, apx_portId_t portId)
+apx_portDataRef_t *apx_portDataMap_getProvidePortDataRef(apx_portDataMap_t *self, apx_portId_t portId)
 {
    if ( (self != 0) && (portId>=0) && (portId < self->numProvidePorts))
    {
@@ -229,10 +231,35 @@ void apx_portDataMap_updatePortTriggerList(apx_portDataMap_t *self, struct apx_p
          int32_t portId;
          for(portId = 0; portId < portConnectionTable->numPorts; portId++)
          {
-            printf("%d: %d\n", portId, portConnectionTable->connections[portId].count);
+            apx_portConnectionEntry_t *entry = apx_portConnectionTable_getEntry(portConnectionTable, portId);
+            if (entry != 0)
+            {
+               int32_t count = apx_portConnectionEntry_count(entry);
+               if (count > 0)
+               {
+                  apx_portDataMap_attachPortsToTriggerList(self, entry, count);
+               }
+               else if (count < 0)
+               {
+                  apx_portDataMap_detachPortsFromTriggerList(self, entry, (-count));
+               }
+               else
+               {
+                  //MISRA
+               }
+            }
          }
       }
    }
+}
+
+apx_portTriggerList_t *apx_portDataMap_getPortTriggerList(apx_portDataMap_t *self)
+{
+   if (self != 0)
+   {
+      return self->portTriggerList;
+   }
+   return (apx_portTriggerList_t*) 0;
 }
 
 
@@ -369,3 +396,22 @@ static void apx_portDataMap_destroyPortTriggerList(apx_portDataMap_t *self)
    }
 }
 
+static void apx_portDataMap_attachPortsToTriggerList(apx_portDataMap_t *self, apx_portConnectionEntry_t *entry, int32_t numPortRefs)
+{
+   int32_t i;
+   for(i=0; i < numPortRefs; i++)
+   {
+      apx_portDataRef_t *portDataRef = apx_portConnectionEntry_get(entry, i);
+      apx_portTriggerList_insert(self->portTriggerList, portDataRef);
+   }
+}
+
+static void apx_portDataMap_detachPortsFromTriggerList(apx_portDataMap_t *self, apx_portConnectionEntry_t *entry, int32_t numPortRefs)
+{
+   int32_t i;
+   for(i=0; i < numPortRefs; i++)
+   {
+      apx_portDataRef_t *portDataRef = apx_portConnectionEntry_get(entry, i);
+      apx_portTriggerList_remove(self->portTriggerList, portDataRef);
+   }
+}

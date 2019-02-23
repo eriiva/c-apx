@@ -863,7 +863,7 @@ struct apx_portDataRef_tag *apx_nodeData_getRequirePortDataRef(apx_nodeData_t *s
 {
    if ( (self != 0) && (self->portDataMap != 0) )
    {
-      return apx_portDataMap_getRequirePortData(self->portDataMap, portId);
+      return apx_portDataMap_getRequirePortDataRef(self->portDataMap, portId);
    }
    return (struct apx_portDataRef_tag*) 0;
 }
@@ -872,7 +872,7 @@ struct apx_portDataRef_tag *apx_nodeData_getProvidePortDataRef(apx_nodeData_t *s
 {
    if ( (self != 0) && (self->portDataMap != 0) )
    {
-      return apx_portDataMap_getProvidePortData(self->portDataMap, portId);
+      return apx_portDataMap_getProvidePortDataRef(self->portDataMap, portId);
    }
    return (struct apx_portDataRef_tag*) 0;
 }

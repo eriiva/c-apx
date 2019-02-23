@@ -262,28 +262,3 @@ static void apx_routingTableEntry_updateProvidePortConnections(apx_routingTableE
       }
    }
 }
-
-#if 0
-requirePortConnection = apx_nodeData_getConnection(requirePortDataRef->nodeData);
-if (providePortConnection != 0)
-{
-   apx_connectionBase_emitNodePortConnectedEvent(providePortConnection, providePortDataRef, requirePortDataRef);
-}
-if (requirePortConnection != 0)
-{
-   apx_connectionBase_emitNodePortConnectedEvent(requirePortConnection, requirePortDataRef, providePortDataRef);
-}
-
-...
-
-providePortConnection = apx_nodeData_getConnection(providePortDataRef->nodeData);
-if (providePortConnection != 0)
-{
-   apx_connectionBase_emitNodePortConnectedEvent(providePortConnection, providePortDataRef, requirePortDataRef);
-}
-if (requirePortConnection != 0)
-{
-   apx_connectionBase_emitNodePortConnectedEvent(requirePortConnection, requirePortDataRef, providePortDataRef);
-}
-
-#endif
