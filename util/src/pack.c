@@ -12,6 +12,9 @@
 #define _UINT32 uint32_t
 #define _UINT64 uint64_t
 #endif
+#ifdef PLATFORM_BYTE_ORDER
+#include <string.h>
+#endif
 
 #if  defined(__GNUC__) && defined(__LP64__)
 #define _PACK_BASE_TYPE _UINT64
@@ -29,8 +32,11 @@
 /***************************** Exported Functions ****************************/
 void packBE(_UINT8* p, _PACK_BASE_TYPE value, _UINT8 u8Size)
 {
-   if ((u8Size > 0) && (u8Size < 9))
+   if ((u8Size > 0) && (u8Size <= sizeof(_PACK_BASE_TYPE)))
    {
+#if defined(PLATFORM_BYTE_ORDER) && (PLATFORM_BYTE_ORDER==PLATFORM_BIG_ENDIAN)
+      memcpy(p, &value, u8Size);
+#else
       register _PACK_BASE_TYPE tmp = value;
       p += (u8Size - 1);
       while (u8Size > 0)
@@ -39,14 +45,19 @@ void packBE(_UINT8* p, _PACK_BASE_TYPE value, _UINT8 u8Size)
          tmp = tmp >> 8;
          u8Size--;
       }
+#endif
    }
 }
 
 
 void packLE(_UINT8* p, _PACK_BASE_TYPE value, _UINT8 u8Size)
 {
-   if ((u8Size > 0) && (u8Size < 9))
+   if ((u8Size > 0) && (u8Size <= sizeof(_PACK_BASE_TYPE)))
    {
+#if defined(PLATFORM_BYTE_ORDER) && (PLATFORM_BYTE_ORDER==PLATFORM_LITTLE_ENDIAN)
+      memcpy(p, &value, u8Size);
+#else
+
       register _PACK_BASE_TYPE tmp = value;
       while (u8Size > 0)
       {
@@ -54,14 +65,19 @@ void packLE(_UINT8* p, _PACK_BASE_TYPE value, _UINT8 u8Size)
          tmp = tmp >> 8;
          u8Size--;
       }
+#endif
    }
 }
 
-
 _PACK_BASE_TYPE unpackBE(const _UINT8* p, _UINT8 u8Size)
 {
-   if ((u8Size > 0) && (u8Size < 9))
+   if ((u8Size > 0) && (u8Size <= sizeof(_PACK_BASE_TYPE)))
    {
+#if defined(PLATFORM_BYTE_ORDER) && (PLATFORM_BYTE_ORDER==PLATFORM_BIG_ENDIAN)
+      _PACK_BASE_TYPE value;
+      memcpy(&value, p, u8Size);
+      return value;
+#else
       register _PACK_BASE_TYPE tmp = 0;
       while (u8Size > 0)
       {
@@ -69,6 +85,7 @@ _PACK_BASE_TYPE unpackBE(const _UINT8* p, _UINT8 u8Size)
          u8Size--;
       }
       return tmp;
+#endif
    }
    return 0;
 }
@@ -76,8 +93,13 @@ _PACK_BASE_TYPE unpackBE(const _UINT8* p, _UINT8 u8Size)
 
 _PACK_BASE_TYPE unpackLE(const _UINT8* p, _UINT8 u8Size)
 {
-   if ((u8Size > 0) && (u8Size < 9))
+   if ((u8Size > 0) && (u8Size <= sizeof(_PACK_BASE_TYPE)))
    {
+#if defined(PLATFORM_BYTE_ORDER) && (PLATFORM_BYTE_ORDER==PLATFORM_LITTLE_ENDIAN)
+      _PACK_BASE_TYPE value;
+      memcpy(&value, p, u8Size);
+      return value;
+#else
       register _PACK_BASE_TYPE tmp = 0;
       p += (u8Size - 1);
       while (u8Size > 0)
@@ -86,6 +108,7 @@ _PACK_BASE_TYPE unpackLE(const _UINT8* p, _UINT8 u8Size)
          u8Size--;
       }
       return tmp;
+#endif
    }
    return 0;
 }

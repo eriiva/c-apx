@@ -46,6 +46,7 @@
 								</option>
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.preprocessor.def.symbols.121028398" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" useByScannerDiscovery="false" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="MEM_LEAK_CHECK"/>
+									<listOptionValue builtIn="false" value="PLATFORM_BYTE_ORDER=0"/>
 									<listOptionValue builtIn="false" value="ADT_RBFH_ENABLE=1"/>
 									<listOptionValue builtIn="false" value="UNIT_TEST"/>
 									<listOptionValue builtIn="false" value="UNIT_TEST_NO_THREAD"/>

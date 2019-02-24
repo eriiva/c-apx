@@ -49,5 +49,9 @@ _UINT64 unpackLE64(const _UINT8* p); //forces data to be 64-bits (8 bytes), even
 #undef _UINT64
 #undef _PACK_BASE_TYPE
 
+//set PLATFORM_BYTE_ORDER to one of below values for performance boost
+#define PLATFORM_LITTLE_ENDIAN 0
+#define PLATFORM_BIG_ENDIAN    1
+
 #endif //PACK_H
 
