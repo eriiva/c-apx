@@ -119,7 +119,7 @@ int8_t apx_serverConnectionBase_dataReceived(apx_serverConnectionBase_t *self, c
       uint32_t remain = dataLen;
       const uint8_t *pNext = dataBuf;
       self->base.totalBytesReceived+=dataLen;
-      printf("total received: %d\n", self->base.totalBytesReceived);
+      //printf("total received: %d\n", self->base.totalBytesReceived);
       while(totalParseLen<dataLen)
       {
          uint32_t internalParseLen = 0;
@@ -463,7 +463,7 @@ static void apx_serverConnectionBase_onFileOpen(void *arg, apx_fileManager_t *fi
          bool isComplete = apx_nodeData_isComplete(nodeData);
          if (isComplete == true)
          {
-            printf("Node comlete: %s\n", apx_nodeData_getName(nodeData));
+
          }
       }
    }

@@ -124,6 +124,7 @@ void apx_connectionManager_attach(apx_connectionManager_t *self, apx_serverConne
       apx_serverConnectionBase_setConnectionId(connection, connectionId);
       adt_list_insert_unique(&self->activeConnections, connection);
       SPINLOCK_LEAVE(self->lock);
+      printf("[CONNECTION_MANAGER] New connection %d\n", (int) connectionId );
    }
 }
 
@@ -236,7 +237,6 @@ THREAD_PROTO(cleanupTask,arg)
    apx_connectionManager_t *self = (apx_connectionManager_t*) arg;
    if(self != 0)
    {
-      printf("Starting cleanupTask\n");
       while(1)
       {
          bool isRunning;
@@ -254,7 +254,6 @@ THREAD_PROTO(cleanupTask,arg)
          apx_connectionManager_cleanupTask_run(self, numInactiveConnections);
          //printf("Done running cleanupTask\n");
       }
-      printf("Stopping cleanupTask\n");
    }
    THREAD_RETURN(0);
 }
@@ -271,7 +270,7 @@ static void apx_connectionManager_cleanupTask_run(apx_connectionManager_t *self,
       apx_serverConnectionBase_t *baseConnection = (apx_serverConnectionBase_t*) iter->pItem;
       if (baseConnection->isActive)
       {
-         printf("[CONNECTION_MANAGER] Closing %d\n", (int) baseConnection->base.connectionId);
+         //printf("[CONNECTION_MANAGER] Closing %d\n", (int) baseConnection->base.connectionId);
          apx_serverConnectionBase_close(baseConnection);
          apx_serverConnectionBase_detachNodes(baseConnection);
          baseConnection->isActive = false;

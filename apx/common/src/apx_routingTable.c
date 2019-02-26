@@ -175,7 +175,7 @@ void apx_routingTable_detachNodeData(apx_routingTable_t *self, struct apx_nodeDa
 
 void apx_routingTable_copyInitData(apx_routingTable_t *self, struct apx_nodeData_tag *nodeData)
 {
-   printf("Copying init data for all require ports\n");
+
 }
 
 //////////////////////////////////////////////////////////////////////////////

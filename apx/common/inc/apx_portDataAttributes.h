@@ -2,7 +2,7 @@
 * \file      apx_portDataAttributes.h
 * \author    Conny Gustafsson
 * \date      2018-11-25
-* \brief     Description
+* \brief     This is port _data_ attributes, not to be confused with apx_portAttributes_t
 *
 * Copyright (c) 2018 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -46,10 +46,6 @@ typedef struct apx_portDataAttributes_tag
    apx_size_t maxDynLen; //What is the maximum length of the dynamic array?
    apx_size_t maxQueLen; //What is the maximum number of queued elements?
 }apx_portDataAttributes_t;
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES

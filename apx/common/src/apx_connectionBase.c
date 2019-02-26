@@ -310,7 +310,6 @@ void apx_connectionBase_defaultEventHandler(apx_connectionBase_t *self, apx_even
          apx_portConnectionTable_delete((apx_portConnectionTable_t*) event->evData2);
          break;
       case APX_EVENT_NODE_COMPLETE:
-         printf("Node complete!\n");
          break;
       }
    }

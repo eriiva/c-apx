@@ -483,7 +483,6 @@ void apx_fileManager_createHeaderCompleteEvent(apx_event_t *event, apx_fileManag
 
 void apx_fileManager_createFileCreatedEvent(apx_event_t *event, apx_fileManager_t *fileManager, apx_file2_t *file, const void *caller)
 {
-   printf("apx_fileManager_createFileCreatedEvent\n");
    if (event != 0)
    {
       memset(event, 0, APX_EVENT_SIZE);
@@ -701,7 +700,6 @@ static void apx_fileManager_openFileRequest(void *arg, uint32_t address)
    if (self != 0)
    {
       apx_file2_t *localFile = apx_fileManagerLocal_find(&self->local, address);
-      printf("open file request %u\n", (unsigned int) address);
       if (localFile != 0)
       {
          if (localFile->fileInfo.fileType == RMF_FILE_TYPE_FIXED)
@@ -901,9 +899,9 @@ static THREAD_PROTO(workerThread,arg)
       apx_fileManager_t *self;
       uint32_t messages_processed=0;
       bool isRunning=true;
-      uint32_t fmid;
+
       self = (apx_fileManager_t*) arg;
-      fmid = fileManager_getID(self);
+
       while(isRunning == true)
       {
          //printf("[%u] Waiting for semaphore\n", fmid);
@@ -931,7 +929,7 @@ static THREAD_PROTO(workerThread,arg)
             printf("Failed to wait for semaphore\n");
          }
       }
-      printf("[%u]: messages_processed: %u\n",fmid, messages_processed);
+      //printf("[%u]: messages_processed: %u\n",fmid, messages_processed);
    }
    THREAD_RETURN(0);
 }

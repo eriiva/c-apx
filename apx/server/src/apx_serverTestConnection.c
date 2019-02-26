@@ -128,7 +128,6 @@ void apx_serverTestConnection_delete(apx_serverTestConnection_t *self)
 
 void apx_serverTestConnection_start(apx_serverTestConnection_t *self)
 {
-   printf("start %d\n", self->base.base.connectionId);
    apx_serverConnectionBase_start(&self->base);
 }
 
