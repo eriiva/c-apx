@@ -97,12 +97,7 @@ int main(int argc, char **argv)
 #endif
    signal_handler_setup();
    apx_server_create(&m_server, m_port);
-/*   apx_eventRecorderSrvRmfMgr = apx_eventRecorderSrvRmfMgr_new(APX_EVENT_RECORDER_RMF_DEFAULT_UPDATE_TIME);
-   if (apx_eventRecorderSrvRmfMgr != 0)
-   {
-      apx_server_registerConnectionEventListener(&m_server, (apx_connectionEventListener_t*) apx_eventRecorderSrvRmfMgr);
-   }
-*/
+
    eventRecorderSrvTxt = apx_eventRecorderSrvTxt_new();
    if (eventRecorderSrvTxt != 0)
    {

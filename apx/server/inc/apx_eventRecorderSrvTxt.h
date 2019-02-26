@@ -31,6 +31,16 @@
 //////////////////////////////////////////////////////////////////////////////
 #include <stdint.h>
 #include <stdio.h>
+#ifdef _WIN32
+# ifndef WIN32_LEAN_AND_MEAN
+# define WIN32_LEAN_AND_MEAN
+# endif
+# include <Windows.h>
+#else
+# include <pthread.h>
+# include <semaphore.h>
+#endif
+#include "osmacro.h"
 #include "apx_eventListener.h"
 
 //////////////////////////////////////////////////////////////////////////////
@@ -47,6 +57,7 @@ typedef struct apx_eventRecorderSrvTxt_t
 {
    char *fileName;
    FILE *fp;
+   MUTEX_T mutex;
 }apx_eventRecorderSrvTxt_t;
 
 //////////////////////////////////////////////////////////////////////////////

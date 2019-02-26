@@ -29,6 +29,8 @@
 #include <malloc.h>
 #include <string.h>
 #include <stdio.h>
+
+
 #include "adt_str.h"
 #include "apx_eventRecorderSrvTxt.h"
 #include "apx_eventListener.h"
@@ -57,6 +59,8 @@ static void apx_eventRecorderSrvTxt_onConnected(void *arg, apx_serverConnectionB
 static void apx_eventRecorderSrvTxt_onDisconnected(void *arg, apx_serverConnectionBase_t *connection);
 static void apx_eventRecorderSrvTxt_providePortsConnected(void *arg, apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable);
 static void apx_eventRecorderSrvTxt_providePortsDisconnected(void *arg, apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable);
+static void apx_eventRecorderSrvTxt_requirePortsConnected(void *arg, apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable);
+static void apx_eventRecorderSrvTxt_requirePortsDisconnected(void *arg, apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -71,6 +75,7 @@ void apx_eventRecorderSrvTxt_create(apx_eventRecorderSrvTxt_t *self)
    {
       self->fileName = 0;
       self->fp = 0;
+      MUTEX_INIT(self->mutex);
    }
 }
 
@@ -84,6 +89,7 @@ void apx_eventRecorderSrvTxt_destroy(apx_eventRecorderSrvTxt_t *self)
          free(self->fileName);
          self->fileName = 0;
       }
+      MUTEX_DESTROY(self->mutex);
    }
 }
 
@@ -155,6 +161,8 @@ static void apx_eventRecorderSrvTxt_registerNodeDataListener(apx_eventRecorderSr
    listener.arg = (void*) self;
    listener.providePortsConnected = apx_eventRecorderSrvTxt_providePortsConnected;
    listener.providePortsDisconnected = apx_eventRecorderSrvTxt_providePortsDisconnected;
+   listener.requirePortsConnected = apx_eventRecorderSrvTxt_requirePortsConnected;
+   listener.requirePortsDisconnected = apx_eventRecorderSrvTxt_requirePortsDisconnected;
    apx_serverConnectionBase_registerNodeDataEventListener(connection, &listener);
 }
 
@@ -174,7 +182,10 @@ static void apx_eventRecorderSrvTxt_onConnected(void *arg, apx_serverConnectionB
    {
       if (apx_eventRecorderSrvTxt_isLogFileOpen(self) == true)
       {
+         MUTEX_LOCK(self->mutex);
          fprintf(self->fp, "[%u] Client connected\n", apx_serverConnectionBase_getConnectionId(connection));
+         fflush(self->fp);
+         MUTEX_UNLOCK(self->mutex);
       }
       apx_eventRecorderSrvTxt_registerNodeDataListener(self, connection);
    }
@@ -185,7 +196,10 @@ static void apx_eventRecorderSrvTxt_onDisconnected(void *arg, apx_serverConnecti
    apx_eventRecorderSrvTxt_t *self = (apx_eventRecorderSrvTxt_t *) arg;
    if ( (self != 0) && (connection != 0) && (self->fp != 0) )
    {
+      MUTEX_LOCK(self->mutex);
       fprintf(self->fp, "[%u] Client disconnected\n", apx_serverConnectionBase_getConnectionId(connection));
+      fflush(self->fp);
+      MUTEX_UNLOCK(self->mutex);
    }
 }
 
@@ -194,17 +208,100 @@ static void apx_eventRecorderSrvTxt_providePortsConnected(void *arg, apx_nodeDat
    apx_eventRecorderSrvTxt_t *self = (apx_eventRecorderSrvTxt_t *) arg;
    if ( (self != 0) && (connectionTable != 0) && (self->fp != 0) )
    {
-      int32_t portId;
-      for (portId=0; portId<connectionTable->numPorts; portId++)
+      int32_t localPortId;
+      apx_node_t *localNode = apx_nodeData_getNode(nodeData);
+      for (localPortId=0; localPortId<connectionTable->numPorts; localPortId++)
       {
-         apx_portConnectionEntry_t *entry = apx_portConnectionTable_getEntry(connectionTable, portId);
-         fprintf(self->fp, "PC %s.%d: %d\n", apx_nodeData_getName(nodeData), (int) portId, (int) apx_portConnectionEntry_count(entry));
+         apx_connectionBase_t* connection = apx_nodeData_getConnection(nodeData);
+         apx_portDataRef_t *portref;
+         apx_portConnectionEntry_t *entry = apx_portConnectionTable_getEntry(connectionTable, localPortId);
+         portref = apx_portConnectionEntry_get(entry, 0);
+         MUTEX_LOCK(self->mutex);
+         if (portref != 0)
+         {
+            int32_t remotePortId;
+            apx_port_t *localPort;
+            apx_port_t *remotePort;
+            apx_node_t *remoteNode = apx_nodeData_getNode(portref->nodeData);
+            remotePortId = apx_portDataRef_getPortId(portref);
+            localPort = apx_node_getProvidePort(localNode, localPortId);
+            remotePort = apx_node_getRequirePort(remoteNode, remotePortId);
+            if ( (localPort != 0) && (remotePort) )
+            {
+               fprintf(self->fp, "[%d] %s.%s --> %s.%s\n",
+                       apx_connectionBase_getConnectionId(connection),
+                       localNode->name,
+                       localPort->name,
+                       remoteNode->name,
+                       remotePort->name);
+            }
+         }
+         fflush(self->fp);
+         MUTEX_UNLOCK(self->mutex);
       }
    }
 }
 
 static void apx_eventRecorderSrvTxt_providePortsDisconnected(void *arg, apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable)
 {
+   apx_eventRecorderSrvTxt_t *self = (apx_eventRecorderSrvTxt_t *) arg;
+   if ( (self != 0) && (connectionTable != 0) && (self->fp != 0) )
+   {
+      int32_t localPortId;
+      apx_node_t *localNode = apx_nodeData_getNode(nodeData);
+      for (localPortId=0; localPortId<connectionTable->numPorts; localPortId++)
+      {
+         apx_connectionBase_t* connection = apx_nodeData_getConnection(nodeData);
+         apx_portDataRef_t *portref;
+         apx_portConnectionEntry_t *entry = apx_portConnectionTable_getEntry(connectionTable, localPortId);
+         portref = apx_portConnectionEntry_get(entry, 0);
+         MUTEX_LOCK(self->mutex);
+         if (portref != 0)
+         {
+            int32_t remotePortId;
+            apx_port_t *localPort;
+            apx_port_t *remotePort;
+            apx_node_t *remoteNode = apx_nodeData_getNode(portref->nodeData);
+            remotePortId = apx_portDataRef_getPortId(portref);
+            localPort = apx_node_getProvidePort(localNode, localPortId);
+            remotePort = apx_node_getRequirePort(remoteNode, remotePortId);
+            if ( (localPort != 0) && (remotePort) )
+            {
+               fprintf(self->fp, "[%d] %s.%s -!-> %s.%s\n",
+                       apx_connectionBase_getConnectionId(connection),
+                       localNode->name,
+                       localPort->name,
+                       remoteNode->name,
+                       remotePort->name);
+            }
+         }
+         fflush(self->fp);
+         MUTEX_UNLOCK(self->mutex);
+      }
+   }
 
 }
 
+static void apx_eventRecorderSrvTxt_requirePortsConnected(void *arg, apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable)
+{
+   apx_eventRecorderSrvTxt_t *self = (apx_eventRecorderSrvTxt_t *) arg;
+   if ( (self != 0) && (connectionTable != 0) && (self->fp != 0) )
+   {
+      int32_t portId;
+      for (portId=0; portId<connectionTable->numPorts; portId++)
+      {
+      }
+   }
+}
+
+static void apx_eventRecorderSrvTxt_requirePortsDisconnected(void *arg, apx_nodeData_t *nodeData, apx_portConnectionTable_t *connectionTable)
+{
+   apx_eventRecorderSrvTxt_t *self = (apx_eventRecorderSrvTxt_t *) arg;
+   if ( (self != 0) && (connectionTable != 0) && (self->fp != 0) )
+   {
+      int32_t portId;
+      for (portId=0; portId<connectionTable->numPorts; portId++)
+      {
+      }
+   }
+}
