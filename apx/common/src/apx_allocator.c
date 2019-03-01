@@ -137,7 +137,7 @@ uint8_t *apx_allocator_alloc(apx_allocator_t *self, size_t size)
    uint8_t *data = 0;
    if ( (self != 0) && (size > 0) )
    {
-      if (size <= SMALL_OBJECT_MAX_SIZE)
+      if (size <= SOA_SMALL_OBJECT_MAX_SIZE)
       {
          //use the small object allocator
          SPINLOCK_ENTER(self->lock);
@@ -224,25 +224,38 @@ static THREAD_PROTO(threadTask,arg)
          if (result == 0)
 #endif
          {
+            uint8_t bufResult;
+            bool delayedFree = false;
             SPINLOCK_ENTER(self->lock);
-            adt_rbfh_remove(&self->messages,(uint8_t*) &data);
+            bufResult = adt_rbfh_remove(&self->messages,(uint8_t*) &data);
+            if (bufResult == BUF_E_OK)
+            {
+               if (data.ptr != 0)
+               {
+                  if (data.size<=SOA_SMALL_OBJECT_MAX_SIZE)
+                  {
+                     soa_free(&self->soa,data.ptr,data.size);
+                  }
+                  else
+                  {
+                     delayedFree = true;
+                  }
+               }
+            }
             SPINLOCK_LEAVE(self->lock);
             messages_processed++;
-            if (data.ptr != 0)
+            if (delayedFree == true)
             {
-               if (data.size<=SMALL_OBJECT_MAX_SIZE)
-               {
-                  soa_free(&self->soa,data.ptr,data.size);
-               }
-               else
-               {
-                  //this is a large object, use default free
-                  free(data.ptr);
-               }
+               free(data.ptr);
+            }
+            else if ( (bufResult == BUF_E_OK) && (data.ptr == 0) )
+            {
+               break; //NULL pointer is used to exit the thread
             }
             else
             {
-               break; //break if received null ptr
+               //Already handled by soa_free or bufResult != E_BUF_OK
+               assert(bufResult == BUF_E_OK);
             }
          }
          else
