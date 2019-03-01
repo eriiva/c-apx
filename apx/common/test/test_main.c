@@ -24,7 +24,6 @@ CuSuite* testSuite_apx_fileManagerLocal(void);
 CuSuite* testSuite_apx_fileManager(void);
 CuSuite* testSuite_apx_client_socketConnection(void);
 CuSuite* testSuite_apx_client_testConnection(void);
-//CuSuite* testSuite_apx_nodeManager(void);
 //CuSuite* testSuite_apx_eventRecorderSrvRmf(void);
 CuSuite* testSuite_apx_file2(void);
 CuSuite* testSuite_apx_nodeDataManager(void);
@@ -38,17 +37,18 @@ CuSuite* testSuite_apx_nodeInfo(void);
 CuSuite* testSuite_apx_routingTable(void);
 CuSuite* testSuite_apx_portConnectionEntry(void);
 CuSuite* testSuite_apx_portConnectionTable(void);
+CuSuite* testSuite_apx_vm(void);
 
 //util
 CuSuite* testsuite_pack(void);
-CuSuite* testsuite_sha256(void);
+//CuSuite* testsuite_sha256(void);
 
 void RunAllTests(void)
 {
    CuString *output = CuStringNew();
    CuSuite* suite = CuSuiteNew();
 
-   CuSuiteAddSuite(suite, testsuite_sha256());
+   //CuSuiteAddSuite(suite, testsuite_sha256());
    CuSuiteAddSuite(suite, testsuite_pack());
 
    CuSuiteAddSuite(suite, testSuite_apx_dataElement());
@@ -58,7 +58,6 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testSuite_apx_node());
    CuSuiteAddSuite(suite, testSuite_apx_parser());
    CuSuiteAddSuite(suite, testSuite_apx_portDataMap());
-
 
    CuSuiteAddSuite(suite, testSuite_apx_file2());
    CuSuiteAddSuite(suite, testSuite_apx_fileMap());
@@ -71,8 +70,6 @@ void RunAllTests(void)
 
    CuSuiteAddSuite(suite, testSuite_apx_serverSocketConnection());
    //CuSuiteAddSuite(suite, testSuite_apx_server());
-   //CuSuiteAddSuite(suite, testSuite_apx_clientSession());
-   //CuSuiteAddSuite(suite, testSuite_apx_sessionCmd());
 
    CuSuiteAddSuite(suite, testSuite_apx_fileManagerShared());
    CuSuiteAddSuite(suite, testSuite_apx_fileManagerRemote());
@@ -93,7 +90,7 @@ void RunAllTests(void)
    CuSuiteAddSuite(suite, testSuite_apx_routingTable());
    CuSuiteAddSuite(suite, testSuite_apx_portConnectionEntry());
    CuSuiteAddSuite(suite, testSuite_apx_portConnectionTable());
-
+   CuSuiteAddSuite(suite, testSuite_apx_vm());
 
    CuSuiteRun(suite);
    CuSuiteSummary(suite, output);
