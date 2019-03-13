@@ -82,7 +82,7 @@ void apx_compiler_delete(apx_compiler_t *self)
    }
 }
 
-apx_error_t apx_compiler_compileRequirePort(apx_compiler_t *self, apx_node_t *node, apx_portId_t portId, adt_bytearray_t *program)
+apx_error_t apx_compiler_compileRequirePort(apx_compiler_t *self, apx_node_t *node, apx_portId_t portId, apx_program_t *program)
 {
    if ( (self != 0) && (node != 0) && (program != 0) && (portId>=0) )
    {
@@ -97,7 +97,7 @@ apx_error_t apx_compiler_compileRequirePort(apx_compiler_t *self, apx_node_t *no
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
-apx_error_t apx_compiler_compileProvidePort(apx_compiler_t *self, apx_node_t *node, apx_portId_t portId, adt_bytearray_t *program)
+apx_error_t apx_compiler_compileProvidePort(apx_compiler_t *self, apx_node_t *node, apx_portId_t portId, apx_program_t *program)
 {
    if ( (self != 0) && (node != 0) && (program != 0) && (portId>=0) )
    {

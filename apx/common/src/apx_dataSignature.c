@@ -488,21 +488,39 @@ static const uint8_t *parseArrayLength(const uint8_t *pBegin, const uint8_t *pEn
       char c = (char) *pNext;
       if(c == '[')
       {
+         bool isHandled = false;
          const uint8_t *pResult;
          pResult=bstr_matchPair(pNext,pEnd,'[',']','\\');
          if (pResult>pNext)
          {
             long value;
-            if (bstr_toLong(pNext+1,pResult,&value) == 0)
+            const uint8_t *pNumStart = pNext+1;
+            const uint8_t *pNumResult = bstr_toLong(pNumStart, pResult, &value);
+            if (pNumResult > pNumStart)
             {
-               return NULL;
+               pDataElement->arrayLen = (uint32_t) value;
+               isHandled = true;
             }
-            pDataElement->arrayLen = (uint32_t) value;
-            pNext=pResult+1;
+            else if (pNumResult == pNumStart)
+            {
+               if ( ((pResult-pNumStart) == 1) && (*pNumStart == '*') )
+               {
+                  apx_dataElement_setDynamicArray(pDataElement);
+                  isHandled = true;
+               }
+            }
+            if(isHandled)
+            {
+               pNext=pResult+1;
+            }
+            else
+            {
+               pNext = (const uint8_t*) 0;
+            }
          }
          else
          {
-            return NULL;
+            pNext = (const uint8_t*) 0;
          }
       }
    }

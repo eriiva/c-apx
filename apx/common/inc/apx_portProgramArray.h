@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_test_nodes.h
+* \file      apx_portProgramArray.h
 * \author    Conny Gustafsson
-* \date      2018-12-07
-* \brief     APX definitions for unit tests
+* \date      2019-01-02
+* \brief     A container for APX port programs
 *
-* Copyright (c) 2018 Conny Gustafsson
+* Copyright (c) 2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -23,37 +23,35 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_TEST_NODES_H
-#define APX_TEST_NODES_H
+#ifndef APX_PORT_PROGRAM_LIST_H
+#define APX_PORT_PROGRAM_LIST_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
+#include "apx_types.h"
+#include "adt_ary.h"
+#include "adt_bytearray.h"
+#include "apx_error.h"
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define APX_TESTNODE1_IN_DATA_LEN  1
-#define APX_TESTNODE1_OUT_DATA_LEN 4
-#define APX_TESTNODE2_IN_DATA_LEN  1
-#define APX_TESTNODE2_OUT_DATA_LEN 3
-#define APX_TESTNODE5_IN_DATA_LEN  3
-#define APX_TESTNODE5_OUT_DATA_LEN 1
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-extern const char *g_apx_test_node1;
-extern const char *g_apx_test_node2;
-extern const char *g_apx_test_node3;
-extern const char *g_apx_test_node4;
-extern const char *g_apx_test_node5;
-extern const char *g_apx_test_node6;
-
+typedef struct apx_portProgramArray_tag
+{
+   adt_bytearray_t **programs; //array containing strong references to adt_bytearray_t
+   int32_t numPorts;
+}apx_portProgramArray_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+apx_error_t apx_portProgramArray_create(apx_portProgramArray_t *self, int32_t numPorts);
+void apx_portProgramArray_destroy(apx_portProgramArray_t *self);
+apx_portProgramArray_t *apx_portProgramArray_new(int32_t numPorts);
+void apx_portProgramArray_delete(apx_portProgramArray_t *self);
 
+void apx_portProgramArray_set(apx_portProgramArray_t *self, apx_portId_t portId, adt_bytearray_t *program);
+adt_bytearray_t* apx_portProgramArray_get(apx_portProgramArray_t *self, apx_portId_t portId);
 
-#endif //APX_TEST_NODES_H
+#endif //APX_PORT_PROGRAM_LIST_H

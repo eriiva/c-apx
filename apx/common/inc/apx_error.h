@@ -38,6 +38,7 @@
 #define APX_MSG_TOO_LONG_ERROR        26 //RMF code: 526
 #define APX_CONNECTION_ERROR          27 //No RMF code (since it doesn't make sense unless you have a valid connection setup)
 #define APX_NULL_PTR_ERROR            28 //RMF code: 528
+#define APX_BUFFER_BOUNDARY_ERROR     29 //RMF code: 528
 
 #define RMF_APX_NO_ERROR                  500
 #define RMF_APX_INVALID_ARGUMENT_ERROR    RMF_APX_NO_ERROR+APX_INVALID_ARGUMENT_ERROR
@@ -66,6 +67,9 @@
 #define RMF_APX_NOT_FOUND_ERROR           524
 #define RMF_APX_THREAD_CREATE_ERROR       525
 #define RMF_APX_MSG_TOO_LONG_ERROR        526
+                                          //527 cannot send this on a non-open connection
+#define RMF_APX_NULL_PTR_ERROR            528
+#define RMF_APX_BUFFER_BOUNDARY_ERROR     529
 
 typedef int32_t apx_error_t;
 

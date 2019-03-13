@@ -43,15 +43,16 @@
 //////////////////////////////////////////////////////////////////////////////
 typedef struct apx_headerLine_tag
 {
-   int majorVersion;
-   int minorVersion;
+   int16_t majorVersion;
+   int16_t minorVersion;
 }apx_headerLine_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 static void apx_istream_handler_open(const apx_istream_handler_t *handler);
-static void apx_istream_handler_node(const apx_istream_handler_t *handler, const char *name); //N"<name>"
+static bool apx_istream_handler_header(const apx_istream_handler_t *handler, int32_t majorVersion, int32_t minorVersion);
+static void apx_istream_handler_node(const apx_istream_handler_t *handler, const char *name, int32_t lineNumber); //N"<name>"
 static int32_t apx_istream_handler_datatype(const apx_istream_handler_t *handler,const char *name, const char *dsg, const char *attr, int32_t lineNumber); //T"<name>"<dsg>:<attr>
 static int32_t apx_istream_handler_require(const apx_istream_handler_t *handler,const char *name, const char *dsg, const char *attr, int32_t lineNumber); //R"<name>"<dsg>:<attr>
 static int32_t apx_istream_handler_provide(const apx_istream_handler_t *handler,const char *name, const char *dsg, const char *attr, int32_t lineNumber); //P"<name>"<dsg>:<attr>
@@ -295,9 +296,17 @@ static void apx_istream_handler_open(const apx_istream_handler_t *handler){
    }
 }
 
-static void apx_istream_handler_node(const apx_istream_handler_t *handler, const char *name){ //N"<name>"
+static bool apx_istream_handler_header(const apx_istream_handler_t *handler, int32_t majorVersion, int32_t minorVersion){
+   if((handler != 0) && (handler->header != 0)){
+      return handler->header(handler->arg, majorVersion, minorVersion);
+   }
+   return false;
+}
+
+
+static void apx_istream_handler_node(const apx_istream_handler_t *handler, const char *name, int32_t lineNumber){ //N"<name>"
    if((handler != 0) && (name != 0) && (handler->node != 0)){
-      handler->node(handler->arg,name);
+      handler->node(handler->arg, name, lineNumber);
    }
 }
 
@@ -323,8 +332,6 @@ static int32_t apx_istream_handler_provide(const apx_istream_handler_t *handler,
    return -1;
 }
 
-
-
 static void apx_istream_handler_close(const apx_istream_handler_t *handler){
    if( (handler != 0) && (handler->close != 0) ){
       handler->close(handler->arg);
@@ -344,7 +351,7 @@ static const uint8_t* apx_istream_parseNodeName(apx_istream_t *self, const uint8
          if(len <= APX_MAX_NAME_LEN){
             memcpy(name,pBegin+1,len);
             name[len]=0;
-            apx_istream_handler_node(&self->handler,name);
+            apx_istream_handler_node(&self->handler, name, self->currentLine);
          }
          return pNext+1; //return the first character after the right '"'
       }
@@ -373,10 +380,15 @@ static const uint8_t *apx_stream_parse_textLine(apx_istream_t *self,const uint8_
             pResult = apx_stream_parseApxHeaderLine(pLineBegin,pLineEnd,&header);
             if (pResult != 0)
             {
-               if ( (header.majorVersion==1) && (header.minorVersion>=2))
+               bool isSupported = apx_istream_handler_header(&self->handler, header.majorVersion, header.minorVersion);
+               if ( isSupported )
                {
                   pNext=pResult;
                   self->parseState=APX_ISTREAM_STATE_NODE;
+               }
+               else
+               {
+                  apx_istream_triggerParseError(self);
                }
             }
             break;

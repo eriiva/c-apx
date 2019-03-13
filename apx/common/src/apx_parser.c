@@ -46,6 +46,7 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+static void apx_parser_init_istream_handler(apx_parser_t *self, apx_istream_handler_t *istream_handler);
 static void apx_parser_clearError(apx_parser_t *self);
 
 //////////////////////////////////////////////////////////////////////////////
@@ -61,6 +62,8 @@ void apx_parser_create(apx_parser_t *self)
    {
       adt_ary_create(&self->nodeList,apx_node_vdelete);
       self->currentNode=0;
+      self->majorVersion = -1;
+      self->minorVersion = -1;
       apx_parser_clearError(self);
    }
 }
@@ -163,24 +166,15 @@ apx_node_t *apx_parser_parseFile(apx_parser_t *self, const char *filename)
    apx_istream_handler_t apx_istream_handler;
 
    apx_clearError();
+
    memset(&ifstream_handler,0,sizeof(ifstream_handler));
-   memset(&apx_istream_handler,0,sizeof(apx_istream_handler));
    ifstream_handler.open = apx_istream_vopen;
    ifstream_handler.close = apx_istream_vclose;
    ifstream_handler.write = apx_istream_vwrite;
    ifstream_handler.arg = (void *) &apx_istream;
 
-   apx_istream_handler.arg = self;
-   apx_istream_handler.open = apx_parser_vopen;
-   apx_istream_handler.close = apx_parser_vclose;
-   apx_istream_handler.node = apx_parser_vnode;
-   apx_istream_handler.datatype = apx_parser_vdatatype;
-   apx_istream_handler.provide = apx_parser_vprovide;
-   apx_istream_handler.require = apx_parser_vrequire;
-   apx_istream_handler.node_end = apx_parser_vnode_end;
-   apx_istream_handler.parse_error = apx_parser_vparse_error;
-
-   apx_istream_create(&apx_istream,&apx_istream_handler);
+   apx_parser_init_istream_handler(self, &apx_istream_handler);
+   apx_istream_create(&apx_istream, &apx_istream_handler);
    ifstream_create(&ifstream,&ifstream_handler);
 
    ifstream_readTextFile(&ifstream,filename);
@@ -198,17 +192,7 @@ apx_node_t *apx_parser_parseString(apx_parser_t *self, const char *data)
    uint32_t dataLen = (uint32_t) strlen(data);
 
    apx_clearError();
-   memset(&apx_istream_handler,0,sizeof(apx_istream_handler));
-   apx_istream_handler.arg = self;
-   apx_istream_handler.open = apx_parser_vopen;
-   apx_istream_handler.close = apx_parser_vclose;
-   apx_istream_handler.node = apx_parser_vnode;
-   apx_istream_handler.datatype = apx_parser_vdatatype;
-   apx_istream_handler.provide = apx_parser_vprovide;
-   apx_istream_handler.require = apx_parser_vrequire;
-   apx_istream_handler.node_end = apx_parser_vnode_end;
-   apx_istream_handler.parse_error = apx_parser_vparse_error;
-
+   apx_parser_init_istream_handler(self, &apx_istream_handler);
    apx_istream_create(&apx_istream,&apx_istream_handler);
    apx_istream_open(&apx_istream);
    apx_istream_write(&apx_istream, (const uint8_t*) data, dataLen);
@@ -252,7 +236,21 @@ void apx_parser_close(apx_parser_t *self)
    }
 }
 
-void apx_parser_node(apx_parser_t *self, const char *name) //N"<name>"
+bool apx_parser_header(apx_parser_t *self, int16_t majorVersion, int16_t minorVersion)
+{
+   if (self != 0)
+   {
+      self->majorVersion = majorVersion;
+      self->minorVersion = minorVersion;
+      if ( (majorVersion == 1) && ( (minorVersion == 2) || (minorVersion == 3) ) )
+      {
+         return true;
+      }
+   }
+   return false;
+}
+
+void apx_parser_node(apx_parser_t *self, const char *name, int32_t lineNumber) //N"<name>"
 {
    if (self != 0)
    {
@@ -264,6 +262,14 @@ void apx_parser_node(apx_parser_t *self, const char *name) //N"<name>"
          self->currentNode=0;
       }
       self->currentNode=apx_node_new(name);
+      if (self->currentNode != 0)
+      {
+         apx_node_setVersion(self->currentNode, self->majorVersion, self->minorVersion);
+      }
+      else
+      {
+         apx_parser_parse_error(self, APX_MEM_ERROR, lineNumber);
+      }
    }
 }
 
@@ -336,9 +342,14 @@ void apx_parser_vclose(void *arg)
    apx_parser_close((apx_parser_t*) arg);
 }
 
-void apx_parser_vnode(void *arg, const char *name)
+bool apx_parser_vheader(void *arg, int16_t majorVersion, int16_t minorVersion)
 {
-   apx_parser_node((apx_parser_t*) arg,name);
+   return apx_parser_header((apx_parser_t*) arg, majorVersion, minorVersion);
+}
+
+void apx_parser_vnode(void *arg, const char *name, int32_t lineNumber)
+{
+   apx_parser_node((apx_parser_t*) arg, name, lineNumber);
 }
 
 int32_t apx_parser_vdatatype(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber)
@@ -369,6 +380,21 @@ void apx_parser_vparse_error(void *arg, int32_t errorType, int32_t errorLine)
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+static void apx_parser_init_istream_handler(apx_parser_t *self, apx_istream_handler_t *istream_handler)
+{
+   memset(istream_handler,0,sizeof(ifstream_handler_t));
+   istream_handler->arg = self;
+   istream_handler->open = apx_parser_vopen;
+   istream_handler->close = apx_parser_vclose;
+   istream_handler->header = apx_parser_vheader;
+   istream_handler->node = apx_parser_vnode;
+   istream_handler->datatype = apx_parser_vdatatype;
+   istream_handler->provide = apx_parser_vprovide;
+   istream_handler->require = apx_parser_vrequire;
+   istream_handler->node_end = apx_parser_vnode_end;
+   istream_handler->parse_error = apx_parser_vparse_error;
+}
+
 static void apx_parser_clearError(apx_parser_t *self)
 {
    self->lastErrorType = 0;

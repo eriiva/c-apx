@@ -491,7 +491,7 @@ static void test_apx_attributeParser_parseQueueLength(CuTest* tc)
    test_data = test_data1;
    pBegin = (const uint8_t*)test_data, pEnd = pBegin+strlen(test_data);
    CuAssertIntEquals(tc, -1, attr.queueLen);
-   pResult = apx_attributeParser_parseQueueLength(&parser, pBegin, pEnd, &attr);
+   pResult = apx_attributeParser_parseArrayLength(&parser, pBegin, pEnd, &attr.queueLen);
    CuAssertConstPtrEquals(tc, pEnd, pResult);
    CuAssertIntEquals(tc, 1, attr.queueLen);
    apx_portAttributes_destroy(&attr);
@@ -500,7 +500,7 @@ static void test_apx_attributeParser_parseQueueLength(CuTest* tc)
    test_data = test_data2;
    pBegin = (const uint8_t*)test_data, pEnd = pBegin+strlen(test_data);
    CuAssertIntEquals(tc, -1, attr.queueLen);
-   pResult = apx_attributeParser_parseQueueLength(&parser, pBegin, pEnd, &attr);
+   pResult = apx_attributeParser_parseArrayLength(&parser, pBegin, pEnd, &attr.queueLen);
    CuAssertConstPtrEquals(tc, pEnd, pResult);
    CuAssertIntEquals(tc, 120, attr.queueLen);
    apx_portAttributes_destroy(&attr);
@@ -508,7 +508,7 @@ static void test_apx_attributeParser_parseQueueLength(CuTest* tc)
    apx_portAttributes_create(&attr, test_data);
    test_data = test_data3;
    pBegin = (const uint8_t*)test_data, pEnd = pBegin+strlen(test_data);
-   pResult = apx_attributeParser_parseQueueLength(&parser, pBegin, pEnd, &attr);
+   pResult = apx_attributeParser_parseArrayLength(&parser, pBegin, pEnd, &attr.queueLen);
    CuAssertConstPtrEquals(tc, 0, pResult);
    lastError = apx_attributeParser_getLastError(&parser, &pErrorNext);
    CuAssertIntEquals(tc, APX_VALUE_ERROR, lastError);
@@ -518,7 +518,7 @@ static void test_apx_attributeParser_parseQueueLength(CuTest* tc)
    apx_portAttributes_create(&attr, test_data);
    test_data = test_data4;
    pBegin = (const uint8_t*)test_data, pEnd = pBegin+strlen(test_data);
-   pResult = apx_attributeParser_parseQueueLength(&parser, pBegin, pEnd, &attr);
+   pResult = apx_attributeParser_parseArrayLength(&parser, pBegin, pEnd, &attr.queueLen);
    CuAssertConstPtrEquals(tc, 0, pResult);
    lastError = apx_attributeParser_getLastError(&parser, &pErrorNext);
    CuAssertIntEquals(tc, APX_PARSE_ERROR, lastError);
@@ -528,7 +528,7 @@ static void test_apx_attributeParser_parseQueueLength(CuTest* tc)
    apx_portAttributes_create(&attr, test_data);
    test_data = test_data5;
    pBegin = (const uint8_t*)test_data, pEnd = pBegin+strlen(test_data);
-   pResult = apx_attributeParser_parseQueueLength(&parser, pBegin, pEnd, &attr);
+   pResult = apx_attributeParser_parseArrayLength(&parser, pBegin, pEnd, &attr.queueLen);
    CuAssertConstPtrEquals(tc, 0,pResult);
    lastError = apx_attributeParser_getLastError(&parser, &pErrorNext);
    CuAssertIntEquals(tc, APX_PARSE_ERROR, lastError);

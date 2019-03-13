@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_test_nodes.h
+* \file      apx_vm.h
 * \author    Conny Gustafsson
-* \date      2018-12-07
-* \brief     APX definitions for unit tests
+* \date      2019-02-24
+* \brief     APX virtual machine (implements v2 of APX byte code language)
 *
-* Copyright (c) 2018 Conny Gustafsson
+* Copyright (c) 2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -23,37 +23,38 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_TEST_NODES_H
-#define APX_TEST_NODES_H
+#ifndef APX_VM_H
+#define APX_VM_H
 
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
+#include "apx_types.h"
+#include "apx_vmdefs.h"
+#include "apx_portDataAttributes.h"
+#include "adt_bytearray.h"
+
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define APX_TESTNODE1_IN_DATA_LEN  1
-#define APX_TESTNODE1_OUT_DATA_LEN 4
-#define APX_TESTNODE2_IN_DATA_LEN  1
-#define APX_TESTNODE2_OUT_DATA_LEN 3
-#define APX_TESTNODE5_IN_DATA_LEN  3
-#define APX_TESTNODE5_OUT_DATA_LEN 1
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-extern const char *g_apx_test_node1;
-extern const char *g_apx_test_node2;
-extern const char *g_apx_test_node3;
-extern const char *g_apx_test_node4;
-extern const char *g_apx_test_node5;
-extern const char *g_apx_test_node6;
-
+typedef struct apx_vm_tag
+{
+   apx_portDataAttributes_t *portDataAttr; //current port data attributes, weak reference
+   uint8_t *data; //weak reference
+   uint32_t dataLen;
+   uint32_t dataOffset;
+   uint8_t *progBegin; //weak reference
+   uint8_t *progEnd;   //weak reference
+   uint8_t *progNext;  //weak reference
+} apx_vm_t;
 
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
+void apx_vm_create(apx_vm_t *self);
+void apx_vm_destroy(apx_vm_t *self);
+apx_vm_t* apx_vm_new(void);
+void apx_vm_delete(apx_vm_t *self);
 
-
-#endif //APX_TEST_NODES_H
+#endif //APX_VM_H

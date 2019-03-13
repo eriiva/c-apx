@@ -94,5 +94,7 @@ typedef struct apx_dataWriteCmd_tag
 #define STRDUP strdup
 #endif
 
+#define APX_NODE_DEFAULT_VERSION_MAJOR 1
+#define APX_NODE_DEFAULT_VERSION_MINOR 3
 
 #endif //APX_TYPES_H

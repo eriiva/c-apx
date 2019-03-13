@@ -17,6 +17,7 @@
 #endif
 
 #define ERROR_STR_MAX 128
+
 /**************** Private Function Declarations *******************/
 static apx_error_t apx_node_finalizePort(apx_port_t *port, adt_ary_t *typeList, adt_hash_t *typeMap);
 
@@ -48,7 +49,7 @@ void apx_node_vdelete(void *arg)
    apx_node_delete((apx_node_t*) arg);
 }
 
-void apx_node_create(apx_node_t *self,const char *name){
+void apx_node_create(apx_node_t *self, const char *name){
    if(self != 0){
       self->name = 0;
       adt_ary_create(&self->datatypeList,apx_datatype_vdelete);
@@ -94,6 +95,14 @@ const char *apx_node_getName(apx_node_t *self)
       return self->name;
    }
    return (const char*) 0;
+}
+
+void apx_node_setVersion(apx_node_t *self, int16_t majorVersion, int16_t minorVersion)
+{
+   if ( (self != 0) && (majorVersion >= 0) && (minorVersion >= 0))
+   {
+      apx_attributeParser_setVersion(&self->attributeParser, majorVersion, minorVersion);
+   }
 }
 
 //datatype functions

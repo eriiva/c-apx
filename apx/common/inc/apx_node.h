@@ -31,6 +31,7 @@ void apx_node_destroy(apx_node_t *self);
 //node functions
 void apx_node_setName(apx_node_t *self, const char *name);
 const char *apx_node_getName(apx_node_t *self);
+void apx_node_setVersion(apx_node_t *self, int16_t majorVersion, int16_t minorVersion);
 
 //datatype functions
 apx_datatype_t *apx_node_createDataType(apx_node_t *self, const char* name, const char *dsg, const char *attr, int32_t lineNumber);

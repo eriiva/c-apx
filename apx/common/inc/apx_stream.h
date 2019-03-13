@@ -1,8 +1,7 @@
 #ifndef APX_STREAM_H
 #define APX_STREAM_H
-#include <stdint.h>
+#include "apx_types.h"
 #include "adt_bytearray.h"
-#include "apx_cfg.h"
 
 #define APX_ISTREAM_STATE_HEADER    0
 #define APX_ISTREAM_STATE_NODE      1
@@ -19,7 +18,8 @@ typedef struct apx_istream_handler_t{
    void (*close)(void *arg);
 
    //text-based messages
-   void (*node)(void *arg, const char *name); //N"<name>"
+   bool (*header)(void *arg, int16_t majorVersion, int16_t minorVersion);
+   void (*node)(void *arg, const char *name, int32_t lineNumber); //N"<name>"
    int32_t (*datatype)(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber); //T"<name>"<dsg>:<attr>
    int32_t (*require)(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber); //R"<name>"<dsg>:<attr>
    int32_t (*provide)(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber); //P"<name>"<dsg>:<attr>

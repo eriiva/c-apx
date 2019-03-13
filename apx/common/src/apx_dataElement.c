@@ -119,6 +119,7 @@ int8_t apx_dataElement_create(apx_dataElement_t *self, int8_t baseType, const ch
       self->min.s32 = 0;
       self->max.s32 = 0;
       self->packLen = 0;
+      self->isDynamicArray = false;
       if (baseType == APX_BASE_TYPE_REF_NAME)
       {
          self->typeRef.name = 0;
@@ -311,6 +312,24 @@ uint32_t apx_dataElement_getArrayLen(apx_dataElement_t *self)
    }
    return 0;
 }
+
+void apx_dataElement_setDynamicArray(apx_dataElement_t *self)
+{
+   if (self != 0)
+   {
+      self->isDynamicArray = true;
+   }
+}
+
+bool apx_dataElement_isDynamicArray(apx_dataElement_t *self)
+{
+   if (self != 0)
+   {
+      return self->isDynamicArray;
+   }
+   return false;
+}
+
 
 void apx_dataElement_setTypeReferenceId(apx_dataElement_t *self, int32_t typeId)
 {

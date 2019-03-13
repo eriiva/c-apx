@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_test_nodes.h
+* \file      apx_vm.c
 * \author    Conny Gustafsson
-* \date      2018-12-07
-* \brief     APX definitions for unit tests
+* \date      2019-02-24
+* \brief     APX virtual machine (implements v2 of APX byte code language)
 *
-* Copyright (c) 2018 Conny Gustafsson
+* Copyright (c) 2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -23,37 +23,70 @@
 * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 *
 ******************************************************************************/
-#ifndef APX_TEST_NODES_H
-#define APX_TEST_NODES_H
-
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC CONSTANTS AND DATA TYPES
-//////////////////////////////////////////////////////////////////////////////
-#define APX_TESTNODE1_IN_DATA_LEN  1
-#define APX_TESTNODE1_OUT_DATA_LEN 4
-#define APX_TESTNODE2_IN_DATA_LEN  1
-#define APX_TESTNODE2_OUT_DATA_LEN 3
-#define APX_TESTNODE5_IN_DATA_LEN  3
-#define APX_TESTNODE5_OUT_DATA_LEN 1
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-extern const char *g_apx_test_node1;
-extern const char *g_apx_test_node2;
-extern const char *g_apx_test_node3;
-extern const char *g_apx_test_node4;
-extern const char *g_apx_test_node5;
-extern const char *g_apx_test_node6;
+#include "apx_vm.h"
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC FUNCTION PROTOTYPES
+// PRIVATE CONSTANTS AND DATA TYPES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTION PROTOTYPES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE VARIABLES
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+// PUBLIC FUNCTIONS
+//////////////////////////////////////////////////////////////////////////////
+void apx_vm_create(apx_vm_t *self)
+{
+   if (self != 0)
+   {
+      self->portDataAttr = (apx_portDataAttributes_t*) 0;
+      self->data = (uint8_t *) 0;
+      self->dataLen =  0u;
+      self->dataOffset = 0u;
+      self->progBegin = (uint8_t*) 0;
+      self->progEnd = (uint8_t*) 0;
+      self->progNext = (uint8_t*) 0;
+   }
+}
+
+void apx_vm_destroy(apx_vm_t *self)
+{
+   //Nothing to do
+}
+
+apx_vm_t* apx_vm_new(void)
+{
+   apx_vm_t *self = (apx_vm_t*) malloc(sizeof(apx_vm_t));
+   if (self != 0)
+   {
+      apx_vm_create(self);
+   }
+   return self;
+}
+
+void apx_vm_delete(apx_vm_t *self)
+{
+   if (self != 0)
+   {
+      apx_vm_destroy(self);
+      free(self);
+   }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
 
 
-#endif //APX_TEST_NODES_H

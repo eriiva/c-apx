@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_test_nodes.c
+* \file      testsuite_apx_vmstate.c
 * \author    Conny Gustafsson
-* \date      2018-12-07
-* \brief     APX definitions for unit tests
+* \date      2019-03-10
+* \brief     Description
 *
-* Copyright (c) 2018 Conny Gustafsson
+* Copyright (c) 2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -26,7 +26,16 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_test_nodes.h"
+#include <assert.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stddef.h>
+#include <string.h>
+#include "CuTest.h"
+#include "apx_vmstate.h"
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -35,51 +44,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-const char *g_apx_test_node1 =
-"APX/1.2\n"
-"N\"TestNode1\"\n"
-"P\"WheelBasedVehicleSpeed\"S:=65535\n"
-"P\"CabTiltLockWarning\"C(0,7):=7\n"
-"P\"VehicleMode\"C(0,15):=15\n"
-"R\"GearSelectionMode\"C(0,7):=7\n";
-
-const char *g_apx_test_node2 =
-"APX/1.2\n"
-"N\"TestNode2\"\n"
-"P\"WheelBasedVehicleSpeed\"S:=65535\n"
-"P\"ParkBrakeAlert\"C(0,3):=3\n"
-"R\"VehicleMode\"C(0,15):=15\n";
-
-const char *g_apx_test_node3 =
-"APX/1.2\n"
-"N\"TestNode3\"\n"
-"R\"WheelBasedVehicleSpeed\"S:=65535\n";
-
-const char *g_apx_test_node4 =
-"APX/1.2\n"
-"N\"TestNode4\"\n"
-"R\"WheelBasedVehicleSpeed\"S:=65535\n"
-"R\"ParkBrakeAlert\"C(0,3):=3\n"
-"R\"VehicleMode\"C(0,15):=15\n";
-
-const char *g_apx_test_node5 =
-"APX/1.2\n"
-"N\"TestNode5\"\n"
-"R\"WheelBasedVehicleSpeed\"S:=65535\n"
-"R\"CabTiltLockWarning\"C(0,7):=7\n"
-"P\"GearSelectionMode\"C(0,7):=7\n";
-
-const char *g_apx_test_node6 =
-"APX/1.3\n"
-"N\"TestNode6\"\n"
-"P\"DiagReq\"C[128]:D\n"
-"R\"DiagRsp\"C[128]:D\n";
-
-
+static void test_apx_apx_vmstate_packU8(CuTest* tc);
+static void test_apx_apx_vmstate_packU8U8DynArray(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -88,9 +54,51 @@ const char *g_apx_test_node6 =
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+CuSuite* testSuite_apx_vmstate(void)
+{
+   CuSuite* suite = CuSuiteNew();
+
+   SUITE_ADD_TEST(suite, test_apx_apx_vmstate_packU8);
+   SUITE_ADD_TEST(suite, test_apx_apx_vmstate_packU8U8DynArray);
+
+   return suite;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+static void test_apx_apx_vmstate_packU8(CuTest* tc)
+{
+   uint8_t data[3];
+   memset(&data[0], 0, sizeof(data));
+   apx_vmstate_t *st = apx_vmstate_new();
+   CuAssertPtrNotNull(tc, st);
+   CuAssertIntEquals(tc, APX_MISSING_BUFFER_ERROR, apx_vmstate_packU8(st, (uint8_t) 1u));
+   apx_vmstate_setWriteData(st, &data[0], sizeof(data));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_vmstate_packU8(st, (uint8_t) 1u));
+   CuAssertUIntEquals(tc, 1, data[0]);
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_vmstate_packU8(st, (uint8_t) 0x12));
+   CuAssertUIntEquals(tc, 0x12, data[1]);
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_vmstate_packU8(st, (uint8_t) 0xff));
+   CuAssertUIntEquals(tc, 0xff, data[2]);
+   CuAssertIntEquals(tc, APX_BUFFER_BOUNDARY_ERROR, apx_vmstate_packU8(st, (uint8_t) 0));
+   apx_vmstate_delete(st);
+}
 
+static void test_apx_apx_vmstate_packU8U8DynArray(CuTest* tc)
+{
+   uint8_t data[9];
+   uint8_t values[8]={0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18};
+   uint8_t verificationData[9];
+   memset(&data[0], 0, sizeof(data));
+   verificationData[0]=sizeof(values);
+   memcpy(&verificationData[1], &values[0], sizeof(values));
+   apx_vmstate_t *st = apx_vmstate_new();
+   CuAssertPtrNotNull(tc, st);
+   CuAssertIntEquals(tc, APX_MISSING_BUFFER_ERROR, apx_vmstate_packU8(st, (uint8_t) 1u));
+   apx_vmstate_setWriteData(st, &data[0], sizeof(data));
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_vmstate_packU8U8DynArray(st, &values[0], 8u));
+   CuAssertIntEquals(tc, 0, memcmp(data, verificationData, 9));
+   apx_vmstate_delete(st);
+}
 

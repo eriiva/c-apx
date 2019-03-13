@@ -1,10 +1,10 @@
 /*****************************************************************************
-* \file      apx_test_nodes.c
+* \file      apx_portProgramArray.c
 * \author    Conny Gustafsson
-* \date      2018-12-07
-* \brief     APX definitions for unit tests
+* \date      2019-01-02
+* \brief     Description
 *
-* Copyright (c) 2018 Conny Gustafsson
+* Copyright (c) 2019 Conny Gustafsson
 * Permission is hereby granted, free of charge, to any person obtaining a copy of
 * this software and associated documentation files (the "Software"), to deal in
 * the Software without restriction, including without limitation the rights to
@@ -26,7 +26,13 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-#include "apx_test_nodes.h"
+#include <malloc.h>
+#include <string.h>
+#include "apx_error.h"
+#include "apx_portProgramArray.h"
+#ifdef MEM_LEAK_CHECK
+#include "CMemLeak.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE CONSTANTS AND DATA TYPES
@@ -37,57 +43,79 @@
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-// PUBLIC VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-const char *g_apx_test_node1 =
-"APX/1.2\n"
-"N\"TestNode1\"\n"
-"P\"WheelBasedVehicleSpeed\"S:=65535\n"
-"P\"CabTiltLockWarning\"C(0,7):=7\n"
-"P\"VehicleMode\"C(0,15):=15\n"
-"R\"GearSelectionMode\"C(0,7):=7\n";
-
-const char *g_apx_test_node2 =
-"APX/1.2\n"
-"N\"TestNode2\"\n"
-"P\"WheelBasedVehicleSpeed\"S:=65535\n"
-"P\"ParkBrakeAlert\"C(0,3):=3\n"
-"R\"VehicleMode\"C(0,15):=15\n";
-
-const char *g_apx_test_node3 =
-"APX/1.2\n"
-"N\"TestNode3\"\n"
-"R\"WheelBasedVehicleSpeed\"S:=65535\n";
-
-const char *g_apx_test_node4 =
-"APX/1.2\n"
-"N\"TestNode4\"\n"
-"R\"WheelBasedVehicleSpeed\"S:=65535\n"
-"R\"ParkBrakeAlert\"C(0,3):=3\n"
-"R\"VehicleMode\"C(0,15):=15\n";
-
-const char *g_apx_test_node5 =
-"APX/1.2\n"
-"N\"TestNode5\"\n"
-"R\"WheelBasedVehicleSpeed\"S:=65535\n"
-"R\"CabTiltLockWarning\"C(0,7):=7\n"
-"P\"GearSelectionMode\"C(0,7):=7\n";
-
-const char *g_apx_test_node6 =
-"APX/1.3\n"
-"N\"TestNode6\"\n"
-"P\"DiagReq\"C[128]:D\n"
-"R\"DiagRsp\"C[128]:D\n";
-
-
-
-//////////////////////////////////////////////////////////////////////////////
-// PRIVATE VARIABLES
-//////////////////////////////////////////////////////////////////////////////
-
-//////////////////////////////////////////////////////////////////////////////
 // PUBLIC FUNCTIONS
 //////////////////////////////////////////////////////////////////////////////
+apx_error_t apx_portProgramArray_create(apx_portProgramArray_t *self, int32_t numPorts)
+{
+   if ( (self != 0) && (numPorts > 0) )
+   {
+      uint32_t dataSize = (uint32_t) (numPorts*sizeof(adt_bytearray_t*));
+      self->numPorts = numPorts;
+      self->programs = (adt_bytearray_t**) malloc(dataSize);
+      if (self->programs != 0)
+      {
+         memset(self->programs, 0, dataSize);
+      }
+      return APX_NO_ERROR;
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+void apx_portProgramArray_destroy(apx_portProgramArray_t *self)
+{
+   if ( (self != 0) && (self->programs != 0) && (self->numPorts > 0))
+   {
+      int32_t i;
+      for(i=0;i<self->numPorts;i++)
+      {
+         if (self->programs[i] != 0)
+         {
+            adt_bytearray_delete(self->programs[i]);
+         }
+      }
+      free(self->programs);
+   }
+}
+
+apx_portProgramArray_t *apx_portProgramArray_new(int32_t numPorts)
+{
+   apx_portProgramArray_t *self = (apx_portProgramArray_t*) malloc(sizeof(apx_portProgramArray_t));
+   if (self != 0)
+   {
+      apx_portProgramArray_create(self, numPorts);
+   }
+   else
+   {
+      apx_setError(APX_MEM_ERROR);
+   }
+   return self;
+}
+
+void apx_portProgramArray_delete(apx_portProgramArray_t *self)
+{
+   if (self != 0)
+   {
+      apx_portProgramArray_destroy(self);
+      free(self);
+   }
+}
+
+void apx_portProgramArray_set(apx_portProgramArray_t *self, apx_portId_t portId, adt_bytearray_t *program)
+{
+   if ( (self != 0) && (portId < self->numPorts))
+   {
+      self->programs[portId] = program;
+   }
+}
+
+adt_bytearray_t* apx_portProgramArray_get(apx_portProgramArray_t *self, apx_portId_t portId)
+{
+   if ( (self != 0) && (portId < self->numPorts))
+   {
+      return self->programs[portId];
+   }
+   return (adt_bytearray_t*) 0;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE FUNCTIONS

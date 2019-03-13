@@ -59,6 +59,7 @@ typedef struct apx_dataElement_tag
 {
    char *name;
    int8_t baseType;
+   bool isDynamicArray;
    uint32_t arrayLen;
    uint32_t packLen;
    union {
@@ -90,6 +91,8 @@ uint8_t *apx_dataElement_pack_dv(apx_dataElement_t *self, uint8_t *pBegin, uint8
 
 void apx_dataElement_setArrayLen(apx_dataElement_t *self, uint32_t arrayLen);
 uint32_t apx_dataElement_getArrayLen(apx_dataElement_t *self);
+void apx_dataElement_setDynamicArray(apx_dataElement_t *self);
+bool apx_dataElement_isDynamicArray(apx_dataElement_t *self);
 void apx_dataElement_appendChild(apx_dataElement_t *self, apx_dataElement_t *child);
 int32_t apx_dataElement_getNumChild(apx_dataElement_t *self);
 apx_dataElement_t *apx_dataElement_getChildAt(apx_dataElement_t *self, int32_t index);

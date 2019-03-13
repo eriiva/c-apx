@@ -41,6 +41,8 @@ typedef struct apx_parser_tag
    apx_node_t *currentNode;
    int32_t lastErrorType;
    int32_t lastErrorLine;
+   int16_t majorVersion;
+   int16_t minorVersion;
 }apx_parser_t;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -63,7 +65,8 @@ apx_node_t *apx_parser_parseString(apx_parser_t *self, const char *data);
 //event handlers
 void apx_parser_open(apx_parser_t *self);
 void apx_parser_close(apx_parser_t *self);
-void apx_parser_node(apx_parser_t *self, const char *name); //N"<name>"
+bool apx_parser_header(apx_parser_t *self, int16_t majorVersion, int16_t minorVersion);
+void apx_parser_node(apx_parser_t *self, const char *name, int32_t lineNumber); //N"<name>"
 int32_t apx_parser_datatype(apx_parser_t *self, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
 int32_t apx_parser_require(apx_parser_t *self, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
 int32_t apx_parser_provide(apx_parser_t *self, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
@@ -73,7 +76,8 @@ void apx_parser_parse_error(apx_parser_t *self, int32_t errorType, int32_t error
 //void event handlers
 void apx_parser_vopen(void *arg);
 void apx_parser_vclose(void *arg);
-void apx_parser_vnode(void *arg, const char *name); //N"<name>"
+bool apx_parser_vheader(void *arg, int16_t majorVersion, int16_t minorVersion);
+void apx_parser_vnode(void *arg, const char *name, int32_t lineNumber); //N"<name>"
 int32_t apx_parser_vdatatype(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
 int32_t apx_parser_vrequire(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber);
 int32_t apx_parser_vprovide(void *arg, const char *name, const char *dsg, const char *attr, int32_t lineNumber);

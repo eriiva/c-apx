@@ -60,6 +60,7 @@ void apx_nodeDataManager_create(apx_nodeDataManager_t *self)
       apx_istream_handler.arg = &self->parser;
       apx_istream_handler.open = apx_parser_vopen;
       apx_istream_handler.close = apx_parser_vclose;
+      apx_istream_handler.header = apx_parser_vheader;
       apx_istream_handler.node = apx_parser_vnode;
       apx_istream_handler.datatype = apx_parser_vdatatype;
       apx_istream_handler.provide = apx_parser_vprovide;

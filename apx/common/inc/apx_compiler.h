@@ -38,6 +38,8 @@
 //////////////////////////////////////////////////////////////////////////////
 // PUBLIC CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
+typedef adt_bytearray_t apx_program_t;
+
 typedef struct apx_compiler_tag
 {
    adt_bytearray_t *program;
@@ -53,7 +55,7 @@ void apx_compiler_create(apx_compiler_t *self);
 void apx_compiler_destroy(apx_compiler_t *self);
 apx_compiler_t* apx_compiler_new(void);
 void apx_compiler_delete(apx_compiler_t *self);
-apx_error_t apx_compiler_compileRequirePort(apx_compiler_t *self, apx_node_t *node, apx_portId_t portId, adt_bytearray_t *program);
-apx_error_t apx_compiler_compileProvidePort(apx_compiler_t *self, apx_node_t *node, apx_portId_t portId, adt_bytearray_t *program);
+apx_error_t apx_compiler_compileRequirePort(apx_compiler_t *self, apx_node_t *node, apx_portId_t portId, apx_program_t *program);
+apx_error_t apx_compiler_compileProvidePort(apx_compiler_t *self, apx_node_t *node, apx_portId_t portId, apx_program_t *program);
 
 #endif //APX_COMPILER_H

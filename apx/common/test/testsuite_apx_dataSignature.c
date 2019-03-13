@@ -67,6 +67,7 @@ static void test_apx_dataSignature_getDerivedString_uint8(CuTest *tc);
 static void test_apx_dataSignature_getDerivedString_uint16(CuTest *tc);
 static void test_apx_dataSignature_getDerivedString_uint32(CuTest *tc);
 static void test_apx_dataSignature_getDerivedString_uint8Ref(CuTest *tc);
+static void test_apx_dataSignature_u8DynamicArray(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // PRIVATE VARIABLES
@@ -98,6 +99,7 @@ CuSuite* testsuite_apx_dataSignature(void)
    SUITE_ADD_TEST(suite, test_apx_dataSignature_getDerivedString_uint16);
    SUITE_ADD_TEST(suite, test_apx_dataSignature_getDerivedString_uint32);
    SUITE_ADD_TEST(suite, test_apx_dataSignature_getDerivedString_uint8Ref);
+   SUITE_ADD_TEST(suite, test_apx_dataSignature_u8DynamicArray);
 
    return suite;
 }
@@ -546,4 +548,21 @@ static void test_apx_dataSignature_getDerivedString_uint8Ref(CuTest *tc)
 
    adt_ary_destroy(&typeList);
    apx_dataSignature_delete(dsg);
+}
+
+static void test_apx_dataSignature_u8DynamicArray(CuTest* tc)
+{
+   apx_dataSignature_t *pSignature;
+
+   //base type
+   pSignature = apx_dataSignature_new("C[*]");
+   CuAssertPtrNotNull(tc, pSignature);
+   CuAssertIntEquals(tc, APX_BASE_TYPE_UINT8,pSignature->dataElement->baseType);
+   CuAssertPtrEquals(tc, NULL,pSignature->dataElement->name);
+   CuAssertUIntEquals(tc, 0, apx_dataElement_getArrayLen(pSignature->dataElement));
+   CuAssertIntEquals(tc, 0, pSignature->dataElement->min.s32);
+   CuAssertIntEquals(tc, 0, pSignature->dataElement->max.s32);
+   CuAssertTrue(tc, apx_dataElement_isDynamicArray(pSignature->dataElement));
+   CuAssertUIntEquals(tc,sizeof(uint8_t), apx_dataSignature_calcPackLen(pSignature));
+   apx_dataSignature_delete(pSignature);
 }

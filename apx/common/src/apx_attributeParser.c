@@ -1,15 +1,14 @@
 //////////////////////////////////////////////////////////////////////////////
 // INCLUDES
 //////////////////////////////////////////////////////////////////////////////
-//#include <string.h>
 #include <stdio.h>
-#include <errno.h>
 #include <assert.h>
+#include <ctype.h>
+#include <string.h>
+#include "apx_types.h"
+#include "apx_error.h"
 #include "apx_attributeParser.h"
 #include "bstr.h"
-#include <ctype.h>
-#include <stdio.h>
-#include <string.h>
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -19,15 +18,17 @@
 //////////////////////////////////////////////////////////////////////////////
 // CONSTANTS AND DATA TYPES
 //////////////////////////////////////////////////////////////////////////////
-#define APX_ATTRIB_INIT    0
-#define APX_ATTRIB_PARAM   1
-#define APX_ATTRIB_QUEUE   2
+#define APX_ATTRIB_NONE    0
+#define APX_ATTRIB_INIT    1
+#define APX_ATTRIB_PARAM   2
+#define APX_ATTRIB_QUEUE   3
+#define APX_ATTRIB_DYNAMIC 4
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
 //////////////////////////////////////////////////////////////////////////////
 DYN_STATIC const uint8_t* apx_attributeParser_parseSingleAttribute(apx_attributeParser_t *self, const uint8_t *pBegin, const uint8_t *pEnd, apx_portAttributes_t *attr);
 DYN_STATIC const uint8_t* apx_attributeParser_parseInitValue(apx_attributeParser_t *self, const uint8_t *pBegin, const uint8_t *pEnd, dtl_dv_t **ppInitValue);
-DYN_STATIC const uint8_t* apx_attributeParser_parseQueueLength(apx_attributeParser_t *self, const uint8_t *pBegin, const uint8_t *pEnd, apx_portAttributes_t *attr);
+DYN_STATIC const uint8_t* apx_attributeParser_parseArrayLength(apx_attributeParser_t *self, const uint8_t *pBegin, const uint8_t *pEnd, int32_t *pValue);
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL VARIABLES
@@ -42,11 +43,22 @@ void apx_attributeParser_create(apx_attributeParser_t *self)
    self->lastError = APX_NO_ERROR;
    self->lastErrorPos=-1;
    self->pErrorNext = 0;
+   self->majorVersion = APX_NODE_DEFAULT_VERSION_MAJOR;
+   self->minorVersion = APX_NODE_DEFAULT_VERSION_MINOR;
 }
 
 void apx_attributeParser_destroy(apx_attributeParser_t *self)
 {
    //nothing to do
+}
+
+void apx_attributeParser_setVersion(apx_attributeParser_t *self, int16_t majorVersion, int16_t minorVersion)
+{
+   if (self != 0)
+   {
+      self->majorVersion = majorVersion;
+      self->minorVersion = minorVersion;
+   }
 }
 
 /**
@@ -80,7 +92,7 @@ const uint8_t* apx_attributeParser_parse(apx_attributeParser_t *self, const uint
    const uint8_t *pResult;
    if ((pEnd < pBegin) || (pBegin==0) || (pEnd == 0))
    {
-      errno = EINVAL;
+      apx_setError(APX_INVALID_ARGUMENT_ERROR);
       return 0;
    }
    while(pNext < pEnd)
@@ -121,7 +133,7 @@ const uint8_t* apx_attributeParser_parse(apx_attributeParser_t *self, const uint
    return pNext;
 }
 
-int32_t apx_attributeParser_getLastError(apx_attributeParser_t *self, const uint8_t **ppNext)
+apx_error_t apx_attributeParser_getLastError(apx_attributeParser_t *self, const uint8_t **ppNext)
 {
    if (self != 0)
    {
@@ -131,7 +143,6 @@ int32_t apx_attributeParser_getLastError(apx_attributeParser_t *self, const uint
       }
       return self->lastError;
    }
-   errno = EINVAL;
    return -1;
 }
 
@@ -152,7 +163,7 @@ DYN_STATIC const uint8_t* apx_attributeParser_parseSingleAttribute(apx_attribute
    char c;
    const uint8_t *pNext = pBegin;
    const uint8_t *pResult = 0;
-   uint8_t attribType;
+   uint8_t attribType = APX_ATTRIB_NONE;
    if (pNext < pEnd)
    {
       c = (char) *pNext;
@@ -164,42 +175,67 @@ DYN_STATIC const uint8_t* apx_attributeParser_parseSingleAttribute(apx_attribute
       case 'P':
          attribType = APX_ATTRIB_PARAM;
          break;
+      case 'D':
+         if ( (self->majorVersion == 1) && (self->minorVersion >= 3) )
+         {
+            attribType = APX_ATTRIB_DYNAMIC;
+         }
+         break;
       case 'Q':
          attribType = APX_ATTRIB_QUEUE;
          break;
       default:
+         attribType = APX_ATTRIB_NONE;
+         break;
+      }
+      if (attribType != APX_ATTRIB_NONE)
+      {
+         pNext++;
+         switch(attribType)
+         {
+         case APX_ATTRIB_INIT:
+            apx_portAttributes_clearInitValue(attr);
+            pResult = apx_attributeParser_parseInitValue(self, pNext, pEnd, &attr->initValue);
+            if ( (pResult == 0) || (pResult == pNext) )
+            {
+               self->lastError = APX_INVALID_ATTRIBUTE_ERROR;
+               self->pErrorNext = pNext;
+               return 0;
+            }
+            pNext = pResult;
+            break;
+         case APX_ATTRIB_PARAM:
+            attr->isParameter = true;
+            break;
+         case APX_ATTRIB_DYNAMIC:
+            attr->isDynamic = true;
+            pResult = apx_attributeParser_parseArrayLength(self, pNext, pEnd, &attr->dynLen);
+            if ( (pResult == 0) || (pResult == pNext) )
+            {
+               self->lastError = APX_INVALID_ATTRIBUTE_ERROR;
+               self->pErrorNext = pNext;
+               return 0;
+            }
+            pNext = pResult;
+            break;
+         case APX_ATTRIB_QUEUE:
+            attr->isQueued = true;
+            pResult = apx_attributeParser_parseArrayLength(self, pNext, pEnd, &attr->queueLen);
+            if ( (pResult == 0) || (pResult == pNext) )
+            {
+               self->lastError = APX_INVALID_ATTRIBUTE_ERROR;
+               self->pErrorNext = pNext;
+               return 0;
+            }
+            pNext = pResult;
+            break;
+         }
+      }
+      else
+      {
          self->lastError = APX_INVALID_ATTRIBUTE_ERROR;
          self->pErrorNext = pNext;
-         return 0;
-      }
-      pNext++;
-      switch(attribType)
-      {
-      case APX_ATTRIB_INIT:
-         apx_portAttributes_clearInitValue(attr);
-         pResult = apx_attributeParser_parseInitValue(self, pNext, pEnd, &attr->initValue);
-         if ( (pResult == 0) || (pResult == pNext) )
-         {
-            self->lastError = APX_INVALID_ATTRIBUTE_ERROR;
-            self->pErrorNext = pNext;
-            return 0;
-         }
-         pNext = pResult;
-         break;
-      case APX_ATTRIB_PARAM:
-         attr->isParameter = true;
-         break;
-      case APX_ATTRIB_QUEUE:
-         attr->isQueued = true;
-         pResult = apx_attributeParser_parseQueueLength(self, pNext, pEnd, attr);
-         if ( (pResult == 0) || (pResult == pNext) )
-         {
-            self->lastError = APX_INVALID_ATTRIBUTE_ERROR;
-            self->pErrorNext = pNext;
-            return 0;
-         }
-         pNext = pResult;
-         break;
+         pNext = 0;
       }
    }
    return pNext;
@@ -405,13 +441,12 @@ DYN_STATIC const uint8_t* apx_attributeParser_parseInitValue(apx_attributeParser
       }
       return pResult;
    }
-   errno = EINVAL;
    return 0;
 }
 
-DYN_STATIC const uint8_t* apx_attributeParser_parseQueueLength(apx_attributeParser_t *self, const uint8_t *pBegin, const uint8_t *pEnd, apx_portAttributes_t *attr)
+DYN_STATIC const uint8_t* apx_attributeParser_parseArrayLength(apx_attributeParser_t *self, const uint8_t *pBegin, const uint8_t *pEnd, int32_t *pValue)
 {
-   if ( (self != 0) && (attr != 0) && (pBegin != 0) && (pEnd != 0) && (pBegin <= pEnd) )
+   if ( (self != 0) && (pValue != 0) && (pBegin != 0) && (pEnd != 0) && (pBegin <= pEnd) )
    {
       const uint8_t *pNext = pBegin;
       if (pBegin < pEnd)
@@ -442,7 +477,7 @@ DYN_STATIC const uint8_t* apx_attributeParser_parseQueueLength(apx_attributePars
             //check validity of queue length value
             if (value > 0)
             {
-               attr->queueLen = (int32_t) value;
+               *pValue = (int32_t) value;
             }
             else
             {
@@ -460,7 +495,6 @@ DYN_STATIC const uint8_t* apx_attributeParser_parseQueueLength(apx_attributePars
          return pMark;
       }
    }
-   errno = EINVAL;
    return 0;
 }
 

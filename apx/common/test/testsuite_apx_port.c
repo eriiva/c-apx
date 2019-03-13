@@ -24,6 +24,7 @@
 static void test_apx_port_create_typeRef(CuTest* tc);
 static void test_apx_port_createDerivedDataSignature(CuTest* tc);
 static void test_apx_port_create_invalidRecordDsg(CuTest* tc);
+static void test_apx_port_create_U8DynamicArray(CuTest* tc);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -45,6 +46,7 @@ CuSuite* testsuite_apx_port(void)
    SUITE_ADD_TEST(suite, test_apx_port_create_typeRef);
    SUITE_ADD_TEST(suite, test_apx_port_createDerivedDataSignature);
    SUITE_ADD_TEST(suite, test_apx_port_create_invalidRecordDsg);
+   SUITE_ADD_TEST(suite, test_apx_port_create_U8DynamicArray);
 
    return suite;
 }
@@ -89,9 +91,9 @@ static void test_apx_port_create_invalidRecordDsg(CuTest* tc)
    CuAssertIntEquals(tc, APX_UNMATCHED_BRACE_ERROR, apx_port_create(&port, APX_REQUIRE_PORT, "Hello", "{\"UserId\"S", "=0", 0));
 }
 
-
-
-
-
-
-
+static void test_apx_port_create_U8DynamicArray(CuTest* tc)
+{
+   apx_port_t port;
+   CuAssertIntEquals(tc, APX_NO_ERROR, apx_port_create(&port, APX_REQUIRE_PORT, "Events","C[*]", "D[10]", 0));
+   apx_port_destroy(&port);
+}

@@ -80,7 +80,7 @@ static void test_apx_fileManagerShared_alloc(CuTest* tc)
    int i;
    apx_fileManagerShared_create(&data);
    //allocate small objects
-   for(i=1;i<SMALL_OBJECT_MAX_SIZE;i++)
+   for(i=1;i<SOA_SMALL_OBJECT_MAX_SIZE;i++)
    {
       char msg[20];
       size = i;

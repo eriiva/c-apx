@@ -31,6 +31,14 @@ const char *m_apx_node2 = "APX/1.2\n"
 "R\"CabTiltLockWarning\"C(0,7):=7\n"
 "R\"VehicleMode\"C(0,15):=15\n";
 
+const char *m_apx_node3 = "APX/1.3\n"
+"N\"Node3\"\n"
+"P\"DynArray\"C[*]:D[10]\n"; //D: Dynamic array length
+
+const char *m_apx_node4 = "APX/1.3\n"
+"N\"Node3\"\n"
+"P\"DynArray\"C[1]:Q[1]\n"; //Q: Queue length
+
 
 //////////////////////////////////////////////////////////////////////////////
 // LOCAL FUNCTION PROTOTYPES
@@ -40,6 +48,8 @@ static void test_apx_parser_nodeWithInitValues(CuTest* tc);
 static void test_apx_parser_providePortWithInvalidAttributeString(CuTest* tc);
 static void test_apx_parser_requirePortWithInvalidAttributeString(CuTest* tc);
 static void test_apx_parser_providePortWithInvalidDataSignature(CuTest* tc);
+static void test_apx_parser_providePortWithDynamicArray(CuTest* tc);
+static void test_apx_parser_providePortWithQueueLength(CuTest* tc);
 
 //////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES
@@ -63,6 +73,8 @@ CuSuite* testSuite_apx_parser(void)
    SUITE_ADD_TEST(suite, test_apx_parser_providePortWithInvalidAttributeString);
    SUITE_ADD_TEST(suite, test_apx_parser_requirePortWithInvalidAttributeString);
    SUITE_ADD_TEST(suite, test_apx_parser_providePortWithInvalidDataSignature);
+   SUITE_ADD_TEST(suite, test_apx_parser_providePortWithDynamicArray);
+   SUITE_ADD_TEST(suite, test_apx_parser_providePortWithQueueLength);
 
 
    return suite;
@@ -161,3 +173,44 @@ static void test_apx_parser_providePortWithInvalidDataSignature(CuTest* tc)
    apx_parser_destroy(&parser);
 }
 
+static void test_apx_parser_providePortWithDynamicArray(CuTest* tc)
+{
+   apx_parser_t parser;
+   apx_node_t *node;
+   apx_portAttributes_t *attr;
+   apx_port_t *port = 0;
+   int32_t numProvidePorts=0;
+   apx_parser_create(&parser);
+   node=apx_parser_parseString(&parser, m_apx_node3);
+   CuAssertPtrNotNull(tc,node);
+
+   numProvidePorts = apx_node_getNumProvidePorts(node);
+   CuAssertIntEquals(tc, 1, numProvidePorts);
+   port = apx_node_getProvidePort(node, 0);
+   attr = port->portAttributes;
+   CuAssertTrue(tc, attr->isDynamic);
+   CuAssertTrue(tc, !attr->isQueued);
+   apx_parser_destroy(&parser);
+}
+
+static void test_apx_parser_providePortWithQueueLength(CuTest* tc)
+{
+   apx_parser_t parser;
+   apx_node_t *node;
+   apx_portAttributes_t *attr;
+   apx_port_t *port = 0;
+   int32_t numProvidePorts=0;
+   apx_parser_create(&parser);
+   node=apx_parser_parseString(&parser, m_apx_node4);
+   CuAssertPtrNotNull(tc,node);
+
+   numProvidePorts = apx_node_getNumProvidePorts(node);
+   CuAssertIntEquals(tc, 1, numProvidePorts);
+   port = apx_node_getProvidePort(node, 0);
+   CuAssertPtrNotNull(tc, port->portAttributes);
+   attr = port->portAttributes;
+   CuAssertTrue(tc, !attr->isDynamic);
+   CuAssertTrue(tc, attr->isQueued);
+   apx_parser_destroy(&parser);
+
+}
