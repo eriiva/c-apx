@@ -30,6 +30,7 @@
 #include <string.h>
 #include "apx_vmstate.h"
 #include "apx_vmdefs.h"
+#include "pack.h"
 #ifdef MEM_LEAK_CHECK
 #include "CMemLeak.h"
 #endif
@@ -169,6 +170,21 @@ apx_error_t apx_vmstate_setWriteData(apx_vmstate_t *self, uint8_t *pData, uint32
    return APX_INVALID_ARGUMENT_ERROR;
 }
 
+/**
+ * Returns position of the write pointer
+ */
+uint8_t* apx_vmstate_getWritePtr(apx_vmstate_t *self)
+{
+   if ( (self != 0) && (self->hasValidWriteData) )
+   {
+      return self->data.write.pNext;
+   }
+   return (uint8_t*) 0;
+}
+
+/**
+ * Packs uint8 value into write buffer
+ */
 apx_error_t apx_vmstate_packU8(apx_vmstate_t *self, uint8_t u8Value)
 {
    if ( self != 0)
@@ -178,6 +194,61 @@ apx_error_t apx_vmstate_packU8(apx_vmstate_t *self, uint8_t u8Value)
          if (self->data.write.pNext < self->data.write.pEnd)
          {
             *self->data.write.pNext++ = u8Value;
+            return APX_NO_ERROR;
+         }
+         else
+         {
+            return APX_BUFFER_BOUNDARY_ERROR;
+         }
+      }
+      else
+      {
+         return APX_MISSING_BUFFER_ERROR;
+      }
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+
+/**
+ * Packs uint16 value into write buffer
+ */
+apx_error_t apx_vmstate_packU16(apx_vmstate_t *self, uint16_t u16Value)
+{
+   if ( self != 0)
+   {
+      if (self->hasValidWriteData)
+      {
+         if (self->data.write.pNext+1u < self->data.write.pEnd)
+         {
+            packU16LE(self->data.write.pNext, u16Value);
+            return APX_NO_ERROR;
+         }
+         else
+         {
+            return APX_BUFFER_BOUNDARY_ERROR;
+         }
+      }
+      else
+      {
+         return APX_MISSING_BUFFER_ERROR;
+      }
+   }
+   return APX_INVALID_ARGUMENT_ERROR;
+}
+
+/**
+ * Packs uint16 value into write buffer
+ */
+apx_error_t apx_vmstate_packU32(apx_vmstate_t *self, uint32_t u32Value)
+{
+   if ( self != 0)
+   {
+      if (self->hasValidWriteData)
+      {
+         if (self->data.write.pNext+3u < self->data.write.pEnd)
+         {
+            packU32LE(self->data.write.pNext, u32Value);
             return APX_NO_ERROR;
          }
          else

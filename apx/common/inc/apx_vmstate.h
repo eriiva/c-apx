@@ -90,8 +90,12 @@ void apx_vmstate_destroy(apx_vmstate_t *self);
 apx_vmstate_t* apx_vmstate_new(void);
 void apx_vmstate_delete(apx_vmstate_t *self);
 
+uint8_t* apx_vmstate_getWritePtr(apx_vmstate_t *self);
+
 apx_error_t apx_vmstate_setWriteData(apx_vmstate_t *self, uint8_t *pData, uint32_t dataLen);
 apx_error_t apx_vmstate_packU8(apx_vmstate_t *self, uint8_t u8Value);
+apx_error_t apx_vmstate_packU16(apx_vmstate_t *self, uint16_t u16Value);
+apx_error_t apx_vmstate_packU32(apx_vmstate_t *self, uint32_t u32Value);
 apx_error_t apx_vmstate_packU8U8DynArray(apx_vmstate_t *self, uint8_t *pArrayValues, uint8_t arrayLen);
 
 #endif //APX_VMSTATE_H
